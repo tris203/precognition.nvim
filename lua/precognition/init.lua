@@ -52,8 +52,6 @@ function M.setup(opts)
 	-- This is a test with basic functionality, definitely should be moved out of the setup function and into
 	-- functions that the public methods can call.
 
-	local re_line_start = vim.regex("^\\s*[^\\s]") --[[@as vim.regex]]
-
 	---@type integer?
 	local extmark -- the active extmark in the current buffer
 
@@ -87,10 +85,10 @@ function M.setup(opts)
 			end
 
 			local cursorline, _cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
-			local cur_line = vim.api.nvim_get_current_line()
+			local cur_line = vim.api.nvim_get_current_line():gsub("\t", "    ")
 
 			-- vim.fn.col("^") doesn't work :(
-			local line_end = vim.fn.col("$") - 1
+			local line_end = #cur_line or 0
 
 			-- FIXME: does not play nice with utf-8, we need a better way to
 			-- get char offsets.
@@ -98,7 +96,8 @@ function M.setup(opts)
 			-- Notice that on a line with a string containing utf-8 symbols, the marks to not
 			-- appear in the correct place. We need to treat this as a char array, it seems that vim regex
 			-- treats it like a byte array.
-			local line_start = select(2, re_line_start:match_str(cur_line))
+			-- local line_start = select(2, re_line_start:match_str(cur_line)) or 0
+			local line_start = cur_line:find("%S") or 0
 
 			local virt_line = {}
 
@@ -122,7 +121,7 @@ function M.setup(opts)
 			end
 
 			-- create (or overwrite) the extmark
-			extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, line_start, {
+			extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
 				id = extmark, -- reuse the same extmark if it exists
 				virt_lines = { virt_line },
 			})
