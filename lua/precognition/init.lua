@@ -49,11 +49,16 @@ function M.setup(opts)
     local ns = vim.api.nvim_create_namespace("precognition")
     local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
+    local w_reg = vim.regex("\\v-@![-[:lower:][:upper:][:digit:]_]+")
+    local w_punct_reg = vim.regex("\\v-@![[:punct:]]+")
+
     -- This is a test with basic functionality, definitely should be moved out of the setup function and into
     -- functions that the public methods can call.
 
     ---@type integer?
     local extmark -- the active extmark in the current buffer
+    ---@type boolean
+    local dirty -- whether a redraw is needed
 
     -- clear the extmark entirely when leaving a buffer (hints should only show in current buffer)
     vim.api.nvim_create_autocmd("BufLeave", {
@@ -61,17 +66,26 @@ function M.setup(opts)
         callback = function(ev)
             vim.api.nvim_buf_clear_namespace(ev.buf, ns, 0, -1)
             extmark = nil
+            dirty = true
         end,
     })
 
     -- clear the extmark when the cursor moves, or when insert mode is entered
+    --
+    --  TODO: maybe we should debounce on CursorMoved instead of using CursorHold?
     vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter" }, {
         group = au,
-        callback = function()
+        callback = function(ev)
             if extmark then
-                vim.api.nvim_buf_del_extmark(0, ns, extmark)
-                extmark = nil
+                local ext = vim.api.nvim_buf_get_extmark_by_id(0, ns, extmark, {
+                    details = true,
+                })
+                if ev.event ~= "CursorMoved" or ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
+                    vim.api.nvim_buf_del_extmark(0, ns, extmark)
+                    extmark = nil
+                end
             end
+            dirty = true
         end,
     })
 
@@ -80,11 +94,11 @@ function M.setup(opts)
         -- TODO: add debounce / delay before showing hints to reduce flickering
         -- during fast movements
         callback = function()
-            if extmark then
+            local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
+            if extmark and not dirty then
                 return
             end
 
-            local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
             local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
             local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
             local line_len = vim.fn.strcharlen(cur_line)
@@ -94,32 +108,26 @@ function M.setup(opts)
             -- get char offsets for more complex motions.
             local line_start = cur_line:find("%S") or 0
             local line_end = line_len
-            local w_reg = vim.regex("\\v-@![-[:lower:][:upper:][:digit:]_]+")
-            local w_punct_reg = vim.regex("\\v-@![[:punct:]]+")
 
-            -- skip past the current word
-            local cur_word, cur_word_end = w_reg:match_str(after_cursor)
-            local cur_word_punct, cur_word_punct_end = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, 1))
-            if cur_word_punct and cur_word and cur_word_punct < cur_word then
-                cur_word = cur_word_punct
-                cur_word_end = cur_word_punct_end
-            elseif cur_word_punct and not cur_word then
-                cur_word = cur_word_punct
-                cur_word_end = cur_word_punct_end
-            end
-            -- vim.notify(cur_word .. ":" .. cur_word_end, vim.log.levels.INFO, {})
-
-            -- if the match is after the cursor, don't add the end offset
-            if cur_word > 1 then
-                cur_word_end = 0
-            end
-
-            local motion_w = w_reg:match_str(vim.fn.strcharpart(after_cursor, cur_word_end + 1))
-            local motion_w_punct = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, cur_word_end + 1))
-            if motion_w and motion_w_punct and motion_w_punct < motion_w then
+            local motion_w, motion_w_end = w_reg:match_str(after_cursor)
+            local motion_w_punct, motion_w_punct_end = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, 1))
+            if motion_w_punct and motion_w and motion_w_punct < motion_w then
                 motion_w = motion_w_punct
+                motion_w_end = motion_w_punct_end
             elseif motion_w_punct and not motion_w then
                 motion_w = motion_w_punct
+                motion_w_end = motion_w_punct_end
+            end
+
+            -- if the match is in the current word, check the next word
+            if motion_w and motion_w <= 1 then
+                motion_w = w_reg:match_str(vim.fn.strcharpart(after_cursor, motion_w_end + 1))
+                motion_w_punct = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, motion_w_end + 1))
+                if motion_w and motion_w_punct and motion_w_punct < motion_w then
+                    motion_w = motion_w_punct
+                elseif motion_w_punct and not motion_w then
+                    motion_w = motion_w_punct
+                end
             end
 
             local virt_line = {}
@@ -130,7 +138,7 @@ function M.setup(opts)
             table.insert(marks, { "^", math.max(0, line_start - 1) })
             table.insert(marks, { "$", line_end - 1 })
             if motion_w then
-                table.insert(marks, { "w", cursorcol + cur_word_end + motion_w })
+                table.insert(marks, { "w", cursorcol + motion_w_end + motion_w })
             end
 
             table.sort(marks, function(a, b)
@@ -143,6 +151,7 @@ function M.setup(opts)
                 local hint = config.hints[mark[1]] or mark[1]
                 local col = mark[2]
                 if col > last_col then
+                    -- TODO: handle inline virtual text spacing
                     -- add padding between hints
                     table.insert(virt_line, { string.rep(" ", (col - last_col)) })
                     last_col = col + 1
@@ -150,11 +159,15 @@ function M.setup(opts)
                 table.insert(virt_line, { hint, "Comment" })
             end
 
+            -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
+
             -- create (or overwrite) the extmark
             extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
                 id = extmark, -- reuse the same extmark if it exists
                 virt_lines = { virt_line },
             })
+
+            dirty = false
         end,
     })
 end
