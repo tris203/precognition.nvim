@@ -84,14 +84,43 @@ function M.setup(opts)
                 return
             end
 
-            local cursorline, _cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
+            local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
             local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
             local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
+            local line_len = vim.fn.strcharlen(cur_line)
+            local after_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1)
 
             -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
             -- get char offsets for more complex motions.
             local line_start = cur_line:find("%S") or 0
-            local line_end = vim.fn.strcharlen(cur_line)
+            local line_end = line_len
+            local w_reg = vim.regex("\\v-@![-[:lower:][:upper:][:digit:]_]+")
+            local w_punct_reg = vim.regex("\\v-@![[:punct:]]+")
+
+            -- skip past the current word
+            local cur_word, cur_word_end = w_reg:match_str(after_cursor)
+            local cur_word_punct, cur_word_punct_end = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, 1))
+            if cur_word_punct and cur_word and cur_word_punct < cur_word then
+                cur_word = cur_word_punct
+                cur_word_end = cur_word_punct_end
+            elseif cur_word_punct and not cur_word then
+                cur_word = cur_word_punct
+                cur_word_end = cur_word_punct_end
+            end
+            -- vim.notify(cur_word .. ":" .. cur_word_end, vim.log.levels.INFO, {})
+
+            -- if the match is after the cursor, don't add the end offset
+            if cur_word > 1 then
+                cur_word_end = 0
+            end
+
+            local motion_w = w_reg:match_str(vim.fn.strcharpart(after_cursor, cur_word_end + 1))
+            local motion_w_punct = w_punct_reg:match_str(vim.fn.strcharpart(after_cursor, cur_word_end + 1))
+            if motion_w and motion_w_punct and motion_w_punct < motion_w then
+                motion_w = motion_w_punct
+            elseif motion_w_punct and not motion_w then
+                motion_w = motion_w_punct
+            end
 
             local virt_line = {}
 
@@ -100,6 +129,13 @@ function M.setup(opts)
             local marks = {}
             table.insert(marks, { "^", math.max(0, line_start - 1) })
             table.insert(marks, { "$", line_end - 1 })
+            if motion_w then
+                table.insert(marks, { "w", cursorcol + cur_word_end + motion_w })
+            end
+
+            table.sort(marks, function(a, b)
+                return a[2] < b[2]
+            end)
 
             -- build the virtual line out of virt text chunks
             local last_col = 0
