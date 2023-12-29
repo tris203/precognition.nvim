@@ -298,9 +298,6 @@ function M.setup(opts)
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
-    -- This is a test with basic functionality, definitely should be moved out of the setup function and into
-    -- functions that the public methods can call.
-
     M.show()
 end
 
