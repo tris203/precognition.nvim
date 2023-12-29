@@ -90,8 +90,11 @@ local function on_cursor_hold()
     local line_end = line_len
 
     local motion_w = next_word_boundary(after_cursor, 0)
+
     if motion_w <= 1 then
-        motion_w = next_word_boundary(after_cursor, math.max(0, motion_w)) - 1
+        motion_w = next_word_boundary(after_cursor, math.max(0, motion_w)) - motion_w
+    else
+        motion_w = motion_w - 1
     end
 
     local virt_line = {}
