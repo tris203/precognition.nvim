@@ -178,7 +178,7 @@ local function on_cursor_hold()
 
             last_col = col + 1
         else
-            skip_col = skip_col + (last_col - col)
+            skip_col = skip_col + (last_col - col) + 1
         end
         table.insert(virt_line, { hint, "Comment" })
     end
