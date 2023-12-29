@@ -223,7 +223,14 @@ end
 
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
-    error("not implemented")
+    on_cursor_hold()
+
+    vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave" }, {
+        buffer = vim.api.nvim_get_current_buf(),
+        once = true,
+        group = au,
+        callback = on_buf_leave,
+    })
 end
 
 --- Enable automatic showing of hints
