@@ -89,6 +89,7 @@ local function on_cursor_hold()
     local line_start = cur_line:find("%S") or 0
     local line_end = line_len
 
+    -- TODO: handle EOL - either hide the hint, or show a hint on the next line
     local motion_w = next_word_boundary(after_cursor, 0)
 
     if motion_w <= 1 then
