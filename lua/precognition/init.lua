@@ -73,6 +73,30 @@ local function next_word_boundary(str, start)
     return offset
 end
 
+local function prev_word_boundary(str, start)
+    local offset = start
+    str = string.reverse(str)
+
+    local len = vim.fn.strcharlen(str)
+    local char = vim.fn.strcharpart(str, offset, 1)
+    local c_class = char_class(char)
+
+    if c_class == 0 then
+        while char_class(char) == 0 and offset <= len do
+            offset = offset + 1
+            char = vim.fn.strcharpart(str, offset, 1)
+        end
+    end
+
+    c_class = char_class(char)
+    while char_class(char) == c_class and offset <= len do
+        offset = offset + 1
+        char = vim.fn.strcharpart(str, offset, 1)
+    end
+
+    return offset + 1
+end
+
 local function on_cursor_hold()
     local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
     if extmark and not dirty then
@@ -92,10 +116,22 @@ local function on_cursor_hold()
     -- TODO: handle EOL - either hide the hint, or show a hint on the next line
     local motion_w = next_word_boundary(after_cursor, 0)
 
-    if motion_w <= 1 then
+    if motion_w and motion_w <= 1 then
         motion_w = next_word_boundary(after_cursor, math.max(0, motion_w)) - motion_w
-    else
+    elseif motion_w then
         motion_w = motion_w - 1
+    end
+
+    local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol)
+    local before_reverse = before_cursor
+    local motion_b = prev_word_boundary(before_reverse, 0)
+    if motion_b and motion_b <= 0 then
+        motion_b = prev_word_boundary(before_reverse, math.max(0, motion_b)) - motion_b
+    elseif motion_b then
+        motion_b = motion_b - 1
+    end
+    if cursorcol - (motion_b + 1) <= 0 then
+        motion_b = nil
     end
 
     local virt_line = {}
@@ -108,6 +144,9 @@ local function on_cursor_hold()
     if motion_w then
         table.insert(marks, { "w", cursorcol + motion_w })
     end
+    if motion_b then
+        table.insert(marks, { "b", cursorcol - motion_b })
+    end
 
     table.sort(marks, function(a, b)
         return a[2] < b[2]
@@ -115,14 +154,31 @@ local function on_cursor_hold()
 
     -- build the virtual line out of virt text chunks
     local last_col = 0
+    local skip_col = 0
     for _, mark in ipairs(marks) do
         local hint = config.hints[mark[1]] or mark[1]
         local col = mark[2]
+        local cur_last = last_col
+
         if col > last_col then
             -- TODO: handle inline virtual text spacing
             -- add padding between hints
-            table.insert(virt_line, { string.rep(" ", (col - last_col)) })
+
+            local pad = (col - last_col)
+            if skip_col > 0 then
+                if skip_col > pad then
+                    skip_col = skip_col - pad
+                    pad = 0
+                else
+                    pad = pad - skip_col
+                    skip_col = 0
+                end
+            end
+            table.insert(virt_line, { string.rep(" ", pad) })
+
             last_col = col + 1
+        else
+            skip_col = skip_col + (last_col - col)
         end
         table.insert(virt_line, { hint, "Comment" })
     end
