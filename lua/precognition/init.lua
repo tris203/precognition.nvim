@@ -8,6 +8,7 @@ local M = {}
 
 ---@type Precognition.Config
 local default = {
+    startVisible = true,
     hints = {
         ["^"] = "^",
         ["$"] = "$",
@@ -266,7 +267,7 @@ function M.show()
         callback = on_cursor_hold,
     })
 
-    on_cursor_hold({ buf = vim.api.nvim_get_current_buf() })
+    on_cursor_hold()
 end
 
 --- Disable automatic showing of hints
@@ -297,8 +298,9 @@ function M.setup(opts)
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-
-    M.show()
+    if config.startVisible then
+        M.show()
+    end
 end
 
 return M
