@@ -114,7 +114,6 @@ local function on_cursor_hold()
     local line_start = cur_line:find("%S") or 0
     local line_end = line_len
 
-    -- TODO: handle EOL - either hide the hint, or show a hint on the next line
     local motion_w = next_word_boundary(after_cursor, 0)
 
     if motion_w and motion_w <= 1 then
@@ -142,7 +141,7 @@ local function on_cursor_hold()
     local marks = {}
     table.insert(marks, { "^", math.max(0, line_start - 1) })
     table.insert(marks, { "$", line_end - 1 })
-    if motion_w then
+    if motion_w and (motion_w + cursorcol) < line_len then
         table.insert(marks, { "w", cursorcol + motion_w })
     end
     if motion_b then
