@@ -1,10 +1,16 @@
 local M = {}
 
+---@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
+
 ---@class Precognition.Config
----@field hints table<string, string>
+---@field startVisible boolean
+---@field hints table<SupportedHints, string>
 
 ---@class Precognition.PartialConfig
----@field hints? table<string, string>
+---@field startVisible? boolean
+---@field hints? table<SupportedHints, string>
+
+---@alias Precognition.VirtLine table<SupportedHints, integer>
 
 ---@type Precognition.Config
 local default = {
@@ -13,10 +19,10 @@ local default = {
         ["^"] = "^",
         ["$"] = "$",
         ["w"] = "w",
-        ["W"] = "W",
+        -- ["W"] = "W",
         ["b"] = "b",
         ["e"] = "e",
-        ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
+        -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
     },
 }
 
@@ -35,17 +41,19 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 ---@type integer
 local ns = vim.api.nvim_create_namespace("precognition")
 
+---@param char string
+---@return integer
 local function char_class(char)
     local byte = string.byte(char)
 
     if byte and byte < 0x100 then
         if char == " " or char == "\t" or char == "\0" then
-            return 0
+            return 0 -- whitespace
         end
         if char == "_" or char:match("%w") then
-            return 2
+            return 2 -- word character
         end
-        return 1
+        return 1 -- other
     end
 
     return 1 -- scary unicode edge cases go here
@@ -53,9 +61,9 @@ end
 
 ---@param str string
 ---@param start integer
----@return integer
+---@return integer | nil
 local function next_word_boundary(str, start)
-    local offset = start
+    local offset = start - 1
     local len = vim.fn.strcharlen(str)
     local char = vim.fn.strcharpart(str, offset, 1)
     local c_class = char_class(char)
@@ -71,15 +79,59 @@ local function next_word_boundary(str, start)
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset, 1)
     end
+    if (offset + 1) > len then
+        return nil
+    end
+
+    return offset + 1
+end
+
+---@param str string
+---@param start integer
+---@return integer | nil
+local function end_of_word(str, start)
+    local len = vim.fn.strcharlen(str)
+    if start >= len then
+        return nil
+    end
+    local offset = start - 1
+    local char = vim.fn.strcharpart(str, offset, 1)
+    local c_class = char_class(char)
+    local next_char_class = char_class(vim.fn.strcharpart(str, offset + 1, 1))
+    local rev_offset
+
+    if c_class ~= 0 and next_char_class ~= 0 then
+        while char_class(char) == c_class and offset <= len do
+            offset = offset + 1
+            char = vim.fn.strcharpart(str, offset, 1)
+        end
+    end
+
+    if c_class == 0 or next_char_class == 0 then
+        local next_word_start = next_word_boundary(str, offset)
+        if next_word_start then
+            rev_offset = end_of_word(str, next_word_start + 1)
+        end
+    end
+
+    if rev_offset ~= nil and rev_offset <= 0 then
+        return nil
+    end
+
+    if rev_offset ~= nil then
+        return rev_offset
+    end
     return offset
 end
 
+---@param str string
+---@param start integer
+---@return integer | nil
 local function prev_word_boundary(str, start)
-    local offset = start
-    str = string.reverse(str)
-
     local len = vim.fn.strcharlen(str)
-    local char = vim.fn.strcharpart(str, offset, 1)
+    local offset = len - start + 1
+    str = string.reverse(str)
+    local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = char_class(char)
 
     if c_class == 0 then
@@ -93,13 +145,40 @@ local function prev_word_boundary(str, start)
     while char_class(char) == c_class and offset <= len do
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset, 1)
+        --if remaining string is whitespace, return nil_wrap
+        local remaining = string.sub(str, offset)
+        if remaining:match("^%s*$") and #remaining > 0 then
+            return nil
+        end
     end
+    --
+    if offset == nil or (len - offset + 1) > len or (len - offset + 1) <= 0 then
+        return nil
+    end
+    return len - offset + 1
+end
 
-    return offset + 1
+---@param marks Precognition.VirtLine
+---@param line_len integer
+---@return table
+local function build_virt_line(marks, line_len)
+    local virt_line = {}
+    local line = string.rep(" ", line_len)
+
+    for _, mark in ipairs(marks) do
+        local hint = config.hints[mark[1]] or mark[1]
+        local col = mark[2] or 0
+
+        line = line:sub(1, col-1) .. hint .. line:sub(col + 1)
+    end
+    table.insert(virt_line, { line, "Comment" })
+
+    return virt_line
 end
 
 local function on_cursor_hold()
     local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
+    cursorcol = cursorcol + 1
     if extmark and not dirty then
         return
     end
@@ -107,81 +186,42 @@ local function on_cursor_hold()
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
     local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
-    local after_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1)
+    -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
+    -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
+    -- local before_cursor_rev = string.reverse(before_cursor)
+    -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
     local line_start = cur_line:find("%S") or 0
     local line_end = line_len
 
-    local motion_w = next_word_boundary(after_cursor, 0)
+    local motion_w = next_word_boundary(cur_line, cursorcol)
 
-    if motion_w and motion_w <= 1 then
-        motion_w = next_word_boundary(after_cursor, math.max(0, motion_w)) - motion_w
-    elseif motion_w then
-        motion_w = motion_w - 1
-    end
+    local motion_e = end_of_word(cur_line, cursorcol)
 
-    local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol)
-    local before_reverse = before_cursor
-    local motion_b = prev_word_boundary(before_reverse, 0)
-    if motion_b and motion_b <= 0 then
-        motion_b = prev_word_boundary(before_reverse, math.max(0, motion_b)) - motion_b
-    elseif motion_b then
-        motion_b = motion_b - 1
-    end
-    if cursorcol - (motion_b + 1) <= 0 then
-        motion_b = nil
-    end
-
-    local virt_line = {}
+    local motion_b = prev_word_boundary(cur_line, cursorcol)
 
     -- create the list of hints to show in { hint, column } format
     -- TODO: extract this into a function, add hints for other motions
+    ---@type Precognition.VirtLine
     local marks = {}
-    table.insert(marks, { "^", math.max(0, line_start - 1) })
-    table.insert(marks, { "$", line_end - 1 })
-    if motion_w and (motion_w + cursorcol) < line_len then
-        table.insert(marks, { "w", cursorcol + motion_w })
+    table.insert(marks, { "^", math.max(0, line_start) })
+    table.insert(marks, { "$", line_end })
+    if motion_w then
+        table.insert(marks, { "w", motion_w })
+    end
+    if motion_e then
+        table.insert(marks, { "e", motion_e })
     end
     if motion_b then
-        table.insert(marks, { "b", cursorcol - motion_b })
+        table.insert(marks, { "b", motion_b })
     end
-
     table.sort(marks, function(a, b)
         return a[2] < b[2]
     end)
 
-    -- build the virtual line out of virt text chunks
-    local last_col = 0
-    local skip_col = 0
-    for _, mark in ipairs(marks) do
-        local hint = config.hints[mark[1]] or mark[1]
-        local col = mark[2]
-        local cur_last = last_col
-
-        if col > last_col then
-            -- TODO: handle inline virtual text spacing
-            -- add padding between hints
-
-            local pad = (col - last_col)
-            if skip_col > 0 then
-                if skip_col > pad then
-                    skip_col = skip_col - pad
-                    pad = 0
-                else
-                    pad = pad - skip_col
-                    skip_col = 0
-                end
-            end
-            table.insert(virt_line, { string.rep(" ", pad) })
-
-            last_col = col + 1
-        else
-            skip_col = skip_col + (last_col - col) + 1
-        end
-        table.insert(virt_line, { hint, "Comment" })
-    end
+    local virt_line = build_virt_line(marks, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
@@ -301,5 +341,34 @@ function M.setup(opts)
         M.show()
     end
 end
+
+-- This is for testing purposes, since we need to
+-- access these variables from outside the module
+-- but we don't want to expose them to the user
+local state = {
+    char_class = function()
+        return char_class
+    end,
+    next_word_boundary = function()
+        return next_word_boundary
+    end,
+    prev_word_boundary = function()
+        return prev_word_boundary
+    end,
+    end_of_word = function()
+        return end_of_word
+    end,
+    build_virt_line = function()
+        return build_virt_line
+    end,
+}
+
+setmetatable(M, {
+    __index = function(_, k)
+        if state[k] then
+            return state[k]()
+        end
+    end,
+})
 
 return M
