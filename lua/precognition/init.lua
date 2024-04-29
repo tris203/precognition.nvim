@@ -169,7 +169,7 @@ local function build_virt_line(marks, line_len)
         local hint = config.hints[mark[1]] or mark[1]
         local col = mark[2] or 0
 
-        line = line:sub(1, col-1) .. hint .. line:sub(col + 1)
+        line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
     end
     table.insert(virt_line, { line, "Comment" })
 
