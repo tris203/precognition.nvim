@@ -5,8 +5,8 @@ describe("Build Virtual Line", function()
     it("can build a simple virtual line", function()
         ---@type Precognition.VirtLine
         local marks = {
-            { "^", 4 },
-            { "$", 10 },
+            ["^"] = 4,
+            ["$"] = 10,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("   ^     $", virtual_line[1][1])
@@ -16,7 +16,7 @@ describe("Build Virtual Line", function()
     it("can build a virtual line with a single mark", function()
         ---@type Precognition.VirtLine
         local marks = {
-            { "^", 4 },
+            ["^"] = 4,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("   ^      ", virtual_line[1][1])
@@ -26,7 +26,7 @@ describe("Build Virtual Line", function()
     it("can build a virtual line with a single mark at the end", function()
         ---@type Precognition.VirtLine
         local marks = {
-            { "$", 10 },
+            ["$"] = 10,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("         $", virtual_line[1][1])
@@ -38,7 +38,7 @@ describe("Build Virtual Line", function()
         function()
             ---@type Precognition.VirtLine
             local marks = {
-                { "^", 1 },
+                ["^"] = 1,
             }
             local virtual_line = precognition.build_virt_line(marks, 10)
             eq("^         ", virtual_line[1][1])
@@ -49,10 +49,10 @@ describe("Build Virtual Line", function()
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
         local marks = {
-            { "^", 1 },
-            { "b", 4 },
-            { "w", 10 },
-            { "$", 50 },
+            ["^"] = 1,
+            ["b"] = 4,
+            ["w"] = 10,
+            ["$"] = 50,
         }
         local virtual_line = precognition.build_virt_line(marks, 50)
         local line_num = 1

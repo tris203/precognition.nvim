@@ -4,13 +4,13 @@ local M = {}
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints table<SupportedHints, string>
+---@field hints { SupportedHints: string }
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
----@field hints? table<SupportedHints, string>
+---@field hints? { SupportedHints: string }
 
----@alias Precognition.VirtLine table<SupportedHints, integer>
+---@alias Precognition.VirtLine { [ SupportedHints]: integer | nil }
 
 ---@type Precognition.Config
 local default = {
@@ -165,11 +165,13 @@ local function build_virt_line(marks, line_len)
     local virt_line = {}
     local line = string.rep(" ", line_len)
 
-    for _, mark in ipairs(marks) do
-        local hint = config.hints[mark[1]] or mark[1]
-        local col = mark[2] or 0
+    for mark, loc in pairs(marks) do
+        local hint = config.hints[mark] or mark
+        local col = loc
 
-        line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+        if col ~= nil then
+            line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+        end
     end
     table.insert(virt_line, { line, "Comment" })
 
@@ -203,26 +205,13 @@ local function on_cursor_hold()
 
     local motion_b = prev_word_boundary(cur_line, cursorcol)
 
-    -- create the list of hints to show in { hint, column } format
-    -- TODO: extract this into a function, add hints for other motions
-    ---@type Precognition.VirtLine
-    local marks = {}
-    table.insert(marks, { "^", math.max(0, line_start) })
-    table.insert(marks, { "$", line_end })
-    if motion_w then
-        table.insert(marks, { "w", motion_w })
-    end
-    if motion_e then
-        table.insert(marks, { "e", motion_e })
-    end
-    if motion_b then
-        table.insert(marks, { "b", motion_b })
-    end
-    table.sort(marks, function(a, b)
-        return a[2] < b[2]
-    end)
-
-    local virt_line = build_virt_line(marks, line_len)
+    local virt_line = build_virt_line({
+        w = motion_w,
+        e = motion_e,
+        b = motion_b,
+        ["^"] = line_start,
+        ["$"] = line_end,
+    }, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
