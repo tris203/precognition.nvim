@@ -196,21 +196,13 @@ local function on_cursor_hold()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
-    local line_start = cur_line:find("%S") or 0
-    local line_end = line_len
-
-    local motion_w = next_word_boundary(cur_line, cursorcol)
-
-    local motion_e = end_of_word(cur_line, cursorcol)
-
-    local motion_b = prev_word_boundary(cur_line, cursorcol)
 
     local virt_line = build_virt_line({
-        w = motion_w,
-        e = motion_e,
-        b = motion_b,
-        ["^"] = line_start,
-        ["$"] = line_end,
+        ["w"] = next_word_boundary(cur_line, cursorcol),
+        ["e"] = end_of_word(cur_line, cursorcol),
+        ["b"] = prev_word_boundary(cur_line, cursorcol),
+        ["^"] = cur_line:find("%S") or 0,
+        ["$"] = line_len,
     }, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
