@@ -184,7 +184,8 @@ local function on_cursor_hold()
     end
 
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
+    local cur_line =
+        vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)

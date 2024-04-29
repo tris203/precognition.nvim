@@ -40,16 +40,64 @@ describe("boundaries", function()
         eq(22, precognition.next_word_boundary("slighly more complex test", 15))
         eq(22, precognition.next_word_boundary("slighly more complex test", 21))
 
-        eq(5, precognition.next_word_boundary("    myFunction(example, stuff)", 1))
-        eq(5, precognition.next_word_boundary("    myFunction(example, stuff)", 2))
-        eq(5, precognition.next_word_boundary("    myFunction(example, stuff)", 3))
-        eq(15, precognition.next_word_boundary("    myFunction(example, stuff)", 5))
-        eq(16, precognition.next_word_boundary("    myFunction(example, stuff)", 15))
-        eq(23, precognition.next_word_boundary("    myFunction(example, stuff)", 16))
-        eq(25, precognition.next_word_boundary("    myFunction(example, stuff)", 23))
-        eq(25, precognition.next_word_boundary("    myFunction(example, stuff)", 24))
-        eq(30, precognition.next_word_boundary("    myFunction(example, stuff)", 25))
-        eq(nil, precognition.next_word_boundary("    myFunction(example, stuff)", 30))
+        eq(
+            5,
+            precognition.next_word_boundary("    myFunction(example, stuff)", 1)
+        )
+        eq(
+            5,
+            precognition.next_word_boundary("    myFunction(example, stuff)", 2)
+        )
+        eq(
+            5,
+            precognition.next_word_boundary("    myFunction(example, stuff)", 3)
+        )
+        eq(
+            15,
+            precognition.next_word_boundary("    myFunction(example, stuff)", 5)
+        )
+        eq(
+            16,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                15
+            )
+        )
+        eq(
+            23,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                16
+            )
+        )
+        eq(
+            25,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                23
+            )
+        )
+        eq(
+            25,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                24
+            )
+        )
+        eq(
+            30,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                25
+            )
+        )
+        eq(
+            nil,
+            precognition.next_word_boundary(
+                "    myFunction(example, stuff)",
+                30
+            )
+        )
     end)
 
     it("can walk string with w", function()
@@ -74,30 +122,144 @@ describe("boundaries", function()
             eq(5, precognition.prev_word_boundary("abc efg", 6))
             eq(5, precognition.prev_word_boundary("abc efg", 7))
 
-            eq(9, precognition.prev_word_boundary("slighly more complex test", 10))
-            eq(9, precognition.prev_word_boundary("slighly more complex test", 11))
-            eq(14, precognition.prev_word_boundary("slighly more complex test", 15))
-            eq(14, precognition.prev_word_boundary("slighly more complex test", 16))
-            eq(22, precognition.prev_word_boundary("slighly more complex test", 23))
-            eq(22, precognition.prev_word_boundary("slighly more complex test", 24))
-            eq(22, precognition.prev_word_boundary("slighly more complex test", 25))
-            eq(nil, precognition.prev_word_boundary("slighly more complex test", 1))
+            eq(
+                9,
+                precognition.prev_word_boundary("slighly more complex test", 10)
+            )
+            eq(
+                9,
+                precognition.prev_word_boundary("slighly more complex test", 11)
+            )
+            eq(
+                14,
+                precognition.prev_word_boundary("slighly more complex test", 15)
+            )
+            eq(
+                14,
+                precognition.prev_word_boundary("slighly more complex test", 16)
+            )
+            eq(
+                22,
+                precognition.prev_word_boundary("slighly more complex test", 23)
+            )
+            eq(
+                22,
+                precognition.prev_word_boundary("slighly more complex test", 24)
+            )
+            eq(
+                22,
+                precognition.prev_word_boundary("slighly more complex test", 25)
+            )
+            eq(
+                nil,
+                precognition.prev_word_boundary("slighly more complex test", 1)
+            )
 
-            eq(nil, precognition.prev_word_boundary("    myFunction(example, stuff)", 1))
-            eq(nil, precognition.prev_word_boundary("    myFunction(example, stuff)", 2))
-            eq(nil, precognition.prev_word_boundary("    myFunction(example, stuff)", 3))
-            eq(nil, precognition.prev_word_boundary("    myFunction(example, stuff)", 4))
-            eq(nil, precognition.prev_word_boundary("    myFunction(example, stuff)", 5))
-            eq(5, precognition.prev_word_boundary("    myFunction(example, stuff)", 6))
-            eq(5, precognition.prev_word_boundary("    myFunction(example, stuff)", 16))
-            eq(16, precognition.prev_word_boundary("    myFunction(example, stuff)", 17))
-            eq(16, precognition.prev_word_boundary("    myFunction(example, stuff)", 18))
-            eq(16, precognition.prev_word_boundary("    myFunction(example, stuff)", 19))
-            eq(24, precognition.prev_word_boundary("    myFunction(example, stuff)", 25))
-            eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 26))
-            eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 27))
-            eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 28))
-            eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 29))
+            eq(
+                nil,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    1
+                )
+            )
+            eq(
+                nil,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    2
+                )
+            )
+            eq(
+                nil,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    3
+                )
+            )
+            eq(
+                nil,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    4
+                )
+            )
+            eq(
+                nil,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    5
+                )
+            )
+            eq(
+                5,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    6
+                )
+            )
+            eq(
+                5,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    16
+                )
+            )
+            eq(
+                16,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    17
+                )
+            )
+            eq(
+                16,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    18
+                )
+            )
+            eq(
+                16,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    19
+                )
+            )
+            eq(
+                24,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    25
+                )
+            )
+            eq(
+                25,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    26
+                )
+            )
+            eq(
+                25,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    27
+                )
+            )
+            eq(
+                25,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    28
+                )
+            )
+            eq(
+                25,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    29
+                )
+            )
             --TODO: This isnt right, it should ne 25, but i dont know the rules
             --there is something odd if there is only one class 2 under the cursor
             -- eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 30))
@@ -129,20 +291,50 @@ describe("boundaries", function()
             eq(20, precognition.end_of_word("slighly more complex test", 15))
             eq(25, precognition.end_of_word("slighly more complex test", 21))
 
-            eq(14, precognition.end_of_word("    myFunction(example, stuff)", 1))
-            eq(14, precognition.end_of_word("    myFunction(example, stuff)", 2))
-            eq(14, precognition.end_of_word("    myFunction(example, stuff)", 3))
-            eq(14, precognition.end_of_word("    myFunction(example, stuff)", 5))
+            eq(
+                14,
+                precognition.end_of_word("    myFunction(example, stuff)", 1)
+            )
+            eq(
+                14,
+                precognition.end_of_word("    myFunction(example, stuff)", 2)
+            )
+            eq(
+                14,
+                precognition.end_of_word("    myFunction(example, stuff)", 3)
+            )
+            eq(
+                14,
+                precognition.end_of_word("    myFunction(example, stuff)", 5)
+            )
             --TODO: These next two dont work either for the same reason as the previous
             --something to do with the bracket being under the cursor
             -- eq(15, precognition.end_of_word("    myFunction(example, stuff)", 14))
             -- eq(22, precognition.end_of_word("    myFunction(example, stuff)", 15))
-            eq(22, precognition.end_of_word("    myFunction(example, stuff)", 16))
-            eq(29, precognition.end_of_word("    myFunction(example, stuff)", 23))
-            eq(29, precognition.end_of_word("    myFunction(example, stuff)", 24))
-            eq(29, precognition.end_of_word("    myFunction(example, stuff)", 25))
-            eq(29, precognition.end_of_word("    myFunction(example, stuff)", 29))
-            eq(nil, precognition.end_of_word("    myFunction(example, stuff)", 30))
+            eq(
+                22,
+                precognition.end_of_word("    myFunction(example, stuff)", 16)
+            )
+            eq(
+                29,
+                precognition.end_of_word("    myFunction(example, stuff)", 23)
+            )
+            eq(
+                29,
+                precognition.end_of_word("    myFunction(example, stuff)", 24)
+            )
+            eq(
+                29,
+                precognition.end_of_word("    myFunction(example, stuff)", 25)
+            )
+            eq(
+                29,
+                precognition.end_of_word("    myFunction(example, stuff)", 29)
+            )
+            eq(
+                nil,
+                precognition.end_of_word("    myFunction(example, stuff)", 30)
+            )
         end)
     end)
 end)

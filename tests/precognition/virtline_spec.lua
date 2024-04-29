@@ -33,15 +33,18 @@ describe("Build Virtual Line", function()
         eq(10, #virtual_line[1][1])
     end)
 
-    it("can build a virtual line with a single mark at the beginning", function()
-        ---@type Precognition.VirtLine
-        local marks = {
-            { "^", 1 },
-        }
-        local virtual_line = precognition.build_virt_line(marks, 10)
-        eq("^         ", virtual_line[1][1])
-        eq(10, #virtual_line[1][1])
-    end)
+    it(
+        "can build a virtual line with a single mark at the beginning",
+        function()
+            ---@type Precognition.VirtLine
+            local marks = {
+                { "^", 1 },
+            }
+            local virtual_line = precognition.build_virt_line(marks, 10)
+            eq("^         ", virtual_line[1][1])
+            eq(10, #virtual_line[1][1])
+        end
+    )
 
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
