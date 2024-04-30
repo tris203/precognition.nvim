@@ -191,7 +191,11 @@ local function build_virt_line(marks, line_len)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
-                if existing ~= "" and config.hints[mark].prio > config.hints[existing].prio then
+                if
+                    existing ~= ""
+                    and config.hints[mark].prio
+                        > config.hints[existing].prio
+                then
                     line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
                 end
             end
@@ -216,8 +220,9 @@ local function build_gutter_hints(buf)
 end
 
 ---@param gutter_hints Precognition.GutterHints
+---@param buf integer == bufnr
 ---@return nil
-local function apply_gutter_hints(gutter_hints)
+local function apply_gutter_hints(gutter_hints, buf)
     for hint, loc in pairs(gutter_hints) do
         if config.gutterHints[hint] then
             if gutter_signs_cache[hint] then
@@ -231,19 +236,26 @@ local function apply_gutter_hints(gutter_hints)
                 text = config.gutterHints[hint].text,
                 texthl = "Comment",
             })
-            gutter_signs_cache[hint] = {
-                loc = loc,
-                id = vim.fn.sign_place(
-                    0,
-                    gutter_group,
-                    gutter_name_prefix .. config.gutterHints[hint].text,
-                    0,
-                    {
-                        lnum = loc,
-                        priority = 100,
-                    }
-                ),
-            }
+            local ok, res = pcall(
+                vim.fn.sign_place,
+                0,
+                gutter_group,
+                gutter_name_prefix .. config.gutterHints[hint].text,
+                buf,
+                {
+                    lnum = loc,
+                    priority = 100,
+                }
+            )
+            if ok then
+                gutter_signs_cache[hint] = { line = loc, id = res }
+            end
+            if not ok then
+                vim.notify_once(
+                    "Failed to place sign: " .. config.gutterHints[hint].text,
+                    vim.log.levels.WARN
+                )
+            end
         end
     end
 end
@@ -283,7 +295,10 @@ local function on_cursor_hold()
         virt_lines = { virt_line },
     })
 
-    apply_gutter_hints(build_gutter_hints(0))
+    apply_gutter_hints(
+        build_gutter_hints(vim.api.nvim_get_current_buf()),
+        vim.api.nvim_get_current_buf()
+    )
 
     dirty = false
 end
@@ -310,7 +325,10 @@ local function on_insert_enter(ev)
 end
 
 local function on_buf_edit()
-    apply_gutter_hints(build_gutter_hints(0))
+    apply_gutter_hints(
+        build_gutter_hints(vim.api.nvim_get_current_buf()),
+        vim.api.nvim_get_current_buf()
+    )
 end
 
 local function on_buf_leave(ev)
