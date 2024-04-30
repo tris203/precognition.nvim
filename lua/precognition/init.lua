@@ -1,6 +1,7 @@
 local M = {}
 
 ---@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
+---@alias SupportedGutterHints "G" | "gg"
 
 ---@class Precognition.Config
 ---@field startVisible boolean
@@ -9,8 +10,10 @@ local M = {}
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field hints? { SupportedHints: string }
+---@field gutterHints? { SupportedGutterHints: string }
 
 ---@alias Precognition.VirtLine { [ SupportedHints]: integer | nil }
+---@alias Precognition.GutterHints { [ SupportedGutterHints]: integer | nil }
 
 ---@type Precognition.Config
 local default = {
@@ -24,6 +27,10 @@ local default = {
         ["e"] = "e",
         -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
     },
+    gutterHints = {
+        ["G"] = "G",
+        ["gg"] = "gg",
+    },
 }
 
 ---@type Precognition.Config
@@ -35,11 +42,17 @@ local extmark -- the active extmark in the current buffer
 local dirty -- whether a redraw is needed
 ---@type boolean
 local visible = false
+---@type string
+local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
+---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
+local gutter_signs_cache = {} -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 ---@type integer
 local ns = vim.api.nvim_create_namespace("precognition")
+---@type string
+local gutter_group = "precognition_gutter"
 
 ---@param char string
 ---@return integer
@@ -178,6 +191,48 @@ local function build_virt_line(marks, line_len)
     return virt_line
 end
 
+---@param buf integer == bufnr
+---@return Precognition.GutterHints
+local function build_gutter_hints(buf)
+    local gutter_hints = {
+        ["G"] = vim.api.nvim_buf_line_count(buf),
+        ["gg"] = 1,
+    }
+
+    return gutter_hints
+end
+
+---@param gutter_hints Precognition.GutterHints
+---@return nil
+local function apply_gutter_hints(gutter_hints)
+    for hint, loc in pairs(gutter_hints) do
+        if gutter_signs_cache[hint] then
+            vim.fn.sign_unplace(
+                gutter_group,
+                { id = gutter_signs_cache[hint].id }
+            )
+            gutter_signs_cache[hint] = nil
+        end
+        vim.fn.sign_define(gutter_name_prefix .. hint, {
+            text = hint,
+            texthl = "Comment",
+        })
+        gutter_signs_cache[hint] = {
+            loc = loc,
+            id = vim.fn.sign_place(
+                0,
+                gutter_group,
+                gutter_name_prefix .. hint,
+                0,
+                {
+                    lnum = loc,
+                    priority = 100,
+                }
+            ),
+        }
+    end
+end
+
 local function on_cursor_hold()
     local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
     cursorcol = cursorcol + 1
@@ -213,6 +268,8 @@ local function on_cursor_hold()
         virt_lines = { virt_line },
     })
 
+    apply_gutter_hints(build_gutter_hints(0))
+
     dirty = false
 end
 
@@ -237,10 +294,17 @@ local function on_insert_enter(ev)
     dirty = true
 end
 
+local function on_buf_edit()
+    apply_gutter_hints(build_gutter_hints(0))
+end
+
 local function on_buf_leave(ev)
     vim.api.nvim_buf_clear_namespace(ev.buf, ns, 0, -1)
     extmark = nil
+    gutter_signs_cache = {}
+    vim.fn.sign_unplace(gutter_group)
     dirty = true
+    on_buf_edit()
 end
 
 --- Show the hints until the next keypress or CursorMoved event
@@ -268,6 +332,10 @@ function M.show()
         callback = on_buf_leave,
     })
 
+    vim.api.nvim_create_autocmd("CursorMovedI", {
+        group = au,
+        callback = on_buf_edit,
+    })
     -- clear the extmark when the cursor moves, or when insert mode is entered
     --
     --  TODO: maybe we should debounce on CursorMoved instead of using CursorHold?
@@ -302,6 +370,8 @@ function M.hide()
         extmark = nil
     end
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+    vim.fn.sign_unplace(gutter_group)
+    gutter_signs_cache = {}
 end
 
 --- Toggle automatic showing of hints
@@ -342,6 +412,9 @@ local state = {
     end,
     build_virt_line = function()
         return build_virt_line
+    end,
+    build_gutter_hints = function()
+        return build_gutter_hints
     end,
 }
 
