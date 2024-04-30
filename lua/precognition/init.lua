@@ -187,11 +187,11 @@ local function build_virt_line(marks, line_len)
         local col = loc
 
         if col ~= nil then
-            if line:sub(col, col) == " " then
+            local existing = line:sub(col, col)
+            if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
-                local existing = line:sub(col, col)
-                if config.hints[mark].prio > config.hints[existing].prio then
+                if existing ~= "" and config.hints[mark].prio > config.hints[existing].prio then
                     line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
                 end
             end
@@ -236,7 +236,7 @@ local function apply_gutter_hints(gutter_hints)
                 id = vim.fn.sign_place(
                     0,
                     gutter_group,
-                    gutter_name_prefix .. hint,
+                    gutter_name_prefix .. config.gutterHints[hint].text,
                     0,
                     {
                         lnum = loc,
