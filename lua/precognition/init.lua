@@ -33,7 +33,7 @@ local default = {
         ["G"] = { text = "G", prio = 1 },
         ["gg"] = { text = "gg", prio = 1 },
         ["{"] = { text = "{", prio = 1 },
-        ["}"] = { text = "}" , prio = 1 },
+        ["}"] = { text = "}", prio = 1 },
     },
 }
 
