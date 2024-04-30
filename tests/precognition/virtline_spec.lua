@@ -89,7 +89,7 @@ describe("Build Virtual Line", function()
             ["$"] = line_len,
         }, line_len)
 
-        eq("^    e w                     $", virt_line[1][1])
+        eq("b    e w                     $", virt_line[1][1])
         eq(#line, #virt_line[1][1])
     end)
 

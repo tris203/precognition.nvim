@@ -186,7 +186,9 @@ local function build_virt_line(marks, line_len)
         local col = loc
 
         if col ~= nil then
-            line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+            if line:sub(col, col) == " " then
+                line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+            end
         end
     end
     table.insert(virt_line, { line, "Comment" })
@@ -260,6 +262,8 @@ local function on_cursor_hold()
     -- get char offsets for more complex motions.
 
     local virt_line = build_virt_line({
+        --WARN: The order of this list sets the precedence of the hints
+        --If multiple hints target the same column, the first one in the list will be used
         ["w"] = next_word_boundary(cur_line, cursorcol),
         ["e"] = end_of_word(cur_line, cursorcol),
         ["b"] = prev_word_boundary(cur_line, cursorcol),
