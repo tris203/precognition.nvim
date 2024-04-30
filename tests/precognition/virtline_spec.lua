@@ -72,4 +72,45 @@ describe("Build Virtual Line", function()
         end
         eq(50, #virtual_line[1][1])
     end)
+
+    it("example virtual line", function()
+        local line = "abcdef ghijkl mnopqr stuvwx yz"
+        local cursorcol = 2
+        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth
+            or vim.bo.tabstop
+        local cur_line = line:gsub("\t", string.rep(" ", tab_width))
+        local line_len = vim.fn.strcharlen(cur_line)
+
+        local virt_line = precognition.build_virt_line({
+            ["w"] = precognition.next_word_boundary(cur_line, cursorcol),
+            ["e"] = precognition.end_of_word(cur_line, cursorcol),
+            ["b"] = precognition.prev_word_boundary(cur_line, cursorcol),
+            ["^"] = cur_line:find("%S") or 0,
+            ["$"] = line_len,
+        }, line_len)
+
+        eq("^    e w                     $", virt_line[1][1])
+        eq(#line, #virt_line[1][1])
+    end)
+
+    it("example virtual line with whitespace padding", function()
+        local line = "    abc def"
+        -- abc def
+        local cursorcol = 5
+        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth
+            or vim.bo.tabstop
+        local cur_line = line:gsub("\t", string.rep(" ", tab_width))
+        local line_len = vim.fn.strcharlen(cur_line)
+
+        local virt_line = precognition.build_virt_line({
+            ["w"] = precognition.next_word_boundary(cur_line, cursorcol),
+            ["e"] = precognition.end_of_word(cur_line, cursorcol),
+            ["b"] = precognition.prev_word_boundary(cur_line, cursorcol),
+            ["^"] = cur_line:find("%S") or 0,
+            ["$"] = line_len,
+        }, line_len)
+
+        eq("    ^ e w $", virt_line[1][1])
+        eq(#line, #virt_line[1][1])
+    end)
 end)
