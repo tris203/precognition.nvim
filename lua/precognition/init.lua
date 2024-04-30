@@ -5,34 +5,35 @@ local M = {}
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints { SupportedHints: string }
----@field gutterHints { SupportedGutterHints: string }
+---@field hints { SupportedHints: { text: string, prio: integer } }
+---@field gutterHints { SupportedGutterHints: { text: string, prio: integer } }
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
----@field hints? { SupportedHints: string }
----@field gutterHints? { SupportedGutterHints: string }
+---@field hints? { SupportedHints: { text: string, prio: integer } }
+---@field gutterHints? { SupportedGutterHints: { text: string, prio: integer } }
 
----@alias Precognition.VirtLine { [ SupportedHints]: integer | nil }
----@alias Precognition.GutterHints { [ SupportedGutterHints]: integer | nil }
+---@alias Precognition.VirtLine {  SupportedHints: integer | nil }
+---@alias Precognition.GutterHints { SupportedGutterHints: integer | nil }
 
 ---@type Precognition.Config
 local default = {
     startVisible = true,
     hints = {
-        ["^"] = "^",
-        ["$"] = "$",
-        ["w"] = "w",
+        ["^"] = { text = "^", prio = 1 },
+        ["$"] = { text = "$", prio = 1 },
+        ["w"] = { text = "w", prio = 10 },
         -- ["W"] = "W",
-        ["b"] = "b",
-        ["e"] = "e",
+        ["b"] = { text = "b", prio = 10 },
+        ["e"] = { text = "e", prio = 10 },
         -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
     },
     gutterHints = {
-        ["G"] = "G",
-        ["gg"] = "gg",
-        ["{"] = " {",
-        ["}"] = " }",
+        --prio is not currentlt used for gutter hints
+        ["G"] = { text = "G", prio = 1 },
+        ["gg"] = { text = "gg", prio = 1 },
+        ["{"] = { text = "{", prio = 1 },
+        ["}"] = { text = "}" , prio = 1 },
     },
 }
 
@@ -182,12 +183,17 @@ local function build_virt_line(marks, line_len)
     local line = string.rep(" ", line_len)
 
     for mark, loc in pairs(marks) do
-        local hint = config.hints[mark] or mark
+        local hint = config.hints[mark].text or mark
         local col = loc
 
         if col ~= nil then
             if line:sub(col, col) == " " then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+            else -- if the character is not a space, then we need to check the prio
+                local existing = line:sub(col, col)
+                if config.hints[mark].prio > config.hints[existing].prio then
+                    line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+                end
             end
         end
     end
@@ -222,7 +228,7 @@ local function apply_gutter_hints(gutter_hints)
                 gutter_signs_cache[hint] = nil
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
-                text = config.gutterHints[hint],
+                text = config.gutterHints[hint].text,
                 texthl = "Comment",
             })
             gutter_signs_cache[hint] = {
@@ -262,8 +268,6 @@ local function on_cursor_hold()
     -- get char offsets for more complex motions.
 
     local virt_line = build_virt_line({
-        --WARN: The order of this list sets the precedence of the hints
-        --If multiple hints target the same column, the first one in the list will be used
         ["w"] = next_word_boundary(cur_line, cursorcol),
         ["e"] = end_of_word(cur_line, cursorcol),
         ["b"] = prev_word_boundary(cur_line, cursorcol),
