@@ -1,11 +1,12 @@
 local M = {}
 
 ---@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
----@alias SupportedGutterHints "G" | "gg"
+---@alias SupportedGutterHints "G" | "gg" | "{" | "}"
 
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field hints { SupportedHints: string }
+---@field gutterHints { SupportedGutterHints: string }
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
@@ -30,6 +31,8 @@ local default = {
     gutterHints = {
         ["G"] = "G",
         ["gg"] = "gg",
+        ["{"] = " {",
+        ["}"] = " }",
     },
 }
 
@@ -164,7 +167,7 @@ local function prev_word_boundary(str, start)
             return nil
         end
     end
-    --
+
     if offset == nil or (len - offset + 1) > len or (len - offset + 1) <= 0 then
         return nil
     end
@@ -197,6 +200,8 @@ local function build_gutter_hints(buf)
     local gutter_hints = {
         ["G"] = vim.api.nvim_buf_line_count(buf),
         ["gg"] = 1,
+        ["{"] = vim.fn.search("^\\s*$", "bn"),
+        ["}"] = vim.fn.search("^\\s*$", "n"),
     }
 
     return gutter_hints
@@ -206,30 +211,32 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints)
     for hint, loc in pairs(gutter_hints) do
-        if gutter_signs_cache[hint] then
-            vim.fn.sign_unplace(
-                gutter_group,
-                { id = gutter_signs_cache[hint].id }
-            )
-            gutter_signs_cache[hint] = nil
+        if config.gutterHints[hint] then
+            if gutter_signs_cache[hint] then
+                vim.fn.sign_unplace(
+                    gutter_group,
+                    { id = gutter_signs_cache[hint].id }
+                )
+                gutter_signs_cache[hint] = nil
+            end
+            vim.fn.sign_define(gutter_name_prefix .. hint, {
+                text = config.gutterHints[hint],
+                texthl = "Comment",
+            })
+            gutter_signs_cache[hint] = {
+                loc = loc,
+                id = vim.fn.sign_place(
+                    0,
+                    gutter_group,
+                    gutter_name_prefix .. hint,
+                    0,
+                    {
+                        lnum = loc,
+                        priority = 100,
+                    }
+                ),
+            }
         end
-        vim.fn.sign_define(gutter_name_prefix .. hint, {
-            text = hint,
-            texthl = "Comment",
-        })
-        gutter_signs_cache[hint] = {
-            loc = loc,
-            id = vim.fn.sign_place(
-                0,
-                gutter_group,
-                gutter_name_prefix .. hint,
-                0,
-                {
-                    lnum = loc,
-                    priority = 100,
-                }
-            ),
-        }
     end
 end
 
