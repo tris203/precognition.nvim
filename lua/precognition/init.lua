@@ -14,6 +14,7 @@ local M = {}
 ---@field gutterHints? { SupportedGutterHints: { text: string, prio: integer } }
 
 ---@alias Precognition.VirtLine {  SupportedHints: integer | nil }
+
 ---@alias Precognition.GutterHints { SupportedGutterHints: integer | nil }
 
 ---@type Precognition.Config
@@ -223,6 +224,9 @@ end
 ---@param buf integer == bufnr
 ---@return nil
 local function apply_gutter_hints(gutter_hints, buf)
+    if vim.api.nvim_get_option_value("buftype", { buf = buf }) ~= "" then
+        return
+    end
     for hint, loc in pairs(gutter_hints) do
         if config.gutterHints[hint] then
             if gutter_signs_cache[hint] then
@@ -290,11 +294,17 @@ local function on_cursor_hold()
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
-    extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-        id = extmark, -- reuse the same extmark if it exists
-        virt_lines = { virt_line },
-    })
-
+    if
+        vim.api.nvim_get_option_value(
+            "buftype",
+            { buf = vim.api.nvim_get_current_buf() }
+        ) == ""
+    then
+        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+            id = extmark, -- reuse the same extmark if it exists
+            virt_lines = { virt_line },
+        })
+    end
     apply_gutter_hints(
         build_gutter_hints(vim.api.nvim_get_current_buf()),
         vim.api.nvim_get_current_buf()
