@@ -9,7 +9,6 @@
 
 ![image](https://github.com/tris203/precognition.nvim/assets/18444302/ea24caee-85da-42d8-b0e9-555b47268643)
 
-
 ## 📦 Installation
 
 Installation with any package manager, Lazy example below:
@@ -34,6 +33,7 @@ return {
     --     ["{"] = { text = "{", prio = 1 },
     --     ["}"] = { text = "}", prio = 1 },
     -- },
+    },
 }
 ```
 
