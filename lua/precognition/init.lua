@@ -119,7 +119,10 @@ local function end_of_word(str, start)
         char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     local rev_offset
 
-    if c_class == 1 and next_char_class ~= 1 then
+    if
+        (c_class == 1 and next_char_class ~= 1)
+        or (next_char_class == 1 and c_class ~= 1)
+    then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
         c_class = char_class(char)

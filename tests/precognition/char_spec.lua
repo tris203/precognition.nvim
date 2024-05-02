@@ -197,13 +197,20 @@ describe("boundaries", function()
                     6
                 )
             )
-            -- eq(
-            --     5,
-            --     precognition.prev_word_boundary(
-            --         "    myFunction(example, stuff)",
-            --         16
-            --     )
-            -- )
+            eq(
+                5,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    15
+                )
+            )
+            eq(
+                15,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    16
+                )
+            )
             eq(
                 16,
                 precognition.prev_word_boundary(
@@ -260,9 +267,13 @@ describe("boundaries", function()
                     29
                 )
             )
-            --TODO: This isnt right, it should ne 25, but i dont know the rules
-            --there is something odd if there is only one class 2 under the cursor
-            -- eq(25, precognition.prev_word_boundary("    myFunction(example, stuff)", 30))
+            eq(
+                25,
+                precognition.prev_word_boundary(
+                    "    myFunction(example, stuff)",
+                    30
+                )
+            )
         end)
 
         it("can walk string with b", function()
@@ -307,10 +318,14 @@ describe("boundaries", function()
                 14,
                 precognition.end_of_word("    myFunction(example, stuff)", 5)
             )
-            --TODO: These next two dont work either for the same reason as the previous
-            --something to do with the bracket being under the cursor
-            -- eq(15, precognition.end_of_word("    myFunction(example, stuff)", 14))
-            -- eq(22, precognition.end_of_word("    myFunction(example, stuff)", 15))
+            eq(
+                15,
+                precognition.end_of_word("    myFunction(example, stuff)", 14)
+            )
+            eq(
+                22,
+                precognition.end_of_word("    myFunction(example, stuff)", 15)
+            )
             eq(
                 22,
                 precognition.end_of_word("    myFunction(example, stuff)", 16)
@@ -328,7 +343,7 @@ describe("boundaries", function()
                 precognition.end_of_word("    myFunction(example, stuff)", 25)
             )
             eq(
-                29,
+                30,
                 precognition.end_of_word("    myFunction(example, stuff)", 29)
             )
             eq(
