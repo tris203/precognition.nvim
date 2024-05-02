@@ -264,7 +264,10 @@ local function apply_gutter_hints(gutter_hints, buf)
             end
             if not ok and loc ~= 0 then
                 vim.notify_once(
-                    "Failed to place sign: " .. config.gutterHints[hint].text .. " at line " .. loc,
+                    "Failed to place sign: "
+                        .. config.gutterHints[hint].text
+                        .. " at line "
+                        .. loc,
                     vim.log.levels.WARN
                 )
             end

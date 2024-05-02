@@ -361,7 +361,7 @@ describe("boundaries", function()
             end
         )
 
-        it (
+        it(
             "can handle strings with multiple consecutive special characters",
             function()
                 local str = "this || that"
