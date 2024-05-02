@@ -337,4 +337,38 @@ describe("boundaries", function()
             )
         end)
     end)
+
+    describe("edge case", function()
+        it("can handle empty strings", function()
+            eq(nil, precognition.next_word_boundary("", 1))
+            eq(nil, precognition.prev_word_boundary("", 1))
+            eq(nil, precognition.end_of_word("", 1))
+        end)
+
+        it("can handle strings with only whitespace", function()
+            eq(nil, precognition.next_word_boundary(" ", 1))
+            eq(nil, precognition.prev_word_boundary(" ", 1))
+            eq(nil, precognition.end_of_word(" ", 1))
+        end)
+
+        it(
+            "can handle strings with special characters in the middle",
+            function()
+                local str = "vim.keymap.set('n', '<leader>t;', ':Test<CR>')"
+                eq(5, precognition.next_word_boundary(str, 4))
+                eq(1, precognition.prev_word_boundary(str, 4))
+                eq(10, precognition.end_of_word(str, 4))
+            end
+        )
+
+        it (
+            "can handle strings with multiple consecutive special characters",
+            function()
+                local str = "this || that"
+                eq(9, precognition.next_word_boundary(str, 6))
+                eq(1, precognition.prev_word_boundary(str, 6))
+                eq(7, precognition.end_of_word(str, 6))
+            end
+        )
+    end)
 end)

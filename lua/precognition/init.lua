@@ -112,16 +112,25 @@ local function end_of_word(str, start)
     if start >= len then
         return nil
     end
-    local offset = start - 1
-    local char = vim.fn.strcharpart(str, offset, 1)
+    local offset = start
+    local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = char_class(char)
-    local next_char_class = char_class(vim.fn.strcharpart(str, offset + 1, 1))
+    local next_char_class =
+        char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     local rev_offset
+
+    if c_class == 1 and next_char_class ~= 1 then
+        offset = offset + 1
+        char = vim.fn.strcharpart(str, offset - 1, 1)
+        c_class = char_class(char)
+        next_char_class =
+            char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
+    end
 
     if c_class ~= 0 and next_char_class ~= 0 then
         while char_class(char) == c_class and offset <= len do
             offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
+            char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
@@ -139,7 +148,7 @@ local function end_of_word(str, start)
     if rev_offset ~= nil then
         return rev_offset
     end
-    return offset
+    return offset - 1
 end
 
 ---@param str string
