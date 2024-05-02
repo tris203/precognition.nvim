@@ -81,27 +81,27 @@ end
 ---@param start integer
 ---@return integer | nil
 local function next_word_boundary(str, start)
-    local offset = start - 1
+    local offset = start
     local len = vim.fn.strcharlen(str)
-    local char = vim.fn.strcharpart(str, offset, 1)
+    local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = char_class(char)
 
     if c_class ~= 0 then
         while char_class(char) == c_class and offset <= len do
             offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
+            char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
     while char_class(char) == 0 and offset <= len do
         offset = offset + 1
-        char = vim.fn.strcharpart(str, offset, 1)
+        char = vim.fn.strcharpart(str, offset - 1, 1)
     end
-    if (offset + 1) > len then
+    if (offset) > len then
         return nil
     end
 
-    return offset + 1
+    return offset
 end
 
 ---@param str string
