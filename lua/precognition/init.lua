@@ -97,7 +97,7 @@ local function next_word_boundary(str, start)
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
     end
-    if (offset) > len then
+    if offset > len then
         return nil
     end
 
@@ -147,22 +147,21 @@ end
 ---@return integer | nil
 local function prev_word_boundary(str, start)
     local len = vim.fn.strcharlen(str)
-    local offset = len - start + 1
-    str = string.reverse(str)
+    local offset = start - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = char_class(char)
 
     if c_class == 0 then
-        while char_class(char) == 0 and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
+        while char_class(char) == 0 and offset >= 0 do
+            offset = offset - 1
+            char = vim.fn.strcharpart(str, offset - 1, 1)
         end
+        c_class = char_class(char)
     end
 
-    c_class = char_class(char)
-    while char_class(char) == c_class and offset <= len do
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset, 1)
+    while char_class(char) == c_class and offset >= 0 do
+        offset = offset - 1
+        char = vim.fn.strcharpart(str, offset - 1, 1)
         --if remaining string is whitespace, return nil_wrap
         local remaining = string.sub(str, offset)
         if remaining:match("^%s*$") and #remaining > 0 then
@@ -170,10 +169,10 @@ local function prev_word_boundary(str, start)
         end
     end
 
-    if offset == nil or (len - offset + 1) > len or (len - offset + 1) <= 0 then
+    if offset == nil or offset > len or offset < 0 then
         return nil
     end
-    return len - offset + 1
+    return offset + 1
 end
 
 ---@param marks Precognition.VirtLine
