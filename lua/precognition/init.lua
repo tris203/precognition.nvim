@@ -25,8 +25,8 @@ local default = {
         ["$"] = { text = "$", prio = 1 },
         ["w"] = { text = "w", prio = 10 },
         -- ["W"] = "W",
-        ["b"] = { text = "b", prio = 10 },
-        ["e"] = { text = "e", prio = 10 },
+        ["b"] = { text = "b", prio = 9 },
+        ["e"] = { text = "e", prio = 8 },
         -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
     },
     gutterHints = {
@@ -262,9 +262,9 @@ local function apply_gutter_hints(gutter_hints, buf)
             if ok then
                 gutter_signs_cache[hint] = { line = loc, id = res }
             end
-            if not ok then
+            if not ok and loc ~= 0 then
                 vim.notify_once(
-                    "Failed to place sign: " .. config.gutterHints[hint].text,
+                    "Failed to place sign: " .. config.gutterHints[hint].text .. " at line " .. loc,
                     vim.log.levels.WARN
                 )
             end
