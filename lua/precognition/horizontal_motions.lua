@@ -10,10 +10,12 @@ function M.line_start_non_whitespace(str, _cursorcol, _linelen)
     return str:find("%S") or 0
 end
 
----@param len integer
----@return integer
-function M.line_end(len)
-    return len
+---@param _str string
+---@param _cursorcol integer
+---@param linelen integer
+---@return integer | nil
+function M.line_end(_str, _cursorcol, linelen)
+    return linelen or nil
 end
 
 ---@param str string
