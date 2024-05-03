@@ -12,7 +12,7 @@ describe("Gutter hints table", function()
             "GHI",
         })
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = precognition.build_gutter_hints(testBuf, 1, 1)
 
         eq(4, hints["G"])
         eq(1, hints["gg"])

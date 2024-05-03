@@ -1,4 +1,5 @@
 local precognition = require("precognition")
+local hm = require("precognition.horizontal_motions")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
 describe("Build Virtual Line", function()
@@ -82,11 +83,11 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            ["w"] = precognition.next_word_boundary(cur_line, cursorcol),
-            ["e"] = precognition.end_of_word(cur_line, cursorcol),
-            ["b"] = precognition.prev_word_boundary(cur_line, cursorcol),
-            ["^"] = cur_line:find("%S") or 0,
-            ["$"] = line_len,
+            ["w"] = hm.next_word_boundary(cur_line, cursorcol),
+            ["e"] = hm.end_of_word(cur_line, cursorcol),
+            ["b"] = hm.prev_word_boundary(cur_line, cursorcol),
+            ["^"] = hm.line_start_non_whitespace(cur_line),
+            ["$"] = hm.line_end(line_len),
         }, line_len)
 
         eq("b    e w                     $", virt_line[1][1])
@@ -103,11 +104,11 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            ["w"] = precognition.next_word_boundary(cur_line, cursorcol),
-            ["e"] = precognition.end_of_word(cur_line, cursorcol),
-            ["b"] = precognition.prev_word_boundary(cur_line, cursorcol),
-            ["^"] = cur_line:find("%S") or 0,
-            ["$"] = line_len,
+            ["w"] = hm.next_word_boundary(cur_line, cursorcol),
+            ["e"] = hm.end_of_word(cur_line, cursorcol),
+            ["b"] = hm.prev_word_boundary(cur_line, cursorcol),
+            ["^"] = hm.line_start_non_whitespace(cur_line),
+            ["$"] = hm.line_end(line_len),
         }, line_len)
 
         eq("    ^ e w $", virt_line[1][1])

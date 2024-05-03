@@ -1,3 +1,6 @@
+local hm = require("precognition.horizontal_motions")
+local vm = require("precognition.vertical_motions")
+
 local M = {}
 
 ---@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
@@ -59,134 +62,6 @@ local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
 
----@param char string
----@return integer
-local function char_class(char)
-    local byte = string.byte(char)
-
-    if byte and byte < 0x100 then
-        if char == " " or char == "\t" or char == "\0" then
-            return 0 -- whitespace
-        end
-        if char == "_" or char:match("%w") then
-            return 2 -- word character
-        end
-        return 1 -- other
-    end
-
-    return 1 -- scary unicode edge cases go here
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function next_word_boundary(str, start)
-    local offset = start
-    local len = vim.fn.strcharlen(str)
-    local char = vim.fn.strcharpart(str, offset - 1, 1)
-    local c_class = char_class(char)
-
-    if c_class ~= 0 then
-        while char_class(char) == c_class and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset - 1, 1)
-        end
-    end
-
-    while char_class(char) == 0 and offset <= len do
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset - 1, 1)
-    end
-    if offset > len then
-        return nil
-    end
-
-    return offset
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function end_of_word(str, start)
-    local len = vim.fn.strcharlen(str)
-    if start >= len then
-        return nil
-    end
-    local offset = start
-    local char = vim.fn.strcharpart(str, offset - 1, 1)
-    local c_class = char_class(char)
-    local next_char_class =
-        char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
-    local rev_offset
-
-    if
-        (c_class == 1 and next_char_class ~= 1)
-        or (next_char_class == 1 and c_class ~= 1)
-    then
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset - 1, 1)
-        c_class = char_class(char)
-        next_char_class =
-            char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
-    end
-
-    if c_class ~= 0 and next_char_class ~= 0 then
-        while char_class(char) == c_class and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset - 1, 1)
-        end
-    end
-
-    if c_class == 0 or next_char_class == 0 then
-        local next_word_start = next_word_boundary(str, offset)
-        if next_word_start then
-            rev_offset = end_of_word(str, next_word_start + 1)
-        end
-    end
-
-    if rev_offset ~= nil and rev_offset <= 0 then
-        return nil
-    end
-
-    if rev_offset ~= nil then
-        return rev_offset
-    end
-    return offset - 1
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function prev_word_boundary(str, start)
-    local len = vim.fn.strcharlen(str)
-    local offset = start - 1
-    local char = vim.fn.strcharpart(str, offset - 1, 1)
-    local c_class = char_class(char)
-
-    if c_class == 0 then
-        while char_class(char) == 0 and offset >= 0 do
-            offset = offset - 1
-            char = vim.fn.strcharpart(str, offset - 1, 1)
-        end
-        c_class = char_class(char)
-    end
-
-    while char_class(char) == c_class and offset >= 0 do
-        offset = offset - 1
-        char = vim.fn.strcharpart(str, offset - 1, 1)
-        --if remaining string is whitespace, return nil_wrap
-        local remaining = string.sub(str, offset)
-        if remaining:match("^%s*$") and #remaining > 0 then
-            return nil
-        end
-    end
-
-    if offset == nil or offset > len or offset < 0 then
-        return nil
-    end
-    return offset + 1
-end
-
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
 ---@return table
@@ -222,10 +97,10 @@ end
 ---@return Precognition.GutterHints
 local function build_gutter_hints(buf)
     local gutter_hints = {
-        ["G"] = vim.api.nvim_buf_line_count(buf),
-        ["gg"] = 1,
-        ["{"] = vim.fn.search("^\\s*$", "bn"),
-        ["}"] = vim.fn.search("^\\s*$", "n"),
+        ["G"] = vm.file_end(vim.api.nvim_buf_get_lines(buf, 0, -1, false)),
+        ["gg"] = vm.file_start(),
+        ["{"] = vm.prev_paragraph_line(),
+        ["}"] = vm.next_paragraph_line(),
     }
 
     return gutter_hints
@@ -239,7 +114,7 @@ local function apply_gutter_hints(gutter_hints, buf)
         return
     end
     for hint, loc in pairs(gutter_hints) do
-        if config.gutterHints[hint] then
+        if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
             if gutter_signs_cache[hint] then
                 vim.fn.sign_unplace(
                     gutter_group,
@@ -298,11 +173,11 @@ local function on_cursor_hold()
     -- get char offsets for more complex motions.
 
     local virt_line = build_virt_line({
-        ["w"] = next_word_boundary(cur_line, cursorcol),
-        ["e"] = end_of_word(cur_line, cursorcol),
-        ["b"] = prev_word_boundary(cur_line, cursorcol),
-        ["^"] = cur_line:find("%S") or 0,
-        ["$"] = line_len,
+        ["w"] = hm.next_word_boundary(cur_line, cursorcol),
+        ["e"] = hm.end_of_word(cur_line, cursorcol),
+        ["b"] = hm.prev_word_boundary(cur_line, cursorcol),
+        ["^"] = hm.line_start_non_whitespace(cur_line),
+        ["$"] = hm.line_end(line_len),
     }, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
@@ -455,18 +330,6 @@ end
 -- access these variables from outside the module
 -- but we don't want to expose them to the user
 local state = {
-    char_class = function()
-        return char_class
-    end,
-    next_word_boundary = function()
-        return next_word_boundary
-    end,
-    prev_word_boundary = function()
-        return prev_word_boundary
-    end,
-    end_of_word = function()
-        return end_of_word
-    end,
     build_virt_line = function()
         return build_virt_line
     end,
