@@ -93,9 +93,8 @@ local function build_virt_line(marks, line_len)
     return virt_line
 end
 
----@param buf integer == bufnr
 ---@return Precognition.GutterHints
-local function build_gutter_hints(buf)
+local function build_gutter_hints()
     local gutter_hints = {
         ["G"] = vm.file_end(vim.api.nvim_get_current_buf()),
         ["gg"] = vm.file_start(),
@@ -195,7 +194,7 @@ local function on_cursor_hold()
         })
     end
     apply_gutter_hints(
-        build_gutter_hints(vim.api.nvim_get_current_buf()),
+        build_gutter_hints(),
         vim.api.nvim_get_current_buf()
     )
 
@@ -225,7 +224,7 @@ end
 
 local function on_buf_edit()
     apply_gutter_hints(
-        build_gutter_hints(vim.api.nvim_get_current_buf()),
+        build_gutter_hints(),
         vim.api.nvim_get_current_buf()
     )
 end
