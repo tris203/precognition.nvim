@@ -96,10 +96,10 @@ end
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
     local gutter_hints = {
-        ["G"] = vm.file_end(vim.api.nvim_get_current_buf()),
+        ["G"] = vm.file_end(),
         ["gg"] = vm.file_start(),
-        ["{"] = vm.prev_paragraph_line(vim.api.nvim_get_current_buf()),
-        ["}"] = vm.next_paragraph_line(vim.api.nvim_get_current_buf()),
+        ["{"] = vm.prev_paragraph_line(),
+        ["}"] = vm.next_paragraph_line(),
     }
 
     return gutter_hints
