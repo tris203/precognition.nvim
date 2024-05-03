@@ -56,19 +56,14 @@ function M.end_of_word(str, cursorcol, _linelen)
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
-    local next_char_class =
-        utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
+    local next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     local rev_offset
 
-    if
-        (c_class == 1 and next_char_class ~= 1)
-        or (next_char_class == 1 and c_class ~= 1)
-    then
+    if (c_class == 1 and next_char_class ~= 1) or (next_char_class == 1 and c_class ~= 1) then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
         c_class = utils.char_class(char)
-        next_char_class =
-            utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
+        next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     end
 
     if c_class ~= 0 and next_char_class ~= 0 then

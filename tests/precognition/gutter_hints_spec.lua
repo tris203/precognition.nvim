@@ -28,37 +28,31 @@ describe("Gutter hints table", function()
         }, hints)
     end)
 
-    it(
-        "should return a table with the correct keys when the buffer is empty",
-        function()
-            local testBuf = vim.api.nvim_create_buf(true, true)
-            vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {})
-            vim.api.nvim_set_current_buf(testBuf)
+    it("should return a table with the correct keys when the buffer is empty", function()
+        local testBuf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {})
+        vim.api.nvim_set_current_buf(testBuf)
 
-            local hints = precognition.build_gutter_hints(testBuf)
+        local hints = precognition.build_gutter_hints(testBuf)
 
-            eq({
-                ["gg"] = 1,
-                ["G"] = 1,
-            }, hints)
-        end
-    )
+        eq({
+            ["gg"] = 1,
+            ["G"] = 1,
+        }, hints)
+    end)
 
-    it(
-        "should return a table with the correct keys when the buffer is a single line",
-        function()
-            local testBuf = vim.api.nvim_create_buf(true, true)
-            vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, { "ABC" })
-            vim.api.nvim_set_current_buf(testBuf)
-            vim.api.nvim_win_set_cursor(0, { 1, 1 })
+    it("should return a table with the correct keys when the buffer is a single line", function()
+        local testBuf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, { "ABC" })
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-            local hints = precognition.build_gutter_hints(testBuf)
-            eq({
-                ["gg"] = 1,
-                ["G"] = 1,
-            }, hints)
-        end
-    )
+        local hints = precognition.build_gutter_hints(testBuf)
+        eq({
+            ["gg"] = 1,
+            ["G"] = 1,
+        }, hints)
+    end)
 
     it("moving the cursor will update the hints table", function()
         local testBuf = vim.api.nvim_create_buf(true, true)

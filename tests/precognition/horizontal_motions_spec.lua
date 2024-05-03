@@ -164,13 +164,10 @@ describe("edge case", function()
         eq(10, hm.end_of_word(str, 4, #str))
     end)
 
-    it(
-        "can handle strings with multiple consecutive special characters",
-        function()
-            local str = "this || that"
-            eq(9, hm.next_word_boundary(str, 6, #str))
-            eq(1, hm.prev_word_boundary(str, 6, #str))
-            eq(7, hm.end_of_word(str, 6, #str))
-        end
-    )
+    it("can handle strings with multiple consecutive special characters", function()
+        local str = "this || that"
+        eq(9, hm.next_word_boundary(str, 6, #str))
+        eq(1, hm.prev_word_boundary(str, 6, #str))
+        eq(7, hm.end_of_word(str, 6, #str))
+    end)
 end)

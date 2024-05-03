@@ -78,11 +78,7 @@ local function build_virt_line(marks, line_len)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
-                if
-                    existing ~= ""
-                    and config.hints[mark].prio
-                        > config.hints[existing].prio
-                then
+                if existing ~= "" and config.hints[mark].prio > config.hints[existing].prio then
                     line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
                 end
             end
@@ -115,36 +111,24 @@ local function apply_gutter_hints(gutter_hints, buf)
     for hint, loc in pairs(gutter_hints) do
         if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
             if gutter_signs_cache[hint] then
-                vim.fn.sign_unplace(
-                    gutter_group,
-                    { id = gutter_signs_cache[hint].id }
-                )
+                vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
                 gutter_signs_cache[hint] = nil
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
                 text = config.gutterHints[hint].text,
                 texthl = "Comment",
             })
-            local ok, res = pcall(
-                vim.fn.sign_place,
-                0,
-                gutter_group,
-                gutter_name_prefix .. config.gutterHints[hint].text,
-                buf,
-                {
+            local ok, res =
+                pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. config.gutterHints[hint].text, buf, {
                     lnum = loc,
                     priority = 100,
-                }
-            )
+                })
             if ok then
                 gutter_signs_cache[hint] = { line = loc, id = res }
             end
             if not ok and loc ~= 0 then
                 vim.notify_once(
-                    "Failed to place sign: "
-                        .. config.gutterHints[hint].text
-                        .. " at line "
-                        .. loc,
+                    "Failed to place sign: " .. config.gutterHints[hint].text .. " at line " .. loc,
                     vim.log.levels.WARN
                 )
             end
@@ -160,8 +144,7 @@ local function on_cursor_hold()
     end
 
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local cur_line =
-        vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
+    local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
@@ -182,12 +165,7 @@ local function on_cursor_hold()
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
-    if
-        vim.api.nvim_get_option_value(
-            "buftype",
-            { buf = vim.api.nvim_get_current_buf() }
-        ) == ""
-    then
+    if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
         extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
             id = extmark, -- reuse the same extmark if it exists
             virt_lines = { virt_line },

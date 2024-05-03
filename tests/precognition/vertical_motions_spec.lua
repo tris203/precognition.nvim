@@ -101,56 +101,50 @@ describe("gutter motion locations", function()
         eq(5, prev_line)
     end)
 
-    it(
-        "can find the prev paragraph in a file with multiple consecutive blank lines",
-        function()
-            local testBuf = vim.api.nvim_create_buf(true, true)
-            vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
-                "ABC",
-                "DEF",
-                "",
-                "",
-                "GHI",
-                "",
-                "JKL",
-                "",
-                "",
-                "",
-                "MNO",
-            })
-            vim.api.nvim_set_current_buf(testBuf)
-            vim.api.nvim_win_set_cursor(0, { 10, 0 })
+    it("can find the prev paragraph in a file with multiple consecutive blank lines", function()
+        local testBuf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
+            "ABC",
+            "DEF",
+            "",
+            "",
+            "GHI",
+            "",
+            "JKL",
+            "",
+            "",
+            "",
+            "MNO",
+        })
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 10, 0 })
 
-            local prev_line = vm.prev_paragraph_line(testBuf)
-            -- TODO: This is a bug, it should be 5
-            -- If there are multiple consecutive blank lines, it will currentlu return the next blankline
-            -- not the next blank line preceding content
-            eq(9, prev_line)
-        end
-    )
+        local prev_line = vm.prev_paragraph_line(testBuf)
+        -- TODO: This is a bug, it should be 5
+        -- If there are multiple consecutive blank lines, it will currentlu return the next blankline
+        -- not the next blank line preceding content
+        eq(9, prev_line)
+    end)
 
-    it(
-        "can find the next paragraph in a file with multiple consecutive blank lines",
-        function()
-            local testBuf = vim.api.nvim_create_buf(true, true)
-            vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
-                "ABC",
-                "DEF",
-                "",
-                "",
-                "",
-                "",
-                "GHI",
-                "",
-                "JKL",
-            })
-            vim.api.nvim_set_current_buf(testBuf)
-            vim.api.nvim_win_set_cursor(0, { 3, 0 })
+    it("can find the next paragraph in a file with multiple consecutive blank lines", function()
+        local testBuf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
+            "ABC",
+            "DEF",
+            "",
+            "",
+            "",
+            "",
+            "GHI",
+            "",
+            "JKL",
+        })
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 3, 0 })
 
-            local next_line = vm.next_paragraph_line(testBuf)
-            -- TODO: This is a bug, it should be 8
-            -- Same description as above
-            eq(4, next_line)
-        end
-    )
+        local next_line = vm.next_paragraph_line(testBuf)
+        -- TODO: This is a bug, it should be 8
+        -- Same description as above
+        eq(4, next_line)
+    end)
 end)

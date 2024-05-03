@@ -34,18 +34,15 @@ describe("Build Virtual Line", function()
         eq(10, #virtual_line[1][1])
     end)
 
-    it(
-        "can build a virtual line with a single mark at the beginning",
-        function()
-            ---@type Precognition.VirtLine
-            local marks = {
-                ["^"] = 1,
-            }
-            local virtual_line = precognition.build_virt_line(marks, 10)
-            eq("^         ", virtual_line[1][1])
-            eq(10, #virtual_line[1][1])
-        end
-    )
+    it("can build a virtual line with a single mark at the beginning", function()
+        ---@type Precognition.VirtLine
+        local marks = {
+            ["^"] = 1,
+        }
+        local virtual_line = precognition.build_virt_line(marks, 10)
+        eq("^         ", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
 
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
@@ -77,8 +74,7 @@ describe("Build Virtual Line", function()
     it("example virtual line", function()
         local line = "abcdef ghijkl mnopqr stuvwx yz"
         local cursorcol = 2
-        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth
-            or vim.bo.tabstop
+        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
@@ -98,8 +94,7 @@ describe("Build Virtual Line", function()
         local line = "    abc def"
         -- abc def
         local cursorcol = 5
-        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth
-            or vim.bo.tabstop
+        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
