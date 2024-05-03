@@ -102,10 +102,11 @@ local function build_gutter_hints()
 end
 
 ---@param gutter_hints Precognition.GutterHints
----@param buf integer == bufnr
+---@param bufnr? integer -- buffer number
 ---@return nil
-local function apply_gutter_hints(gutter_hints, buf)
-    if vim.api.nvim_get_option_value("buftype", { buf = buf }) ~= "" then
+local function apply_gutter_hints(gutter_hints, bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
         return
     end
     for hint, loc in pairs(gutter_hints) do
@@ -119,7 +120,7 @@ local function apply_gutter_hints(gutter_hints, buf)
                 texthl = "Comment",
             })
             local ok, res =
-                pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. config.gutterHints[hint].text, buf, {
+                pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. config.gutterHints[hint].text, bufnr, {
                     lnum = loc,
                     priority = 100,
                 })
@@ -171,7 +172,7 @@ local function on_cursor_hold()
             virt_lines = { virt_line },
         })
     end
-    apply_gutter_hints(build_gutter_hints(), vim.api.nvim_get_current_buf())
+    apply_gutter_hints(build_gutter_hints())
 
     dirty = false
 end
