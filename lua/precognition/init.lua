@@ -172,11 +172,11 @@ local function on_cursor_hold()
     -- get char offsets for more complex motions.
 
     local virt_line = build_virt_line({
-        ["w"] = hm.next_word_boundary(cur_line, cursorcol),
-        ["e"] = hm.end_of_word(cur_line, cursorcol),
-        ["b"] = hm.prev_word_boundary(cur_line, cursorcol),
-        ["^"] = hm.line_start_non_whitespace(cur_line),
-        ["$"] = hm.line_end(line_len),
+        ["w"] = hm.next_word_boundary(cur_line, cursorcol, line_len),
+        ["e"] = hm.end_of_word(cur_line, cursorcol, line_len),
+        ["b"] = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        ["^"] = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        ["$"] = hm.line_end(cur_line, cursorcol, line_len),
     }, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?

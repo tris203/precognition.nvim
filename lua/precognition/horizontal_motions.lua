@@ -3,8 +3,10 @@ local utils = require("precognition.utils")
 local M = {}
 
 ---@param str string
----@return integer
-function M.line_start_non_whitespace(str)
+---@param _cursorcol integer
+---@param _linelen integer
+---@return integer | nil
+function M.line_start_non_whitespace(str, _cursorcol, _linelen)
     return str:find("%S") or 0
 end
 
@@ -15,10 +17,11 @@ function M.line_end(len)
 end
 
 ---@param str string
----@param start integer
+---@param cursorcol integer
+---@param _linelen integer
 ---@return integer | nil
-function M.next_word_boundary(str, start)
-    local offset = start
+function M.next_word_boundary(str, cursorcol, _linelen)
+    local offset = cursorcol
     local len = vim.fn.strcharlen(str)
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
@@ -42,14 +45,15 @@ function M.next_word_boundary(str, start)
 end
 
 ---@param str string
----@param start integer
+---@param cursorcol integer
+---@param _linelen integer
 ---@return integer | nil
-function M.end_of_word(str, start)
+function M.end_of_word(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
-    if start >= len then
+    if cursorcol >= len then
         return nil
     end
-    local offset = start
+    local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
     local next_char_class =
@@ -75,9 +79,9 @@ function M.end_of_word(str, start)
     end
 
     if c_class == 0 or next_char_class == 0 then
-        local next_word_start = M.next_word_boundary(str, offset)
+        local next_word_start = M.next_word_boundary(str, offset, 0)
         if next_word_start then
-            rev_offset = M.end_of_word(str, next_word_start + 1)
+            rev_offset = M.end_of_word(str, next_word_start + 1, 0)
         end
     end
 
@@ -92,11 +96,12 @@ function M.end_of_word(str, start)
 end
 
 ---@param str string
----@param start integer
+---@param cursorcol integer
+---@param _linelen integer
 ---@return integer | nil
-function M.prev_word_boundary(str, start)
+function M.prev_word_boundary(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
-    local offset = start - 1
+    local offset = cursorcol - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
 
