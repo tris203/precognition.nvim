@@ -5,10 +5,10 @@ function M.file_start()
     return 1
 end
 
----@param lines table
+---@param bufnr integer
 ---@return integer
-function M.file_end(lines)
-    return #lines
+function M.file_end(bufnr)
+    return vim.api.nvim_buf_line_count(bufnr)
 end
 
 ---@param buf integer
