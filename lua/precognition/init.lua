@@ -193,10 +193,7 @@ local function on_cursor_hold()
             virt_lines = { virt_line },
         })
     end
-    apply_gutter_hints(
-        build_gutter_hints(),
-        vim.api.nvim_get_current_buf()
-    )
+    apply_gutter_hints(build_gutter_hints(), vim.api.nvim_get_current_buf())
 
     dirty = false
 end
@@ -223,10 +220,7 @@ local function on_insert_enter(ev)
 end
 
 local function on_buf_edit()
-    apply_gutter_hints(
-        build_gutter_hints(),
-        vim.api.nvim_get_current_buf()
-    )
+    apply_gutter_hints(build_gutter_hints(), vim.api.nvim_get_current_buf())
 end
 
 local function on_buf_leave(ev)
