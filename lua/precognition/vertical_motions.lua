@@ -1,5 +1,3 @@
-local utils = require("precognition.utils")
-
 local M = {}
 
 ---@return integer
@@ -13,16 +11,30 @@ function M.file_end(lines)
     return #lines
 end
 
+---@param buf integer
 ---@return integer | nil
-function M.next_paragraph_line()
-    --TODO: refactor this to use a testable function
-    return vim.fn.search("^\\s*$", "n")
+function M.next_paragraph_line(buf)
+    local loc
+    vim.api.nvim_buf_call(buf, function()
+        loc = vim.fn.search("^\\_s*$", "nW", vim.fn.line("w$"))
+    end)
+    if loc == 0 then
+        return nil
+    end
+    return loc
 end
 
+---@param buf integer
 ---@return integer | nil
-function M.prev_paragraph_line()
-    --TODO: refactor this to use a testable function
-    return vim.fn.search("^\\s*$", "bn")
+function M.prev_paragraph_line(buf)
+    local loc
+    vim.api.nvim_buf_call(buf, function()
+        loc = vim.fn.search("^\\_s*$", "bnW", vim.fn.line("w0"))
+    end)
+    if loc == 0 then
+        return nil
+    end
+    return loc
 end
 
 return M

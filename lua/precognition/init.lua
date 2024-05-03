@@ -99,8 +99,8 @@ local function build_gutter_hints(buf)
     local gutter_hints = {
         ["G"] = vm.file_end(vim.api.nvim_buf_get_lines(buf, 0, -1, false)),
         ["gg"] = vm.file_start(),
-        ["{"] = vm.prev_paragraph_line(),
-        ["}"] = vm.next_paragraph_line(),
+        ["{"] = vm.prev_paragraph_line(vim.api.nvim_get_current_buf()),
+        ["}"] = vm.next_paragraph_line(vim.api.nvim_get_current_buf()),
     }
 
     return gutter_hints
