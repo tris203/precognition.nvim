@@ -37,6 +37,8 @@ describe("Gutter hints table", function()
 
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
+            ["}"] = 1,
             ["G"] = 1,
         }, hints)
     end)
@@ -50,6 +52,8 @@ describe("Gutter hints table", function()
         local hints = precognition.build_gutter_hints(testBuf)
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
+            ["}"] = 1,
             ["G"] = 1,
         }, hints)
     end)
@@ -97,6 +101,8 @@ describe("Gutter hints table", function()
         local hints = precognition.build_gutter_hints(testBuf)
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
+            ["}"] = 1,
             ["G"] = 1,
         }, hints)
 
@@ -105,6 +111,8 @@ describe("Gutter hints table", function()
         hints = precognition.build_gutter_hints(testBuf)
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
+            ["}"] = 2,
             ["G"] = 2,
         }, hints)
 
@@ -114,6 +122,8 @@ describe("Gutter hints table", function()
 
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
+            ["}"] = 3,
             ["G"] = 3,
         }, hints)
 
@@ -124,6 +134,7 @@ describe("Gutter hints table", function()
 
         eq({
             ["gg"] = 1,
+            ["{"] = 1,
             ["}"] = 4,
             ["G"] = 5,
         }, hints)

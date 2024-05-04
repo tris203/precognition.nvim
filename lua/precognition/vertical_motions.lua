@@ -18,11 +18,27 @@ function M.next_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     local loc
     vim.api.nvim_buf_call(bufnr, function()
-        loc = vim.fn.search("^\\_s*$", "nW", vim.fn.line("w$"))
+        local found
+        local visibleline = vim.fn.line("w$")
+        local buffcontent = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local cursorline, _ = unpack(vim.api.nvim_win_get_cursor(0))
+        while not found and cursorline < visibleline do
+            local cursorlinecontent = buffcontent[cursorline]
+            while cursorline < visibleline and cursorlinecontent:match("^%s*$") do
+                cursorline = cursorline + 1
+                cursorlinecontent = buffcontent[cursorline]
+            end
+            -- find next blank line below
+            while cursorline < visibleline and not found do
+                cursorline = cursorline + 1
+                cursorlinecontent = buffcontent[cursorline]
+                if cursorlinecontent:match("^%s*$") then
+                    found = true
+                end
+            end
+        end
+        loc = cursorline
     end)
-    if loc == 0 then
-        return nil
-    end
     return loc
 end
 
@@ -32,11 +48,29 @@ function M.prev_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     local loc
     vim.api.nvim_buf_call(bufnr, function()
-        loc = vim.fn.search("^\\_s*$", "bnW", vim.fn.line("w0"))
+        local found
+        local visibleline = vim.fn.line("w0")
+        local buffcontent = vim.api.nvim_buf_get_lines(bufnr, 0, -1, false)
+        local cursorline, _ = unpack(vim.api.nvim_win_get_cursor(0))
+        while not found and cursorline > visibleline do
+            local cursorlinecontent = buffcontent[cursorline]
+            while cursorline > visibleline and cursorlinecontent:match("^%s*$") do
+                cursorline = cursorline - 1
+                cursorlinecontent = buffcontent[cursorline]
+            end
+            -- find next blank line above
+            while cursorline > visibleline and not found do
+                cursorline = cursorline - 1
+                cursorlinecontent = buffcontent[cursorline]
+                if cursorlinecontent:match("^%s*$") then
+                    found = true
+                end
+            end
+        end
+        loc = cursorline
     end)
-    if loc == 0 then
-        return nil
-    end
+    --check if line above is empty
+    --if so, return the line above that
     return loc
 end
 
