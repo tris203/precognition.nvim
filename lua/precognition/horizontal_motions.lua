@@ -126,4 +126,96 @@ function M.prev_word_boundary(str, cursorcol, _linelen)
     return offset + 1
 end
 
+---@param str string
+---@param cursorcol integer
+---@param linelen integer
+---@return integer | nil
+function M.matching_bracket(str, cursorcol, linelen)
+    local supportedBrackets = {
+        open = { "(", "[", "{" },
+        middle = { "", "", "" },
+        close = { ")", "]", "}" },
+    }
+    local under_cursor = vim.fn.strcharpart(str, cursorcol - 1, 1)
+    local offset = cursorcol
+
+    if
+        not vim.tbl_contains(supportedBrackets.open, under_cursor)
+        and not vim.tbl_contains(supportedBrackets.close, under_cursor)
+    then
+        -- walk until we find a bracket
+        return nil
+    end
+    local idxFound = false
+    local bracketIdx
+    if not idxFound then
+        for i, bracket in ipairs(supportedBrackets.open) do
+            if bracket == under_cursor then
+                bracketIdx = i
+                idxFound = true
+                break
+            end
+        end
+    end
+
+    if not idxFound then
+        for i, bracket in ipairs(supportedBrackets.close) do
+            if bracket == under_cursor then
+                bracketIdx = i
+                idxFound = true
+                break
+            end
+        end
+    end
+
+    if not idxFound then
+        return nil
+    end
+
+    local openBracket = supportedBrackets.open[bracketIdx]
+    local closeBracket = supportedBrackets.close[bracketIdx]
+    local middleBracket = supportedBrackets.middle[bracketIdx]
+
+    if under_cursor == openBracket then
+        local depth = 1
+        offset = offset + 1
+        while offset <= linelen do
+            local char = vim.fn.strcharpart(str, offset - 1, 1)
+            if char == openBracket then
+                depth = depth + 1
+            end
+            if char == closeBracket or char == middleBracket then
+                depth = depth - 1
+                if depth == 0 then
+                    break
+                end
+            end
+            offset = offset + 1
+        end
+    end
+
+    if under_cursor == closeBracket then
+        local depth = 1
+        offset = offset - 2
+        while offset >= 0 do
+            local char = vim.fn.strcharpart(str, offset - 1, 1)
+            if char == closeBracket then
+                depth = depth + 1
+            end
+            if char == openBracket or char == middleBracket then
+                depth = depth - 1
+                if depth == 0 then
+                    break
+                end
+            end
+            offset = offset - 1
+        end
+    end
+
+    if offset < 0 or offset > linelen then
+        return nil
+    end
+    return offset
+end
+
 return M
