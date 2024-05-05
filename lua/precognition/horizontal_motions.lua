@@ -129,7 +129,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.matching_bracket(str, cursorcol, linelen)
     local supportedBrackets = {
         open = { "(", "[", "{" },
@@ -144,7 +144,7 @@ function M.matching_bracket(str, cursorcol, linelen)
         and not vim.tbl_contains(supportedBrackets.close, under_cursor)
     then
         -- walk until we find a bracket
-        return nil
+        return 0
     end
     local idxFound = false
     local bracketIdx
@@ -169,7 +169,7 @@ function M.matching_bracket(str, cursorcol, linelen)
     end
 
     if not idxFound then
-        return nil
+        return 0
     end
 
     local openBracket = supportedBrackets.open[bracketIdx]
@@ -213,7 +213,7 @@ function M.matching_bracket(str, cursorcol, linelen)
     end
 
     if offset < 0 or offset > linelen then
-        return nil
+        return 0
     end
     return offset
 end

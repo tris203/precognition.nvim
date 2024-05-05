@@ -13,8 +13,10 @@ local M = {}
 ---@field w Precognition.HintOpts
 ---@field e Precognition.HintOpts
 ---@field b Precognition.HintOpts
+---@field Zero Precognition.HintOpts
 ---@field Caret Precognition.HintOpts
 ---@field Dollar Precognition.HintOpts
+---@field MatchingPair Precognition.HintOpts
 
 ---@class Precognition.GutterHintConfig
 ---@field G Precognition.HintOpts
@@ -39,6 +41,7 @@ local M = {}
 ---@field b Precognition.PlaceLoc
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
+---@field MatchingPair Precognition.PlaceLoc
 
 ---@class (exact) Precognition.GutterHints
 ---@field G Precognition.PlaceLoc
@@ -48,8 +51,10 @@ local M = {}
 
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
-    Caret = { text = "^", prio = 1 },
+    Caret = { text = "^", prio = 2 },
     Dollar = { text = "$", prio = 1 },
+    MatchingPair = { text = "%", prio = 5 },
+    Zero = { text = "0", prio = 1 },
     w = { text = "w", prio = 10 },
     b = { text = "b", prio = 9 },
     e = { text = "e", prio = 8 },
@@ -204,6 +209,7 @@ local function on_cursor_hold()
         w = hm.next_word_boundary(cur_line, cursorcol, line_len),
         e = hm.end_of_word(cur_line, cursorcol, line_len),
         b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        MatchingPair = hm.matching_bracket(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
     }
 
