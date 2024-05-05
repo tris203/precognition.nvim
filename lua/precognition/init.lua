@@ -29,6 +29,7 @@ local M = {}
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field hints HintConfig
+---@field showBlankVirtLine boolean
 ---@field gutterHints GutterHintConfig
 
 ---@class Precognition.PartialConfig
@@ -61,6 +62,7 @@ local defaultHintConfig = {
 ---@type Precognition.Config
 local default = {
     startVisible = true,
+    showBlankVirtLine = true,
     hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
@@ -107,9 +109,10 @@ local function build_virt_line(marks, line_len)
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
+        local prio = config.hints[mark].prio or 0
         local col = loc
 
-        if col ~= 0 then
+        if col ~= 0 and prio > 0 then
             local existing = line:sub(col, col)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
@@ -127,8 +130,10 @@ local function build_virt_line(marks, line_len)
             end
         end
     end
+    if line:match("^%s+$") then
+        return {}
+    end
     table.insert(virt_line, { line, "Comment" })
-
     return virt_line
 end
 
@@ -211,12 +216,18 @@ local function on_cursor_hold()
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
+    if not config.showBlankVirtLine then
+        if virt_line == nil or #virt_line == 0 then
+            goto continue
+        end
+    end
     if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
         extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
             id = extmark, -- reuse the same extmark if it exists
             virt_lines = { virt_line },
         })
     end
+    ::continue::
     apply_gutter_hints(build_gutter_hints())
 
     dirty = false
@@ -335,6 +346,8 @@ end
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
     config = vim.tbl_deep_extend("force", default, opts or {})
+
+    print("config", vim.inspect(config))
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })

@@ -19,6 +19,7 @@ return {
     "tris203/precognition.nvim",
     config = {
     -- startVisible = true,
+    -- showBlankVirtLine = true,
     -- hints = {
     --     Carat = { text = "^", prio = 1 },
     --     Dollar = { text = "$", prio = 1 },
@@ -36,6 +37,13 @@ return {
     },
 }
 ```
+
+## ⚙️ Config
+
+- Items can be hidden by settings their priority to 0
+- `lua showBlankVirtLine = false`
+  Setting this option will mean that if a Virtual Line would be blank it wont be
+  rendered
 
 ## ❔Usage
 
