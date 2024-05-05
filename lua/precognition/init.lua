@@ -3,41 +3,69 @@ local vm = require("precognition.vertical_motions")
 
 local M = {}
 
----@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
----@alias SupportedGutterHints "G" | "gg" | "{" | "}"
+---@class Precognition.HintOpts
+---@field text string
+---@field prio integer
+
+---@alias Precognition.PlaceLoc integer
+
+---@class (exact) Precognition.HintConfig
+---@field w Precognition.HintOpts
+---@field e Precognition.HintOpts
+---@field b Precognition.HintOpts
+---@field Caret Precognition.HintOpts
+---@field Dollar Precognition.HintOpts
+
+---@class Precognition.GutterHintConfig
+---@field G Precognition.HintOpts
+---@field gg Precognition.HintOpts
+---@field PrevParagraph Precognition.HintOpts
+---@field NextParagraph Precognition.HintOpts
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints { SupportedHints: { text: string, prio: integer } }
----@field gutterHints { SupportedGutterHints: { text: string, prio: integer } }
+---@field hints Precognition.HintConfig
+---@field showBlankVirtLine boolean
+---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
----@field hints? { SupportedHints: { text: string, prio: integer } }
----@field gutterHints? { SupportedGutterHints: { text: string, prio: integer } }
+---@field hints? Precognition.HintConfig
+---@field gutterHints? Precognition.GutterHintConfig
 
----@alias Precognition.VirtLine {  SupportedHints: integer | nil }
+---@class (exact) Precognition.VirtLine
+---@field w Precognition.PlaceLoc
+---@field e Precognition.PlaceLoc
+---@field b Precognition.PlaceLoc
+---@field Caret Precognition.PlaceLoc
+---@field Dollar Precognition.PlaceLoc
 
----@alias Precognition.GutterHints { SupportedGutterHints: integer | nil }
+---@class (exact) Precognition.GutterHints
+---@field G Precognition.PlaceLoc
+---@field gg Precognition.PlaceLoc
+---@field PrevParagraph Precognition.PlaceLoc
+---@field NextParagraph Precognition.PlaceLoc
+
+---@type Precognition.HintConfig
+local defaultHintConfig = {
+    Caret = { text = "^", prio = 1 },
+    Dollar = { text = "$", prio = 1 },
+    w = { text = "w", prio = 10 },
+    b = { text = "b", prio = 9 },
+    e = { text = "e", prio = 8 },
+}
 
 ---@type Precognition.Config
 local default = {
     startVisible = true,
-    hints = {
-        ["^"] = { text = "^", prio = 1 },
-        ["$"] = { text = "$", prio = 1 },
-        ["w"] = { text = "w", prio = 10 },
-        -- ["W"] = "W",
-        ["b"] = { text = "b", prio = 9 },
-        ["e"] = { text = "e", prio = 8 },
-        -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
-    },
+    showBlankVirtLine = true,
+    hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
-        ["G"] = { text = "G", prio = 1 },
-        ["gg"] = { text = "gg", prio = 1 },
-        ["{"] = { text = "{", prio = 1 },
-        ["}"] = { text = "}", prio = 1 },
+        G = { text = "G", prio = 1 },
+        gg = { text = "gg", prio = 1 },
+        PrevParagraph = { text = "{", prio = 1 },
+        NextParagraph = { text = "}", prio = 1 },
     },
 }
 
@@ -66,38 +94,54 @@ local gutter_group = "precognition_gutter"
 ---@param line_len integer
 ---@return table
 local function build_virt_line(marks, line_len)
+    if not marks then
+        return {}
+    end
+    if line_len == 0 then
+        return {}
+    end
     local virt_line = {}
     local line = string.rep(" ", line_len)
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
+        local prio = config.hints[mark].prio or 0
         local col = loc
 
-        if col ~= nil then
+        if col ~= 0 and prio > 0 then
             local existing = line:sub(col, col)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
-                if existing ~= "" and config.hints[mark].prio > config.hints[existing].prio then
+                local existingKey
+                for key, value in pairs(config.hints) do
+                    if value.text == existing then
+                        existingKey = key
+                        break
+                    end
+                end
+                if existing ~= " " and config.hints[mark].prio > config.hints[existingKey].prio then
                     line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
                 end
             end
         end
     end
+    if line:match("^%s+$") then
+        return {}
+    end
     table.insert(virt_line, { line, "Comment" })
-
     return virt_line
 end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
+    ---@type Precognition.GutterHints
     local gutter_hints = {
-        ["G"] = vm.file_end(),
-        ["gg"] = vm.file_start(),
-        ["{"] = vm.prev_paragraph_line(),
-        ["}"] = vm.next_paragraph_line(),
+        G = vm.file_end(),
+        gg = vm.file_start(),
+        PrevParagraph = vm.prev_paragraph_line(),
+        NextParagraph = vm.next_paragraph_line(),
     }
-
     return gutter_hints
 end
 
@@ -119,17 +163,16 @@ local function apply_gutter_hints(gutter_hints, bufnr)
                 text = config.gutterHints[hint].text,
                 texthl = "Comment",
             })
-            local ok, res =
-                pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. config.gutterHints[hint].text, bufnr, {
-                    lnum = loc,
-                    priority = 100,
-                })
+            local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
+                lnum = loc,
+                priority = 100,
+            })
             if ok then
                 gutter_signs_cache[hint] = { line = loc, id = res }
             end
             if not ok and loc ~= 0 then
                 vim.notify_once(
-                    "Failed to place sign: " .. config.gutterHints[hint].text .. " at line " .. loc,
+                    "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
                     vim.log.levels.WARN
                 )
             end
@@ -154,23 +197,28 @@ local function on_cursor_hold()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
+    --
+    ---@type Precognition.VirtLine
+    local virtual_line_marks = {
+        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        w = hm.next_word_boundary(cur_line, cursorcol, line_len),
+        e = hm.end_of_word(cur_line, cursorcol, line_len),
+        b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        Dollar = hm.line_end(cur_line, cursorcol, line_len),
+    }
 
-    local virt_line = build_virt_line({
-        ["w"] = hm.next_word_boundary(cur_line, cursorcol, line_len),
-        ["e"] = hm.end_of_word(cur_line, cursorcol, line_len),
-        ["b"] = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-        ["^"] = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        ["$"] = hm.line_end(cur_line, cursorcol, line_len),
-    }, line_len)
+    local virt_line = build_virt_line(virtual_line_marks, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
-    if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
-        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-            id = extmark, -- reuse the same extmark if it exists
-            virt_lines = { virt_line },
-        })
+    if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
+        if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
+            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+                id = extmark, -- reuse the same extmark if it exists
+                virt_lines = { virt_line },
+            })
+        end
     end
     apply_gutter_hints(build_gutter_hints())
 
@@ -199,7 +247,7 @@ local function on_insert_enter(ev)
 end
 
 local function on_buf_edit()
-    apply_gutter_hints(build_gutter_hints(), vim.api.nvim_get_current_buf())
+    apply_gutter_hints(build_gutter_hints())
 end
 
 local function on_buf_leave(ev)

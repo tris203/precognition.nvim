@@ -5,7 +5,7 @@ local M = {}
 ---@param str string
 ---@param _cursorcol integer
 ---@param _linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.line_start_non_whitespace(str, _cursorcol, _linelen)
     return str:find("%S") or 0
 end
@@ -13,7 +13,7 @@ end
 ---@param _str string
 ---@param _cursorcol integer
 ---@param linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.line_end(_str, _cursorcol, linelen)
     return linelen or nil
 end
@@ -21,7 +21,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.next_word_boundary(str, cursorcol, _linelen)
     local offset = cursorcol
     local len = vim.fn.strcharlen(str)
@@ -40,7 +40,7 @@ function M.next_word_boundary(str, cursorcol, _linelen)
         char = vim.fn.strcharpart(str, offset - 1, 1)
     end
     if offset > len then
-        return nil
+        return 0
     end
 
     return offset
@@ -49,11 +49,11 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.end_of_word(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
     if cursorcol >= len then
-        return nil
+        return 0
     end
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
@@ -83,7 +83,7 @@ function M.end_of_word(str, cursorcol, _linelen)
     end
 
     if rev_offset ~= nil and rev_offset <= 0 then
-        return nil
+        return 0
     end
 
     if rev_offset ~= nil then
@@ -95,7 +95,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return integer | nil
+---@return Precognition.PlaceLoc
 function M.prev_word_boundary(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
     local offset = cursorcol - 1
@@ -116,12 +116,12 @@ function M.prev_word_boundary(str, cursorcol, _linelen)
         --if remaining string is whitespace, return nil_wrap
         local remaining = string.sub(str, offset)
         if remaining:match("^%s*$") and #remaining > 0 then
-            return nil
+            return 0
         end
     end
 
     if offset == nil or offset > len or offset < 0 then
-        return nil
+        return 0
     end
     return offset + 1
 end

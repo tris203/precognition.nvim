@@ -4,10 +4,9 @@ local hm = require("precognition.horizontal_motions")
 local eq = assert.are.same
 describe("Build Virtual Line", function()
     it("can build a simple virtual line", function()
-        ---@type Precognition.VirtLine
         local marks = {
-            ["^"] = 4,
-            ["$"] = 10,
+            Caret = 4,
+            Dollar = 10,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("   ^     $", virtual_line[1][1])
@@ -15,9 +14,8 @@ describe("Build Virtual Line", function()
     end)
 
     it("can build a virtual line with a single mark", function()
-        ---@type Precognition.VirtLine
         local marks = {
-            ["^"] = 4,
+            Caret = 4,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("   ^      ", virtual_line[1][1])
@@ -25,9 +23,8 @@ describe("Build Virtual Line", function()
     end)
 
     it("can build a virtual line with a single mark at the end", function()
-        ---@type Precognition.VirtLine
         local marks = {
-            ["$"] = 10,
+            Dollar = 10,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("         $", virtual_line[1][1])
@@ -35,9 +32,8 @@ describe("Build Virtual Line", function()
     end)
 
     it("can build a virtual line with a single mark at the beginning", function()
-        ---@type Precognition.VirtLine
         local marks = {
-            ["^"] = 1,
+            Caret = 1,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("^         ", virtual_line[1][1])
@@ -47,10 +43,11 @@ describe("Build Virtual Line", function()
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
         local marks = {
-            ["^"] = 1,
-            ["b"] = 4,
-            ["w"] = 10,
-            ["$"] = 50,
+            Caret = 1,
+            e = 6,
+            b = 4,
+            w = 10,
+            Dollar = 50,
         }
         local virtual_line = precognition.build_virt_line(marks, 50)
         local line_num = 1
@@ -59,6 +56,8 @@ describe("Build Virtual Line", function()
                 eq("^", char)
             elseif line_num == 4 then
                 eq("b", char)
+            elseif line_num == 6 then
+                eq("e", char)
             elseif line_num == 10 then
                 eq("w", char)
             elseif line_num == 50 then
@@ -79,11 +78,11 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            ["w"] = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            ["e"] = hm.end_of_word(cur_line, cursorcol, line_len),
-            ["b"] = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-            ["^"] = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            ["$"] = hm.line_end(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
+            e = hm.end_of_word(cur_line, cursorcol, line_len),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
 
         eq("b    e w                     $", virt_line[1][1])
@@ -99,14 +98,107 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            ["w"] = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            ["e"] = hm.end_of_word(cur_line, cursorcol, line_len),
-            ["b"] = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-            ["^"] = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            ["$"] = hm.line_end(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
+            e = hm.end_of_word(cur_line, cursorcol, line_len),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
 
         eq("    ^ e w $", virt_line[1][1])
         eq(#line, #virt_line[1][1])
+    end)
+end)
+
+describe("Priority", function()
+    it("0 priority item is not added", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 0,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 0,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 4,
+            w = 6,
+            Dollar = 10,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 10)
+        eq("     w    ", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
+
+    it("a higher priority mark in the same space takes priority", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 0,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 1,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 4,
+            w = 6,
+            Dollar = 10,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 10)
+        eq("     w   $", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
+
+    it("a higher priority mark in the same space takes priority", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 1,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 100,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 1,
+            Dollar = 1,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 1)
+        eq("$", virtual_line[1][1])
+        eq(1, #virtual_line[1][1])
+
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 100,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 1,
+                    text = "$",
+                },
+            },
+        })
+
+        virtual_line = precognition.build_virt_line(marks, 1)
+        eq("^", virtual_line[1][1])
+        eq(1, #virtual_line[1][1])
     end)
 end)
