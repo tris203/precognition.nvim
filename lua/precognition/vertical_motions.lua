@@ -1,19 +1,19 @@
 local M = {}
 
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.file_start()
     return 1
 end
 
 ---@param bufnr? integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.file_end(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     return vim.api.nvim_buf_line_count(bufnr)
 end
 
 ---@param bufnr? integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.next_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     local loc = 0
@@ -43,7 +43,7 @@ function M.next_paragraph_line(bufnr)
 end
 
 ---@param bufnr? integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.prev_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     local loc = 0

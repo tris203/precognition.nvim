@@ -3,50 +3,50 @@ local vm = require("precognition.vertical_motions")
 
 local M = {}
 
----@class HintOpts
+---@class Precognition.HintOpts
 ---@field text string
 ---@field prio integer
 
----@alias PlaceLoc integer
+---@alias Precognition.PlaceLoc integer
 
----@class (exact) HintConfig
----@field w HintOpts
----@field e HintOpts
----@field b HintOpts
----@field Caret HintOpts
----@field Dollar HintOpts
+---@class (exact) Precognition.HintConfig
+---@field w Precognition.HintOpts
+---@field e Precognition.HintOpts
+---@field b Precognition.HintOpts
+---@field Caret Precognition.HintOpts
+---@field Dollar Precognition.HintOpts
 
----@class GutterHintConfig
----@field G HintOpts
----@field gg HintOpts
----@field PrevParagraph HintOpts
----@field NextParagraph HintOpts
+---@class Precognition.GutterHintConfig
+---@field G Precognition.HintOpts
+---@field gg Precognition.HintOpts
+---@field PrevParagraph Precognition.HintOpts
+---@field NextParagraph Precognition.HintOpts
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints HintConfig
+---@field hints Precognition.HintConfig
 ---@field showBlankVirtLine boolean
----@field gutterHints GutterHintConfig
+---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
----@field hints? HintConfig
----@field gutterHints? GutterHintConfig
+---@field hints? Precognition.HintConfig
+---@field gutterHints? Precognition.GutterHintConfig
 
 ---@class (exact) Precognition.VirtLine
----@field w PlaceLoc
----@field e PlaceLoc
----@field b PlaceLoc
----@field Caret PlaceLoc
----@field Dollar PlaceLoc
+---@field w Precognition.PlaceLoc
+---@field e Precognition.PlaceLoc
+---@field b Precognition.PlaceLoc
+---@field Caret Precognition.PlaceLoc
+---@field Dollar Precognition.PlaceLoc
 
 ---@class (exact) Precognition.GutterHints
----@field G PlaceLoc
----@field gg PlaceLoc
----@field PrevParagraph PlaceLoc
----@field NextParagraph PlaceLoc
+---@field G Precognition.PlaceLoc
+---@field gg Precognition.PlaceLoc
+---@field PrevParagraph Precognition.PlaceLoc
+---@field NextParagraph Precognition.PlaceLoc
 
----@type HintConfig
+---@type Precognition.HintConfig
 local defaultHintConfig = {
     Caret = { text = "^", prio = 1 },
     Dollar = { text = "$", prio = 1 },

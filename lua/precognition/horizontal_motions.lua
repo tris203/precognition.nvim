@@ -5,7 +5,7 @@ local M = {}
 ---@param str string
 ---@param _cursorcol integer
 ---@param _linelen integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.line_start_non_whitespace(str, _cursorcol, _linelen)
     return str:find("%S") or 0
 end
@@ -13,7 +13,7 @@ end
 ---@param _str string
 ---@param _cursorcol integer
 ---@param linelen integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.line_end(_str, _cursorcol, linelen)
     return linelen or nil
 end
@@ -21,7 +21,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.next_word_boundary(str, cursorcol, _linelen)
     local offset = cursorcol
     local len = vim.fn.strcharlen(str)
@@ -49,7 +49,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.end_of_word(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
     if cursorcol >= len then
@@ -95,7 +95,7 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param _linelen integer
----@return PlaceLoc
+---@return Precognition.PlaceLoc
 function M.prev_word_boundary(str, cursorcol, _linelen)
     local len = vim.fn.strcharlen(str)
     local offset = cursorcol - 1
