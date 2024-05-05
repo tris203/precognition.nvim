@@ -110,7 +110,6 @@ describe("Build Virtual Line", function()
     end)
 end)
 
-
 describe("Priority", function()
     it("0 priority item is not added", function()
         precognition.setup({
@@ -137,7 +136,7 @@ describe("Priority", function()
         eq(10, #virtual_line[1][1])
     end)
 
- it("a higher priority mark in the same space takes priority", function()
+    it("a higher priority mark in the same space takes priority", function()
         precognition.setup({
             hints = {
                 Caret = {
