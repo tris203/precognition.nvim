@@ -26,12 +26,13 @@ local M = {}
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints Precognition.HintConfig
 ---@field showBlankVirtLine boolean
+---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
+---@field showBlankVirtLine? boolean
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
