@@ -21,13 +21,13 @@ return {
     -- startVisible = true,
     -- showBlankVirtLine = true,
     -- hints = {
-            Caret = { text = "^", prio = 2 },
-            Dollar = { text = "$", prio = 1 },
-            MatchingPair = { text = "%", prio = 5 },
-            Zero = { text = "0", prio = 1 },
-            w = { text = "w", prio = 10 },
-            b = { text = "b", prio = 9 },
-            e = { text = "e", prio = 8 },
+    --      Caret = { text = "^", prio = 2 },
+    --      Dollar = { text = "$", prio = 1 },
+    --      MatchingPair = { text = "%", prio = 5 },
+    --      Zero = { text = "0", prio = 1 },
+    --      w = { text = "w", prio = 10 },
+    --      b = { text = "b", prio = 9 },
+    --      e = { text = "e", prio = 8 },
     -- },
     -- gutterHints = {
     --     --prio is not currentlt used for gutter hints
