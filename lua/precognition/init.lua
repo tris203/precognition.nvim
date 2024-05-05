@@ -3,18 +3,35 @@ local vm = require("precognition.vertical_motions")
 
 local M = {}
 
----@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
+---@alias SupportedHints "^" | "$" | "w" | "e" | "b"
 ---@alias SupportedGutterHints "G" | "gg" | "{" | "}"
+
+---@class HintOpts
+---@field text string
+---@field prio integer
+
+---@class HintConfig
+---@field w HintOpts
+---@field e HintOpts
+---@field b HintOpts
+---@field ["^"] HintOpts
+---@field ["$"] HintOpts
+
+---@class GutterHintConfig
+---@field G HintOpts
+---@field gg HintOpts
+---@field ["{"] HintOpts
+---@field ["}"] HintOpts
 
 ---@class Precognition.Config
 ---@field startVisible boolean
----@field hints { SupportedHints: { text: string, prio: integer } }
----@field gutterHints { SupportedGutterHints: { text: string, prio: integer } }
+---@field hints HintConfig
+---@field gutterHints GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
----@field hints? { SupportedHints: { text: string, prio: integer } }
----@field gutterHints? { SupportedGutterHints: { text: string, prio: integer } }
+---@field hints? HintConfig
+---@field gutterHints? GutterHintConfig
 
 ---@alias Precognition.VirtLine {  SupportedHints: integer | nil }
 
