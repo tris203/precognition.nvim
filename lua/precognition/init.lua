@@ -216,18 +216,14 @@ local function on_cursor_hold()
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
-    if not config.showBlankVirtLine then
-        if virt_line == nil or #virt_line == 0 then
-            goto continue
+    if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
+        if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
+            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+                id = extmark, -- reuse the same extmark if it exists
+                virt_lines = { virt_line },
+            })
         end
     end
-    if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
-        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-            id = extmark, -- reuse the same extmark if it exists
-            virt_lines = { virt_line },
-        })
-    end
-    ::continue::
     apply_gutter_hints(build_gutter_hints())
 
     dirty = false
