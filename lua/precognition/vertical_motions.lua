@@ -1,22 +1,22 @@
 local M = {}
 
----@return integer
+---@return PlaceLoc
 function M.file_start()
     return 1
 end
 
 ---@param bufnr? integer
----@return integer
+---@return PlaceLoc
 function M.file_end(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     return vim.api.nvim_buf_line_count(bufnr)
 end
 
 ---@param bufnr? integer
----@return integer | nil
+---@return PlaceLoc
 function M.next_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    local loc
+    local loc = 0
     vim.api.nvim_buf_call(bufnr, function()
         local found
         local visibleline = vim.fn.line("w$")
@@ -43,10 +43,10 @@ function M.next_paragraph_line(bufnr)
 end
 
 ---@param bufnr? integer
----@return integer | nil
+---@return PlaceLoc
 function M.prev_paragraph_line(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    local loc
+    local loc = 0
     vim.api.nvim_buf_call(bufnr, function()
         local found
         local visibleline = vim.fn.line("w0")
