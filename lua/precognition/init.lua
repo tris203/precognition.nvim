@@ -14,9 +14,9 @@ local M = {}
 ---@field e Precognition.HintOpts
 ---@field b Precognition.HintOpts
 ---@field Zero Precognition.HintOpts
+---@field MatchingPair Precognition.HintOpts
 ---@field Caret Precognition.HintOpts
 ---@field Dollar Precognition.HintOpts
----@field MatchingPair Precognition.HintOpts
 
 ---@class Precognition.GutterHintConfig
 ---@field G Precognition.HintOpts
@@ -39,6 +39,7 @@ local M = {}
 ---@field w Precognition.PlaceLoc
 ---@field e Precognition.PlaceLoc
 ---@field b Precognition.PlaceLoc
+---@field Zero Precognition.PlaceLoc
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
 ---@field MatchingPair Precognition.PlaceLoc
@@ -211,6 +212,7 @@ local function on_cursor_hold()
         b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
         MatchingPair = hm.matching_bracket(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
+        Zero = 1,
     }
 
     local virt_line = build_virt_line(virtual_line_marks, line_len)
