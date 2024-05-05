@@ -1,3 +1,6 @@
+local hm = require("precognition.horizontal_motions")
+local vm = require("precognition.vertical_motions")
+
 local M = {}
 
 ---@alias SupportedHints "'^'" | "'b'" | "'w'" | "'$'"
@@ -25,8 +28,8 @@ local default = {
         ["$"] = { text = "$", prio = 1 },
         ["w"] = { text = "w", prio = 10 },
         -- ["W"] = "W",
-        ["b"] = { text = "b", prio = 10 },
-        ["e"] = { text = "e", prio = 10 },
+        ["b"] = { text = "b", prio = 9 },
+        ["e"] = { text = "e", prio = 8 },
         -- ["ge"] = "ge", -- should we support multi-char / multi-byte hints?
     },
     gutterHints = {
@@ -59,123 +62,6 @@ local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
 
----@param char string
----@return integer
-local function char_class(char)
-    local byte = string.byte(char)
-
-    if byte and byte < 0x100 then
-        if char == " " or char == "\t" or char == "\0" then
-            return 0 -- whitespace
-        end
-        if char == "_" or char:match("%w") then
-            return 2 -- word character
-        end
-        return 1 -- other
-    end
-
-    return 1 -- scary unicode edge cases go here
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function next_word_boundary(str, start)
-    local offset = start - 1
-    local len = vim.fn.strcharlen(str)
-    local char = vim.fn.strcharpart(str, offset, 1)
-    local c_class = char_class(char)
-
-    if c_class ~= 0 then
-        while char_class(char) == c_class and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
-        end
-    end
-
-    while char_class(char) == 0 and offset <= len do
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset, 1)
-    end
-    if (offset + 1) > len then
-        return nil
-    end
-
-    return offset + 1
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function end_of_word(str, start)
-    local len = vim.fn.strcharlen(str)
-    if start >= len then
-        return nil
-    end
-    local offset = start - 1
-    local char = vim.fn.strcharpart(str, offset, 1)
-    local c_class = char_class(char)
-    local next_char_class = char_class(vim.fn.strcharpart(str, offset + 1, 1))
-    local rev_offset
-
-    if c_class ~= 0 and next_char_class ~= 0 then
-        while char_class(char) == c_class and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
-        end
-    end
-
-    if c_class == 0 or next_char_class == 0 then
-        local next_word_start = next_word_boundary(str, offset)
-        if next_word_start then
-            rev_offset = end_of_word(str, next_word_start + 1)
-        end
-    end
-
-    if rev_offset ~= nil and rev_offset <= 0 then
-        return nil
-    end
-
-    if rev_offset ~= nil then
-        return rev_offset
-    end
-    return offset
-end
-
----@param str string
----@param start integer
----@return integer | nil
-local function prev_word_boundary(str, start)
-    local len = vim.fn.strcharlen(str)
-    local offset = len - start + 1
-    str = string.reverse(str)
-    local char = vim.fn.strcharpart(str, offset - 1, 1)
-    local c_class = char_class(char)
-
-    if c_class == 0 then
-        while char_class(char) == 0 and offset <= len do
-            offset = offset + 1
-            char = vim.fn.strcharpart(str, offset, 1)
-        end
-    end
-
-    c_class = char_class(char)
-    while char_class(char) == c_class and offset <= len do
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset, 1)
-        --if remaining string is whitespace, return nil_wrap
-        local remaining = string.sub(str, offset)
-        if remaining:match("^%s*$") and #remaining > 0 then
-            return nil
-        end
-    end
-
-    if offset == nil or (len - offset + 1) > len or (len - offset + 1) <= 0 then
-        return nil
-    end
-    return len - offset + 1
-end
-
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
 ---@return table
@@ -192,11 +78,7 @@ local function build_virt_line(marks, line_len)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
-                if
-                    existing ~= ""
-                    and config.hints[mark].prio
-                        > config.hints[existing].prio
-                then
+                if existing ~= "" and config.hints[mark].prio > config.hints[existing].prio then
                     line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
                 end
             end
@@ -207,56 +89,47 @@ local function build_virt_line(marks, line_len)
     return virt_line
 end
 
----@param buf integer == bufnr
 ---@return Precognition.GutterHints
-local function build_gutter_hints(buf)
+local function build_gutter_hints()
     local gutter_hints = {
-        ["G"] = vim.api.nvim_buf_line_count(buf),
-        ["gg"] = 1,
-        ["{"] = vim.fn.search("^\\s*$", "bn"),
-        ["}"] = vim.fn.search("^\\s*$", "n"),
+        ["G"] = vm.file_end(),
+        ["gg"] = vm.file_start(),
+        ["{"] = vm.prev_paragraph_line(),
+        ["}"] = vm.next_paragraph_line(),
     }
 
     return gutter_hints
 end
 
 ---@param gutter_hints Precognition.GutterHints
----@param buf integer == bufnr
+---@param bufnr? integer -- buffer number
 ---@return nil
-local function apply_gutter_hints(gutter_hints, buf)
-    if vim.api.nvim_get_option_value("buftype", { buf = buf }) ~= "" then
+local function apply_gutter_hints(gutter_hints, bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
         return
     end
     for hint, loc in pairs(gutter_hints) do
-        if config.gutterHints[hint] then
+        if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
             if gutter_signs_cache[hint] then
-                vim.fn.sign_unplace(
-                    gutter_group,
-                    { id = gutter_signs_cache[hint].id }
-                )
+                vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
                 gutter_signs_cache[hint] = nil
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
                 text = config.gutterHints[hint].text,
                 texthl = "Comment",
             })
-            local ok, res = pcall(
-                vim.fn.sign_place,
-                0,
-                gutter_group,
-                gutter_name_prefix .. config.gutterHints[hint].text,
-                buf,
-                {
+            local ok, res =
+                pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. config.gutterHints[hint].text, bufnr, {
                     lnum = loc,
                     priority = 100,
-                }
-            )
+                })
             if ok then
                 gutter_signs_cache[hint] = { line = loc, id = res }
             end
-            if not ok then
+            if not ok and loc ~= 0 then
                 vim.notify_once(
-                    "Failed to place sign: " .. config.gutterHints[hint].text,
+                    "Failed to place sign: " .. config.gutterHints[hint].text .. " at line " .. loc,
                     vim.log.levels.WARN
                 )
             end
@@ -272,8 +145,7 @@ local function on_cursor_hold()
     end
 
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local cur_line =
-        vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
+    local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
@@ -284,31 +156,23 @@ local function on_cursor_hold()
     -- get char offsets for more complex motions.
 
     local virt_line = build_virt_line({
-        ["w"] = next_word_boundary(cur_line, cursorcol),
-        ["e"] = end_of_word(cur_line, cursorcol),
-        ["b"] = prev_word_boundary(cur_line, cursorcol),
-        ["^"] = cur_line:find("%S") or 0,
-        ["$"] = line_len,
+        ["w"] = hm.next_word_boundary(cur_line, cursorcol, line_len),
+        ["e"] = hm.end_of_word(cur_line, cursorcol, line_len),
+        ["b"] = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        ["^"] = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        ["$"] = hm.line_end(cur_line, cursorcol, line_len),
     }, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
-    if
-        vim.api.nvim_get_option_value(
-            "buftype",
-            { buf = vim.api.nvim_get_current_buf() }
-        ) == ""
-    then
+    if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
         extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
             id = extmark, -- reuse the same extmark if it exists
             virt_lines = { virt_line },
         })
     end
-    apply_gutter_hints(
-        build_gutter_hints(vim.api.nvim_get_current_buf()),
-        vim.api.nvim_get_current_buf()
-    )
+    apply_gutter_hints(build_gutter_hints())
 
     dirty = false
 end
@@ -335,10 +199,7 @@ local function on_insert_enter(ev)
 end
 
 local function on_buf_edit()
-    apply_gutter_hints(
-        build_gutter_hints(vim.api.nvim_get_current_buf()),
-        vim.api.nvim_get_current_buf()
-    )
+    apply_gutter_hints(build_gutter_hints(), vim.api.nvim_get_current_buf())
 end
 
 local function on_buf_leave(ev)
@@ -441,18 +302,6 @@ end
 -- access these variables from outside the module
 -- but we don't want to expose them to the user
 local state = {
-    char_class = function()
-        return char_class
-    end,
-    next_word_boundary = function()
-        return next_word_boundary
-    end,
-    prev_word_boundary = function()
-        return prev_word_boundary
-    end,
-    end_of_word = function()
-        return end_of_word
-    end,
     build_virt_line = function()
         return build_virt_line
     end,
