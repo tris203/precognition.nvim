@@ -339,8 +339,6 @@ end
 function M.setup(opts)
     config = vim.tbl_deep_extend("force", default, opts or {})
 
-    print("config", vim.inspect(config))
-
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     if config.startVisible then

@@ -109,3 +109,97 @@ describe("Build Virtual Line", function()
         eq(#line, #virt_line[1][1])
     end)
 end)
+
+
+describe("Priority", function()
+    it("0 priority item is not added", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 0,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 0,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 4,
+            w = 6,
+            Dollar = 10,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 10)
+        eq("     w    ", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
+
+ it("a higher priority mark in the same space takes priority", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 0,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 1,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 4,
+            w = 6,
+            Dollar = 10,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 10)
+        eq("     w   $", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
+
+    it("a higher priority mark in the same space takes priority", function()
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 1,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 100,
+                    text = "$",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 1,
+            Dollar = 1,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 1)
+        eq("$", virtual_line[1][1])
+        eq(1, #virtual_line[1][1])
+
+        precognition.setup({
+            hints = {
+                Caret = {
+                    prio = 100,
+                    text = "^",
+                },
+                Dollar = {
+                    prio = 1,
+                    text = "$",
+                },
+            },
+        })
+
+        virtual_line = precognition.build_virt_line(marks, 1)
+        eq("^", virtual_line[1][1])
+        eq(1, #virtual_line[1][1])
+    end)
+end)
