@@ -3,10 +3,6 @@ local vm = require("precognition.vertical_motions")
 
 local M = {}
 
----@alias Dollar "$"
----@alias PrevParagraph "{"
----@alias NextParagraph "}"
-
 ---@class HintOpts
 ---@field text string
 ---@field prio integer
@@ -17,7 +13,7 @@ local M = {}
 ---@field w HintOpts
 ---@field e HintOpts
 ---@field b HintOpts
----@field Carat HintOpts
+---@field Caret HintOpts
 ---@field Dollar HintOpts
 
 ---@class GutterHintConfig
@@ -41,7 +37,7 @@ local M = {}
 ---@field w PlaceLoc
 ---@field e PlaceLoc
 ---@field b PlaceLoc
----@field Carat PlaceLoc
+---@field Caret PlaceLoc
 ---@field Dollar PlaceLoc
 
 ---@class (exact) Precognition.GutterHints
@@ -52,7 +48,7 @@ local M = {}
 
 ---@type HintConfig
 local defaultHintConfig = {
-    Carat = { text = "^", prio = 1 },
+    Caret = { text = "^", prio = 1 },
     Dollar = { text = "$", prio = 1 },
     w = { text = "w", prio = 10 },
     b = { text = "b", prio = 9 },
@@ -204,7 +200,7 @@ local function on_cursor_hold()
     --
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
-        Carat = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
         w = hm.next_word_boundary(cur_line, cursorcol, line_len),
         e = hm.end_of_word(cur_line, cursorcol, line_len),
         b = hm.prev_word_boundary(cur_line, cursorcol, line_len),

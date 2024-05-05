@@ -21,7 +21,7 @@ return {
     -- startVisible = true,
     -- showBlankVirtLine = true,
     -- hints = {
-    --     Carat = { text = "^", prio = 1 },
+    --     Caret = { text = "^", prio = 1 },
     --     Dollar = { text = "$", prio = 1 },
     --     w = { text = "w", prio = 10 },
     --     b = { text = "b", prio = 10 },

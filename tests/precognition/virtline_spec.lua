@@ -5,7 +5,7 @@ local eq = assert.are.same
 describe("Build Virtual Line", function()
     it("can build a simple virtual line", function()
         local marks = {
-            Carat = 4,
+            Caret = 4,
             Dollar = 10,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
@@ -15,7 +15,7 @@ describe("Build Virtual Line", function()
 
     it("can build a virtual line with a single mark", function()
         local marks = {
-            Carat = 4,
+            Caret = 4,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("   ^      ", virtual_line[1][1])
@@ -33,7 +33,7 @@ describe("Build Virtual Line", function()
 
     it("can build a virtual line with a single mark at the beginning", function()
         local marks = {
-            Carat = 1,
+            Caret = 1,
         }
         local virtual_line = precognition.build_virt_line(marks, 10)
         eq("^         ", virtual_line[1][1])
@@ -43,7 +43,7 @@ describe("Build Virtual Line", function()
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
         local marks = {
-            Carat = 1,
+            Caret = 1,
             e = 6,
             b = 4,
             w = 10,
@@ -81,7 +81,7 @@ describe("Build Virtual Line", function()
             w = hm.next_word_boundary(cur_line, cursorcol, line_len),
             e = hm.end_of_word(cur_line, cursorcol, line_len),
             b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-            Carat = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
 
@@ -101,7 +101,7 @@ describe("Build Virtual Line", function()
             w = hm.next_word_boundary(cur_line, cursorcol, line_len),
             e = hm.end_of_word(cur_line, cursorcol, line_len),
             b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-            Carat = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
 
