@@ -18,4 +18,14 @@ function M.char_class(char)
     return 1 -- scary unicode edge cases go here
 end
 
+---@param bufnr? integer
+---@return boolean
+function M.is_blacklisted_buffer(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
+        return true
+    end
+    return false
+end
+
 return M

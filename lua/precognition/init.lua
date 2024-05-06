@@ -1,5 +1,6 @@
 local hm = require("precognition.horizontal_motions")
 local vm = require("precognition.vertical_motions")
+local utils = require("precognition.utils")
 
 local M = {}
 
@@ -151,7 +152,7 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
+    if utils.is_blacklisted_buffer(bufnr) then
         return
     end
     for hint, loc in pairs(gutter_hints) do
@@ -182,6 +183,10 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 end
 
 local function on_cursor_hold()
+    local bufnr = vim.api.nvim_get_current_buf()
+    if utils.is_blacklisted_buffer(bufnr) then
+        return
+    end
     local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
     cursorcol = cursorcol + 1
     if extmark and not dirty then
