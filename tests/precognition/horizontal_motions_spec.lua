@@ -144,7 +144,29 @@ describe("boundaries", function()
     end)
 end)
 
-describe("matching pair tests", function()
+describe("matching_pair returns the correction function", function()
+    it("returns the correct function for the given character", function()
+        local test_string = "()[]{}/*"
+        eq(hm.matching_pair(test_string, 1, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 2, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 3, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 4, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 5, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 6, #test_string), hm.matching_bracket)
+        eq(hm.matching_pair(test_string, 7, #test_string), hm.matching_comment)
+        eq(hm.matching_pair(test_string, 8, #test_string), hm.matching_comment)
+    end)
+
+    it("returns a function that returns 0 for other characters", function()
+        local test_string = "abcdefghijklmnopqrstuvwxyz!@#$%^&*_+-=,.<>?|\\~`"
+        for i = 1, #test_string do
+            local func = hm.matching_pair(test_string, i, #test_string)
+            eq(0, func(test_string, i, #test_string))
+        end
+    end)
+end)
+
+describe("matching brackets", function()
     it("if cursor is over a bracket it can find the pair", function()
         eq(9, hm.matching_bracket("abc (efg)", 5, 9))
         eq(0, hm.matching_bracket("abc (efg)", 6, 9))
@@ -185,6 +207,27 @@ describe("matching pair tests", function()
         eq(10, hm.matching_bracket("abc (efg (hij) klm)", 14, 19))
         eq(0, hm.matching_bracket("abc (efg (hij) klm)", 15, 19))
         eq(5, hm.matching_bracket("abc (efg (hij) klm)", 19, 19))
+    end)
+
+    it("if cursor is over an unclosed bracket it returns 0", function()
+        eq(0, hm.matching_bracket("abc (efg", 5, 8))
+        eq(0, hm.matching_bracket("abc [efg", 5, 8))
+        eq(0, hm.matching_bracket("abc {efg", 5, 8))
+    end)
+end)
+
+describe("matching comments", function()
+    it("if cursor is over a comment it can find the pair", function()
+        eq(11, hm.matching_comment("abc /*efg*/", 5, 11))
+        eq(11, hm.matching_comment("abc /*efg*/", 6, 11))
+        eq(0, hm.matching_comment("abc /*efg*/", 7, 11))
+        eq(5, hm.matching_comment("abc /*efg*/", 10, 11))
+        eq(5, hm.matching_comment("abc /*efg*/", 11, 11))
+    end)
+
+    it("if cursor is over an unclosed comment it returns 0", function()
+        eq(0, hm.matching_comment("abc /*efg", 5, 9))
+        eq(0, hm.matching_comment("abc /*efg", 6, 9))
     end)
 end)
 

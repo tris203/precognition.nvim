@@ -211,7 +211,7 @@ local function on_cursor_hold()
         w = hm.next_word_boundary(cur_line, cursorcol, line_len),
         e = hm.end_of_word(cur_line, cursorcol, line_len),
         b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
-        MatchingPair = hm.matching_bracket(cur_line, cursorcol, line_len),
+        MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
     }
