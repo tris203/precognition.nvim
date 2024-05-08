@@ -182,7 +182,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
     end
 end
 
-local function on_cursor_hold()
+local function display_marks()
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr) then
         return
@@ -240,7 +240,7 @@ local function on_cursor_moved(ev)
         end
     end
     dirty = true
-    on_cursor_hold()
+    display_marks()
 end
 
 local function on_insert_enter(ev)
@@ -265,7 +265,7 @@ end
 
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
-    on_cursor_hold()
+    display_marks()
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave" }, {
         buffer = vim.api.nvim_get_current_buf(),
@@ -304,7 +304,7 @@ function M.show()
         callback = on_insert_enter,
     })
 
-    on_cursor_hold()
+    display_marks()
 end
 
 --- Disable automatic showing of hints
