@@ -219,10 +219,10 @@ local function on_cursor_hold()
 
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-                id = extmark, -- reuse the same extmark if it exists
-                virt_lines = { virt_line },
-            })
+        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+            id = extmark, -- reuse the same extmark if it exists
+            virt_lines = { virt_line },
+        })
     end
     apply_gutter_hints(build_gutter_hints())
 
