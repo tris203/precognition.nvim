@@ -182,7 +182,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
     end
 end
 
-local function on_cursor_hold()
+local function display_marks()
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr) then
         return
@@ -219,12 +219,10 @@ local function on_cursor_hold()
 
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-        if vim.api.nvim_get_option_value("buftype", { buf = vim.api.nvim_get_current_buf() }) == "" then
-            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-                id = extmark, -- reuse the same extmark if it exists
-                virt_lines = { virt_line },
-            })
-        end
+        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+            id = extmark, -- reuse the same extmark if it exists
+            virt_lines = { virt_line },
+        })
     end
     apply_gutter_hints(build_gutter_hints())
 
@@ -242,6 +240,7 @@ local function on_cursor_moved(ev)
         end
     end
     dirty = true
+    display_marks()
 end
 
 local function on_insert_enter(ev)
@@ -262,12 +261,11 @@ local function on_buf_leave(ev)
     gutter_signs_cache = {}
     vim.fn.sign_unplace(gutter_group)
     dirty = true
-    on_buf_edit()
 end
 
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
-    on_cursor_hold()
+    display_marks()
 
     vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave" }, {
         buffer = vim.api.nvim_get_current_buf(),
@@ -296,7 +294,6 @@ function M.show()
     })
     -- clear the extmark when the cursor moves, or when insert mode is entered
     --
-    --  TODO: maybe we should debounce on CursorMoved instead of using CursorHold?
     vim.api.nvim_create_autocmd("CursorMoved", {
         group = au,
         callback = on_cursor_moved,
@@ -307,14 +304,7 @@ function M.show()
         callback = on_insert_enter,
     })
 
-    vim.api.nvim_create_autocmd("CursorHold", {
-        group = au,
-        -- TODO: add debounce / delay before showing hints to reduce flickering
-        -- during fast movements
-        callback = on_cursor_hold,
-    })
-
-    on_cursor_hold()
+    display_marks()
 end
 
 --- Disable automatic showing of hints
