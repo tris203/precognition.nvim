@@ -91,6 +91,8 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
+---@type integer
+local runningCount = 1
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -207,9 +209,9 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-        e = hm.end_of_word(cur_line, cursorcol, line_len),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        w = utils.count_motion(runningCount, hm.next_word_boundary, cur_line, cursorcol, line_len),
+        e = utils.count_motion(runningCount, hm.end_of_word, cur_line, cursorcol, line_len),
+        b = utils.count_motion(runningCount, hm.prev_word_boundary, cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
     }
 
@@ -230,8 +232,9 @@ local function display_marks()
 end
 
 local function on_cursor_moved(ev)
+    local bufnr = ev.buf or vim.api.nvim_get_current_buf()
     if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(ev.buf, ns, extmark, {
+        local ext = vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, extmark, {
             details = true,
         })
         if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
@@ -337,6 +340,20 @@ function M.setup(opts)
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+
+---@diagnostic disable-next-line: redundant-parameter
+    vim.ui_attach(ns, { ext_messages = true }, function(event, ...)
+        if event == "msg_showcmd" then
+            local content = ...
+            local count = utils.count_from_motionstring(content[1][2])
+            runningCount = count
+            if not visible then
+                return
+            end
+            --TODO: something is wierd here and it only updates the virtline on the next keypress
+            on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
+        end
+    end)
     if config.startVisible then
         M.show()
     end

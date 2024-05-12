@@ -28,4 +28,33 @@ function M.is_blacklisted_buffer(bufnr)
     return false
 end
 
+---@param motionstring string | nil
+---@return integer
+function M.count_from_motionstring(motionstring)
+    if motionstring == nil then
+        return 1
+    end
+
+    local count = 1
+
+    for digit in string.gmatch(motionstring, "%d+") do
+        count = count * tonumber(digit)
+    end
+    return count
+end
+
+---@param count integer
+---@param motion function
+---@param str string
+---@param cursorcol integer
+---@param linelen integer
+---@return integer
+function M.count_motion(count, motion, str, cursorcol, linelen)
+    local ret = cursorcol
+    for _ = 1, count do
+        ret = motion(str, ret, linelen)
+    end
+    return ret
+end
+
 return M
