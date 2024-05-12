@@ -31,6 +31,8 @@ end
 ---@param motionstring string | nil
 ---@return integer
 function M.count_from_motionstring(motionstring)
+    -- TODO: replace term codes as at the moment
+    -- something like space results in a count of 20
     if motionstring == nil then
         return 1
     end
