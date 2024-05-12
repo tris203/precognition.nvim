@@ -341,7 +341,7 @@ function M.setup(opts)
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
----@diagnostic disable-next-line: redundant-parameter
+    ---@diagnostic disable-next-line: redundant-parameter
     vim.ui_attach(ns, { ext_messages = true }, function(event, ...)
         if event == "msg_showcmd" then
             local content = ...
