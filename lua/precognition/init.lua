@@ -350,7 +350,11 @@ function M.setup(opts)
         if event == "msg_showcmd" then
             local content = ...
             local count
-            if #content == 0 then
+            -- if #content == 0 then
+            -- if content == vim.empty_dict() then
+            -- if type(content[1]) ~= "table" then
+            -- if not content[1] then
+            if content == nil then
                 --FIXME: This doesnt work to reset the count, why?
                 count = 1
             else
