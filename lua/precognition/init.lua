@@ -350,7 +350,8 @@ function M.setup(opts)
         if event == "msg_showcmd" then
             local content = ...
             local count
-            if content == nil then
+            if #content == 0 then
+                --FIXME: This doesnt work to reset the count, why?
                 count = 1
             else
                 count = utils.count_from_motionstring(content[1][2] or "")
@@ -366,7 +367,7 @@ function M.setup(opts)
                 on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
                 -- HACK: send the count back
                 if count ~= 1 then
-                vim.api.nvim_feedkeys(string.format("%d", count), "n", true)
+                    vim.api.nvim_feedkeys(string.format("%d", count), "n", true)
                 end
             end
         end
