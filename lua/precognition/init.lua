@@ -185,6 +185,10 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 end
 
 local function display_marks()
+    if runningCount > 10 then
+        vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
+        return
+    end
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr) then
         return
@@ -345,13 +349,26 @@ function M.setup(opts)
     vim.ui_attach(ns, { ext_messages = true }, function(event, ...)
         if event == "msg_showcmd" then
             local content = ...
-            local count = utils.count_from_motionstring(content[1][2])
-            runningCount = count
+            local count
+            if content == nil then
+                count = 1
+            else
+                count = utils.count_from_motionstring(content[1][2] or "")
+            end
             if not visible then
+                runningCount = count
                 return
             end
-            --TODO: something is wierd here and it only updates the virtline on the next keypress
-            on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
+            if count ~= runningCount then
+                runningCount = count
+                --HACK: send escape to force the virtline to updates
+                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<esc>", true, false, true), "n", false)
+                on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
+                -- HACK: send the count back
+                if count ~= 1 then
+                vim.api.nvim_feedkeys(string.format("%d", count), "n", true)
+                end
+            end
         end
     end)
     if config.startVisible then

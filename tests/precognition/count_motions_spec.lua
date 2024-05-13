@@ -18,6 +18,11 @@ describe("motionstrings", function()
 
         count = utils.count_from_motionstring(nil)
         eq(1, count)
+
+        eq(1, utils.count_from_motionstring(""))
+
+        count = utils.count_from_motionstring("<20>")
+        eq(1, count)
     end)
 end)
 

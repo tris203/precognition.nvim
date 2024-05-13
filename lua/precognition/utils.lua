@@ -31,11 +31,12 @@ end
 ---@param motionstring string | nil
 ---@return integer
 function M.count_from_motionstring(motionstring)
-    -- TODO: replace term codes as at the moment
-    -- something like space results in a count of 20
     if motionstring == nil then
         return 1
     end
+
+    --HACK: replace_termcodes doesnt get <20> so we need to remove it
+    motionstring = motionstring:gsub("<%d+>", "")
 
     local count = 1
 
@@ -54,6 +55,9 @@ end
 function M.count_motion(count, motion, str, cursorcol, linelen)
     local ret = cursorcol
     for _ = 1, count do
+        if ret == nil then
+            break
+        end
         ret = motion(str, ret, linelen)
     end
     return ret
