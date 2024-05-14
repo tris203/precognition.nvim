@@ -185,7 +185,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 end
 
 local function display_marks()
-    if runningCount > 10 then
+    if runningCount > 100 then
         vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
         return
     end
@@ -361,8 +361,8 @@ function M.setup(opts)
             end
             if count ~= runningCount then
                 runningCount = count
-                -- FIXME: extmark doent update as UI is blocked during input
                 on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
+                vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
             end
         end
     end)
