@@ -350,15 +350,10 @@ function M.setup(opts)
         if event == "msg_showcmd" then
             local content = ...
             local count
-            -- if #content == 0 then
-            -- if content == vim.empty_dict() then
-            -- if type(content[1]) ~= "table" then
-            -- if not content[1] then
-            if content == nil then
-                --FIXME: This doesnt work to reset the count, why?
+            if #content == 0 then
                 count = 1
             else
-                count = utils.count_from_motionstring(content[1][2] or "")
+                count = utils.count_from_motionstring(content[1][2])
             end
             if not visible then
                 runningCount = count
@@ -366,13 +361,8 @@ function M.setup(opts)
             end
             if count ~= runningCount then
                 runningCount = count
-                --HACK: send escape to force the virtline to updates
-                vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<esc>", true, false, true), "n", false)
+                -- FIXME: extmark doent update as UI is blocked during input
                 on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
-                -- HACK: send the count back
-                if count ~= 1 then
-                    vim.api.nvim_feedkeys(string.format("%d", count), "n", true)
-                end
             end
         end
     end)
