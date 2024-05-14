@@ -91,8 +91,8 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
----@type integer
-local runningCount = 1
+---@type string | nil
+local showcmd
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -185,7 +185,8 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 end
 
 local function display_marks()
-    if runningCount > 100 then
+    local count = utils.count_from_motionstring(showcmd)
+    if count > 100 then
         vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
         return
     end
@@ -213,9 +214,9 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = utils.count_motion(runningCount, hm.next_word_boundary, cur_line, cursorcol, line_len),
-        e = utils.count_motion(runningCount, hm.end_of_word, cur_line, cursorcol, line_len),
-        b = utils.count_motion(runningCount, hm.prev_word_boundary, cur_line, cursorcol, line_len),
+        w = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len),
+        e = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len),
+        b = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
     }
 
@@ -349,18 +350,16 @@ function M.setup(opts)
     vim.ui_attach(ns, { ext_messages = true }, function(event, ...)
         if event == "msg_showcmd" then
             local content = ...
-            local count
+            local prev_showcmd = showcmd
             if #content == 0 then
-                count = 1
+                showcmd = nil
             else
-                count = utils.count_from_motionstring(content[1][2])
+                showcmd = content[1][2]
             end
             if not visible then
-                runningCount = count
                 return
             end
-            if count ~= runningCount then
-                runningCount = count
+            if showcmd ~= prev_showcmd then
                 on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
                 vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
             end
