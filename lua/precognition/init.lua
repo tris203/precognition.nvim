@@ -237,7 +237,7 @@ local function display_marks()
 end
 
 local function on_cursor_moved(ev)
-    local bufnr = ev.buf or vim.api.nvim_get_current_buf()
+    local bufnr = ev and ev.buf or vim.api.nvim_get_current_buf()
     if extmark then
         local ext = vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, extmark, {
             details = true,
@@ -360,7 +360,7 @@ function M.setup(opts)
                 return
             end
             if showcmd ~= prev_showcmd then
-                on_cursor_moved({ buf = vim.api.nvim_get_current_buf() })
+                on_cursor_moved()
                 vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
             end
         end
