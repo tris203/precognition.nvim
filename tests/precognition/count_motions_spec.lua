@@ -37,8 +37,14 @@ describe("count motions", function()
 
         count = utils.count_motion(1, hm.prev_word_boundary, str, 6, #str)
         eq(1, count)
+    end)
+
+    it("out of bound motions", function()
+        local str = "hello world"
+        local count = utils.count_motion(5, hm.next_word_boundary, str, 1, 1)
+        eq(0, count)
 
         count = utils.count_motion(4, hm.prev_word_boundary, str, #str, #str)
-        eq(13, count)
+        eq(0, count)
     end)
 end)
