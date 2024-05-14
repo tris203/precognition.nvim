@@ -54,15 +54,15 @@ end
 ---@return integer
 function M.count_motion(count, motion, str, cursorcol, linelen)
     local ret = cursorcol
-    local out_of_boynd = false
+    local out_of_bounds = false
     for _ = 1, count do
         if ret == 0 or ret == linelen then
-            out_of_boynd = true
+            out_of_bounds = true
             break
         end
         ret = motion(str, ret, linelen)
     end
-    if out_of_boynd then
+    if out_of_bounds then
         return 0
     end
     return ret
