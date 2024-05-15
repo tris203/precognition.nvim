@@ -257,4 +257,9 @@ describe("edge case", function()
         eq(1, hm.prev_word_boundary(str, 6, #str))
         eq(7, hm.end_of_word(str, 6, #str))
     end)
+
+    it("strings with spaces at the end", function()
+        local str = "there is a space "
+        eq(0, hm.end_of_word(str, 16, #str))
+    end)
 end)

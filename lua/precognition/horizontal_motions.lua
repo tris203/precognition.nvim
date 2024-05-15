@@ -93,6 +93,10 @@ function M.end_of_word(str, cursorcol, _linelen)
     end
 
     if rev_offset ~= nil then
+        --e should never be behind the cursor
+        if rev_offset < cursorcol then
+            return 0
+        end
         return rev_offset
     end
     return offset - 1
