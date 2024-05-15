@@ -35,6 +35,18 @@ function M.count_from_motionstring(motionstring)
         return 1
     end
 
+    local mode = vim.api.nvim_get_mode().mode
+    local cursorrow, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
+    vim.print("mode: " .. mode .. " cursorcol: " .. cursorcol)
+
+    if (mode == "v") and motionstring == string.format("%d", cursorcol + 1) then
+        return 1
+    end
+
+    if mode == "V" and motionstring == string.format("%d", cursorrow + 1) then
+        return 1
+    end
+
     --HACK: replace_termcodes doesnt get <20> so we need to remove it
     motionstring = motionstring:gsub("<%d+>", "")
 
