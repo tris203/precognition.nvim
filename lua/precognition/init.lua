@@ -380,6 +380,21 @@ local state = {
     build_gutter_hints = function()
         return build_gutter_hints
     end,
+    on_cursor_moved = function()
+        return on_cursor_moved
+    end,
+    extmark = function()
+        return extmark
+    end,
+    ns = function()
+        return ns
+    end,
+    set_showcmd = function()
+        return function(cmd)
+            -- Wrapper here because ui is not available in tests
+            showcmd = cmd
+        end
+    end,
 }
 
 setmetatable(M, {
