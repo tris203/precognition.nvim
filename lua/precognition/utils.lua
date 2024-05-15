@@ -37,9 +37,11 @@ function M.count_from_motionstring(motionstring)
 
     local mode = vim.api.nvim_get_mode().mode
     local cursorrow, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
-    vim.print("mode: " .. mode .. " cursorcol: " .. cursorcol)
 
     if (mode == "v") and motionstring == string.format("%d", cursorcol + 1) then
+        --HACK: this is a special case for visual mode
+        --this will cause an edge case bug that if the count is the same as the cursor positions
+        --it will not display the count - but we cant work aroynd it with the current implementation
         return 1
     end
 
