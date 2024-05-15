@@ -386,6 +386,9 @@ local state = {
     extmark = function()
         return extmark
     end,
+    gutter_group = function()
+        return gutter_group
+    end,
     ns = function()
         return ns
     end,
