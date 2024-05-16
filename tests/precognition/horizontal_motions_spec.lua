@@ -175,4 +175,11 @@ describe("edge case", function()
         local str = "there is a space "
         eq(0, hm.end_of_word(str, 16, #str))
     end)
+
+    it("issue 19", function()
+        local str = "show_something = true,"
+        eq(14, hm.end_of_word(str, 1, #str))
+        eq(16, hm.end_of_word(str, 14, #str))
+        eq(16, hm.end_of_word(str, 15, #str))
+    end)
 end)
