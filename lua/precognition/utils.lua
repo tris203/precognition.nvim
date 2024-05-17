@@ -1,21 +1,29 @@
 local M = {}
 
+---@enum cc
+M.char_classes = {
+    whitespace = 0,
+    other = 1,
+    word = 2,
+}
+
 ---@param char string
 ---@return integer
 function M.char_class(char)
+    local cc = M.char_classes
     local byte = string.byte(char)
 
     if byte and byte < 0x100 then
         if char == " " or char == "\t" or char == "\0" then
-            return 0 -- whitespace
+            return cc.whitespace
         end
         if char == "_" or char:match("%w") then
-            return 2 -- word character
+            return cc.word
         end
-        return 1 -- other
+        return cc.other
     end
 
-    return 1 -- scary unicode edge cases go here
+    return cc.other -- scary unicode edge cases go here
 end
 
 ---@param bufnr? integer
