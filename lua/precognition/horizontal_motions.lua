@@ -54,11 +54,10 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@return Precognition.PlaceLoc
-function M.end_of_word(str, cursorcol, _linelen)
-    local len = vim.fn.strcharlen(str)
-    if cursorcol >= len then
+function M.end_of_word(str, cursorcol, linelen)
+    if cursorcol >= linelen then
         return 0
     end
     local offset = cursorcol
@@ -75,20 +74,26 @@ function M.end_of_word(str, cursorcol, _linelen)
     end
 
     if c_class ~= 0 and next_char_class ~= 0 then
-        while utils.char_class(char) == c_class and offset <= len do
+        while utils.char_class(char) == c_class and offset <= linelen do
             offset = offset + 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
     if c_class == 0 or next_char_class == 0 then
-        local next_word_start = M.next_word_boundary(str, offset, 0)
+        local next_word_start = M.next_word_boundary(str, cursorcol, linelen)
         if next_word_start then
-            rev_offset = M.end_of_word(str, next_word_start + 1, 0)
+            next_char_class = utils.char_class(vim.fn.strcharpart(str, (next_word_start - 1) + 1, 1))
+            --next word is single char
+            if next_char_class == 0 then
+                rev_offset = next_word_start
+            else
+                rev_offset = M.end_of_word(str, next_word_start, linelen)
+            end
         end
     end
 
-    if rev_offset ~= nil and rev_offset <= 0 then
+    if rev_offset and rev_offset <= 0 then
         return 0
     end
 
