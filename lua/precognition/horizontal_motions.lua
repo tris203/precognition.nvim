@@ -1,4 +1,5 @@
 local utils = require("precognition.utils")
+local cc = utils.char_classes
 
 local M = {}
 
@@ -28,14 +29,14 @@ function M.next_word_boundary(str, cursorcol, _linelen)
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
 
-    if c_class ~= 0 then
+    if c_class ~= cc.whitespace then
         while utils.char_class(char) == c_class and offset <= len do
             offset = offset + 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
-    while utils.char_class(char) == 0 and offset <= len do
+    while utils.char_class(char) == cc.whitespace and offset <= len do
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
     end
@@ -48,11 +49,10 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@return Precognition.PlaceLoc
-function M.end_of_word(str, cursorcol, _linelen)
-    local len = vim.fn.strcharlen(str)
-    if cursorcol >= len then
+function M.end_of_word(str, cursorcol, linelen)
+    if cursorcol >= linelen then
         return 0
     end
     local offset = cursorcol
@@ -61,28 +61,36 @@ function M.end_of_word(str, cursorcol, _linelen)
     local next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     local rev_offset
 
-    if (c_class == 1 and next_char_class ~= 1) or (next_char_class == 1 and c_class ~= 1) then
+    if
+        (c_class == cc.other and next_char_class ~= cc.other) or (next_char_class == cc.other and c_class ~= cc.other)
+    then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
         c_class = utils.char_class(char)
         next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1))
     end
 
-    if c_class ~= 0 and next_char_class ~= 0 then
-        while utils.char_class(char) == c_class and offset <= len do
+    if c_class ~= cc.whitespace and next_char_class ~= cc.whitespace then
+        while utils.char_class(char) == c_class and offset <= linelen do
             offset = offset + 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
-    if c_class == 0 or next_char_class == 0 then
-        local next_word_start = M.next_word_boundary(str, offset, 0)
+    if c_class == cc.whitespace or next_char_class == cc.whitespace then
+        local next_word_start = M.next_word_boundary(str, cursorcol, linelen)
         if next_word_start then
-            rev_offset = M.end_of_word(str, next_word_start + 1, 0)
+            next_char_class = utils.char_class(vim.fn.strcharpart(str, (next_word_start - 1) + 1, 1))
+            --next word is single char
+            if next_char_class == cc.whitespace then
+                rev_offset = next_word_start
+            else
+                rev_offset = M.end_of_word(str, next_word_start, linelen)
+            end
         end
     end
 
-    if rev_offset ~= nil and rev_offset <= 0 then
+    if rev_offset and rev_offset <= 0 then
         return 0
     end
 
@@ -106,8 +114,8 @@ function M.prev_word_boundary(str, cursorcol, _linelen)
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char)
 
-    if c_class == 0 then
-        while utils.char_class(char) == 0 and offset >= 0 do
+    if c_class == cc.whitespace then
+        while utils.char_class(char) == cc.whitespace and offset >= 0 do
             offset = offset - 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end

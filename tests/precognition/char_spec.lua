@@ -1,6 +1,15 @@
 local utils = require("precognition.utils")
+local cc = utils.char_classes
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
+
+describe("static classes", function()
+    it("are set correctly", function()
+        eq(cc.whitespace, 0)
+        eq(cc.other, 1)
+        eq(cc.word, 2)
+    end)
+end)
 
 describe("char classing", function()
     it("white space is classeed", function()
