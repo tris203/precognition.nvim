@@ -5,7 +5,7 @@
 >
 > 1. foreknowledge of an event, especially as a form of extrasensory perception.
 
-**precognition.nvim** is a nvim plugin for discovering motions (Both vertical and horizontal) to navigate your current buffer
+**precognition.nvim** assists with discovering motions (Both vertical and horizontal) to navigate your current buffer
 
 ![image](https://github.com/tris203/precognition.nvim/assets/18444302/ea24caee-85da-42d8-b0e9-555b47268643)
 
@@ -28,9 +28,12 @@ return {
     --      w = { text = "w", prio = 10 },
     --      b = { text = "b", prio = 9 },
     --      e = { text = "e", prio = 8 },
+    --      W = { text = "W", prio = 7 },
+    --      B = { text = "B", prio = 6 },
+    --      E = { text = "E", prio = 5 },
     -- },
     -- gutterHints = {
-    --     --prio is not currentlt used for gutter hints
+    --     -- prio is not currently used for gutter hints
     --     G = { text = "G", prio = 1 },
     --     gg = { text = "gg", prio = 1 },
     --     PrevParagraph = { text = "{", prio = 1 },
