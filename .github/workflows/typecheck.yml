@@ -22,13 +22,11 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: "folke/neodev.nvim"
-          path: "deps.neodev.nvim"
-          sparse-checkout: |
-            types
+          path: "deps/neodev.nvim"
 
       - name: Type Check Code Base
         uses: mrcjkb/lua-typecheck-action@v0.1.2
         with:
-          configpath: .github/workflows/.checkluarc.json
+          configpath: .github/workflows/.luarc.json
           directories: |
             lua
