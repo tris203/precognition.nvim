@@ -5,7 +5,7 @@ local M = {}
 
 local supportedBrackets = {
     open = { "(", "[", "{" },
-    middle = { "", "", "" },
+    middle = { nil, nil, nil },
     close = { ")", "]", "}" },
 }
 
@@ -185,9 +185,9 @@ function M.matching_bracket(str, cursorcol, linelen)
         return 0
     end
 
-    local openBracket = supportedBrackets.open[bracketIdx]
-    local closeBracket = supportedBrackets.close[bracketIdx]
-    local middleBracket = supportedBrackets.middle[bracketIdx]
+    local openBracket = supportedBrackets.open[bracketIdx] or ""
+    local closeBracket = supportedBrackets.close[bracketIdx] or ""
+    local middleBracket = supportedBrackets.middle[bracketIdx] or ""
 
     if under_cursor == openBracket then
         local depth = 1
