@@ -11,7 +11,7 @@ M.char_classes = {
 ---@param big_word boolean
 ---@return integer
 function M.char_class(char, big_word)
-    big_word = big_word or false
+    assert(type(big_word) == "boolean", "big_word must be a boolean")
     local cc = M.char_classes
     local byte = string.byte(char)
 
