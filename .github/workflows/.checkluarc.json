@@ -6,5 +6,5 @@
     "lua/?/init.lua"
   ],
   "Lua.diagnostics.libraryFiles": "Disable",
-  "Lua.workspace.checkThirdParty": "Disable",
+  "Lua.workspace.checkThirdParty": "Disable"
 }
