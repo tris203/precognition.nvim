@@ -78,9 +78,9 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            e = hm.end_of_word(cur_line, cursorcol, line_len),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
@@ -98,9 +98,9 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            e = hm.end_of_word(cur_line, cursorcol, line_len),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)

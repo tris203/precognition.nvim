@@ -8,8 +8,10 @@ M.char_classes = {
 }
 
 ---@param char string
+---@param big_word boolean
 ---@return integer
-function M.char_class(char)
+function M.char_class(char, big_word)
+    big_word = big_word or false
     local cc = M.char_classes
     local byte = string.byte(char)
 
@@ -18,7 +20,7 @@ function M.char_class(char)
             return cc.whitespace
         end
         if char == "_" or char:match("%w") then
-            return cc.word
+            return big_word and cc.other or cc.word
         end
         return cc.other
     end
@@ -73,8 +75,9 @@ end
 ---@param str string
 ---@param cursorcol integer
 ---@param linelen integer
+---@param big_word boolean
 ---@return integer
-function M.count_motion(count, motion, str, cursorcol, linelen)
+function M.count_motion(count, motion, str, cursorcol, linelen, big_word)
     local ret = cursorcol
     local out_of_bounds = false
     for _ = 1, count do
@@ -82,7 +85,7 @@ function M.count_motion(count, motion, str, cursorcol, linelen)
             out_of_bounds = true
             break
         end
-        ret = motion(str, ret, linelen)
+        ret = motion(str, ret, linelen, big_word)
     end
     if out_of_bounds then
         return 0

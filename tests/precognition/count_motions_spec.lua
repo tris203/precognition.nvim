@@ -29,22 +29,22 @@ end)
 describe("count motions", function()
     it("motion with count", function()
         local str = "hello world this is a test"
-        local count = utils.count_motion(2, hm.next_word_boundary, str, 1, #str)
+        local count = utils.count_motion(2, hm.next_word_boundary, str, 1, #str, false)
         eq(13, count)
 
-        count = utils.count_motion(3, hm.next_word_boundary, str, 6, #str)
+        count = utils.count_motion(3, hm.next_word_boundary, str, 6, #str, false)
         eq(18, count)
 
-        count = utils.count_motion(1, hm.prev_word_boundary, str, 6, #str)
+        count = utils.count_motion(1, hm.prev_word_boundary, str, 6, #str, false)
         eq(1, count)
     end)
 
     it("out of bound motions", function()
         local str = "hello world"
-        local count = utils.count_motion(5, hm.next_word_boundary, str, 1, 1)
+        local count = utils.count_motion(5, hm.next_word_boundary, str, 1, 1, false)
         eq(0, count)
 
-        count = utils.count_motion(4, hm.prev_word_boundary, str, #str, #str)
+        count = utils.count_motion(4, hm.prev_word_boundary, str, #str, #str, false)
         eq(0, count)
     end)
 end)

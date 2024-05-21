@@ -61,6 +61,9 @@ local defaultHintConfig = {
     w = { text = "w", prio = 10 },
     b = { text = "b", prio = 9 },
     e = { text = "e", prio = 8 },
+    W = { text = "W", prio = 7 },
+    B = { text = "B", prio = 6 },
+    E = { text = "E", prio = 5 },
 }
 
 ---@type Precognition.Config
@@ -83,13 +86,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -220,9 +223,12 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len),
-        e = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len),
-        b = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len),
+        w = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len, false),
+        e = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len, false),
+        b = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len, false),
+        W = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len, true),
+        E = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len, true),
+        B = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len, true),
         MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
