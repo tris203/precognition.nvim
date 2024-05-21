@@ -14,6 +14,8 @@ local M = {}
 ---@field w Precognition.HintOpts
 ---@field e Precognition.HintOpts
 ---@field b Precognition.HintOpts
+---@field Zero Precognition.HintOpts
+---@field MatchingPair Precognition.HintOpts
 ---@field Caret Precognition.HintOpts
 ---@field Dollar Precognition.HintOpts
 
@@ -39,8 +41,10 @@ local M = {}
 ---@field w Precognition.PlaceLoc
 ---@field e Precognition.PlaceLoc
 ---@field b Precognition.PlaceLoc
+---@field Zero Precognition.PlaceLoc
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
+---@field MatchingPair Precognition.PlaceLoc
 
 ---@class (exact) Precognition.GutterHints
 ---@field G Precognition.PlaceLoc
@@ -50,8 +54,10 @@ local M = {}
 
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
-    Caret = { text = "^", prio = 1 },
+    Caret = { text = "^", prio = 2 },
     Dollar = { text = "$", prio = 1 },
+    MatchingPair = { text = "%", prio = 5 },
+    Zero = { text = "0", prio = 1 },
     w = { text = "w", prio = 10 },
     b = { text = "b", prio = 9 },
     e = { text = "e", prio = 8 },
@@ -77,13 +83,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -217,7 +223,9 @@ local function display_marks()
         w = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len),
         e = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len),
         b = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len),
+        MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
+        Zero = 1,
     }
 
     local virt_line = build_virt_line(virtual_line_marks, line_len)

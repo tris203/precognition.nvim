@@ -3,6 +3,12 @@ local cc = utils.char_classes
 
 local M = {}
 
+local supportedBrackets = {
+    open = { "(", "[", "{" },
+    middle = { nil, nil, nil },
+    close = { ")", "]", "}" },
+}
+
 ---@param str string
 ---@param _cursorcol integer
 ---@param _linelen integer
@@ -136,6 +142,150 @@ function M.prev_word_boundary(str, cursorcol, _linelen)
         return 0
     end
     return offset + 1
+end
+
+---@param str string
+---@param cursorcol integer
+---@param linelen integer
+---@return Precognition.PlaceLoc
+function M.matching_bracket(str, cursorcol, linelen)
+    local under_cursor = vim.fn.strcharpart(str, cursorcol - 1, 1)
+    local offset = cursorcol
+
+    if
+        not vim.tbl_contains(supportedBrackets.open, under_cursor)
+        and not vim.tbl_contains(supportedBrackets.close, under_cursor)
+    then
+        -- walk until we find a bracket
+        return 0
+    end
+    local idxFound = false
+    local bracketIdx
+    if not idxFound then
+        for i, bracket in ipairs(supportedBrackets.open) do
+            if bracket == under_cursor then
+                bracketIdx = i
+                idxFound = true
+                break
+            end
+        end
+    end
+
+    if not idxFound then
+        for i, bracket in ipairs(supportedBrackets.close) do
+            if bracket == under_cursor then
+                bracketIdx = i
+                idxFound = true
+                break
+            end
+        end
+    end
+
+    if not idxFound then
+        return 0
+    end
+
+    local openBracket = supportedBrackets.open[bracketIdx] or ""
+    local closeBracket = supportedBrackets.close[bracketIdx] or ""
+    local middleBracket = supportedBrackets.middle[bracketIdx] or ""
+
+    if under_cursor == openBracket then
+        local depth = 1
+        offset = offset + 1
+        while offset <= linelen do
+            local char = vim.fn.strcharpart(str, offset - 1, 1)
+            if char == openBracket then
+                depth = depth + 1
+            end
+            if char == closeBracket or char == middleBracket then
+                depth = depth - 1
+                if depth == 0 then
+                    break
+                end
+            end
+            offset = offset + 1
+        end
+    end
+
+    if under_cursor == closeBracket then
+        local depth = 1
+        offset = offset - 2
+        while offset >= 0 do
+            local char = vim.fn.strcharpart(str, offset - 1, 1)
+            if char == closeBracket then
+                depth = depth + 1
+            end
+            if char == openBracket or char == middleBracket then
+                depth = depth - 1
+                if depth == 0 then
+                    break
+                end
+            end
+            offset = offset - 1
+        end
+    end
+
+    if offset < 0 or offset > linelen then
+        return 0
+    end
+    return offset
+end
+
+---@param str string
+---@param cursorcol integer
+---@param linelen integer
+---@return Precognition.PlaceLoc
+function M.matching_comment(str, cursorcol, linelen)
+    local offset = cursorcol
+    local char = vim.fn.strcharpart(str, offset - 1, 1)
+    local next_char = vim.fn.strcharpart(str, (offset - 1) + 1, 1)
+    local prev_char = vim.fn.strcharpart(str, (offset - 1) - 1, 1)
+
+    if (char == "/" and next_char == "*") or (prev_char == "/" and char == "*") then
+        offset = offset + 1
+        while offset <= linelen do
+            char = vim.fn.strcharpart(str, offset - 1, 1)
+            next_char = vim.fn.strcharpart(str, offset, 1)
+            if char == "*" and next_char == "/" then
+                -- return the slash of the closing comment
+                return offset + 1
+            end
+            offset = offset + 1
+        end
+    end
+
+    if (char == "*" and next_char == "/") or (prev_char == "*" and char == "/") then
+        offset = offset - 1
+        while offset >= 0 do
+            char = vim.fn.strcharpart(str, offset - 1, 1)
+            next_char = vim.fn.strcharpart(str, offset, 1)
+            if char == "/" and next_char == "*" then
+                return offset
+            end
+            offset = offset - 1
+        end
+    end
+
+    return 0
+end
+
+---@param str string
+---@param cursorcol integer
+---@param _linelen integer
+---@return function
+function M.matching_pair(str, cursorcol, _linelen)
+    local char = vim.fn.strcharpart(str, cursorcol - 1, 1)
+    if char == "/" or char == "*" then
+        return M.matching_comment
+    end
+
+    if vim.tbl_contains(supportedBrackets.open, char) or vim.tbl_contains(supportedBrackets.close, char) then
+        return M.matching_bracket
+    end
+
+    return function()
+        return 0
+    end
 end
 
 return M
