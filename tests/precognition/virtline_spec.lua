@@ -42,6 +42,7 @@ describe("Build Virtual Line", function()
 
     it("can build a complex virtual line", function()
         ---@type Precognition.VirtLine
+        ---@diagnostic disable-next-line: missing-fields
         local marks = {
             Caret = 1,
             e = 6,
@@ -78,9 +79,9 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            e = hm.end_of_word(cur_line, cursorcol, line_len),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
@@ -98,9 +99,9 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-            e = hm.end_of_word(cur_line, cursorcol, line_len),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
         }, line_len)
@@ -113,6 +114,7 @@ end)
 describe("Priority", function()
     it("0 priority item is not added", function()
         precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
                     prio = 0,
@@ -138,6 +140,7 @@ describe("Priority", function()
 
     it("a higher priority mark in the same space takes priority", function()
         precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
                     prio = 0,
@@ -163,6 +166,7 @@ describe("Priority", function()
 
     it("a higher priority mark in the same space takes priority", function()
         precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
                     prio = 1,
@@ -185,6 +189,7 @@ describe("Priority", function()
         eq(1, #virtual_line[1][1])
 
         precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
                     prio = 100,
