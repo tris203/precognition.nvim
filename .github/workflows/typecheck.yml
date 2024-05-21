@@ -22,7 +22,8 @@ jobs:
         uses: actions/checkout@v4
         with:
           repository: "folke/neodev.nvim"
-          path: "deps/neodev.nvim"
+          sparse-checkout: |
+            types
 
       - name: Type Check Code Base
         uses: mrcjkb/lua-typecheck-action@v0.1.2

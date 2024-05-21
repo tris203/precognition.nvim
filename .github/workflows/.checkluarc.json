@@ -5,10 +5,6 @@
     "lua/?.lua",
     "lua/?/init.lua"
   ],
-  "Lua.workspace.library": [
-    "/github/workspace/deps/neodev.nvim/types/stable"
-    "/github/workspace/deps/neodev.nvim/types/nightly"
-  ],
   "Lua.diagnostics.libraryFiles": "Disable",
   "Lua.workspace.checkThirdParty": "Disable",
 }
