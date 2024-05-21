@@ -61,6 +61,9 @@ local defaultHintConfig = {
     w = { text = "w", prio = 10 },
     b = { text = "b", prio = 9 },
     e = { text = "e", prio = 8 },
+    W = { text = "W", prio = 7 },
+    B = { text = "B", prio = 6 },
+    E = { text = "E", prio = 5 },
 }
 
 ---@type Precognition.Config
@@ -213,9 +216,12 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len),
-        e = hm.end_of_word(cur_line, cursorcol, line_len),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len),
+        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
+        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
+        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
+        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
         MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
