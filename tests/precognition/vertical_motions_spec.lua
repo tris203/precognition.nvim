@@ -142,4 +142,24 @@ describe("gutter motion locations", function()
         local next_line = vm.next_paragraph_line(testBuf)
         eq(8, next_line)
     end)
+
+    it("lines with just whitespace as part of a paragraph", function()
+        local testBuf = vim.api.nvim_create_buf(true, true)
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
+            "ABC",
+            "DEF",
+            "   ",
+            "GHI",
+            "",
+            "JKL",
+            "",
+            "MNO",
+        })
+
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+        local next_line = vm.next_paragraph_line(testBuf)
+        eq(5, next_line)
+    end)
 end)
