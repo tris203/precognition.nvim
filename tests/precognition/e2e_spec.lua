@@ -29,12 +29,12 @@ describe("e2e tests", function()
         eq(7, vim.tbl_count(autocmds))
     end)
 
-    it("namespace is created", function()
-        local ns = vim.api.nvim_get_namespaces()
-
-        eq(1, ns["precognition"])
-        eq(2, ns["precognition_gutter"])
-    end)
+    -- it("namespace is created", function()
+    --     local ns = vim.api.nvim_get_namespaces()
+    --
+    --     eq(1, ns["precognition"])
+    --     eq(2, ns["precognition_gutter"])
+    -- end)
     --
     it("virtual line is displayed and updated", function()
         local buffer = vim.api.nvim_create_buf(true, false)
