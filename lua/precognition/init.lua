@@ -28,12 +28,14 @@ local M = {}
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
+---@field highlightColor string
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
+---@field highlightColor? string
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -70,6 +72,7 @@ local defaultHintConfig = {
 local default = {
     startVisible = true,
     showBlankVirtLine = true,
+    highlightColor = "Comment",
     hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
@@ -142,7 +145,7 @@ local function build_virt_line(marks, line_len)
     if line:match("^%s+$") then
         return {}
     end
-    table.insert(virt_line, { line, "Comment" })
+    table.insert(virt_line, { line, config.highlightColor })
     return virt_line
 end
 
@@ -174,7 +177,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
                 text = config.gutterHints[hint].text,
-                texthl = "Comment",
+                texthl = config.highlightColor,
             })
             local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
                 lnum = loc,
