@@ -35,6 +35,7 @@ local M = {}
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
+---@field highlightColor? string
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -88,13 +89,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -246,8 +247,9 @@ local function display_marks()
 end
 
 local function on_cursor_moved(ev)
+    local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
     if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(ev.buf, ns, extmark, {
+        local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
             details = true,
         })
         if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
@@ -367,6 +369,18 @@ local state = {
     end,
     build_gutter_hints = function()
         return build_gutter_hints
+    end,
+    on_cursor_moved = function()
+        return on_cursor_moved
+    end,
+    extmark = function()
+        return extmark
+    end,
+    gutter_group = function()
+        return gutter_group
+    end,
+    ns = function()
+        return ns
     end,
 }
 
