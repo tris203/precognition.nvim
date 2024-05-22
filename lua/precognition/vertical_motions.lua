@@ -24,7 +24,7 @@ function M.next_paragraph_line(bufnr)
         local cursorline, _ = unpack(vim.api.nvim_win_get_cursor(0))
         while not found and cursorline < visibleline do
             local cursorlinecontent = buffcontent[cursorline]
-            while cursorline < visibleline and cursorlinecontent:match("^%s*$") do
+            while cursorline < visibleline and cursorlinecontent:match("^[\n\r]*$") do
                 cursorline = cursorline + 1
                 cursorlinecontent = buffcontent[cursorline]
             end
@@ -32,7 +32,7 @@ function M.next_paragraph_line(bufnr)
             while cursorline < visibleline and not found do
                 cursorline = cursorline + 1
                 cursorlinecontent = buffcontent[cursorline]
-                if cursorlinecontent:match("^%s*$") then
+                if cursorlinecontent:match("^[\n\r]*$") then
                     found = true
                 end
             end
@@ -54,7 +54,7 @@ function M.prev_paragraph_line(bufnr)
         local cursorline, _ = unpack(vim.api.nvim_win_get_cursor(0))
         while not found and cursorline > visibleline do
             local cursorlinecontent = buffcontent[cursorline]
-            while cursorline > visibleline and cursorlinecontent:match("^%s*$") do
+            while cursorline > visibleline and cursorlinecontent:match("^[\n\r]*$") do
                 cursorline = cursorline - 1
                 cursorlinecontent = buffcontent[cursorline]
             end
@@ -62,7 +62,7 @@ function M.prev_paragraph_line(bufnr)
             while cursorline > visibleline and not found do
                 cursorline = cursorline - 1
                 cursorlinecontent = buffcontent[cursorline]
-                if cursorlinecontent:match("^%s*$") then
+                if cursorlinecontent:match("^[\n\r]*$") then
                     found = true
                 end
             end
