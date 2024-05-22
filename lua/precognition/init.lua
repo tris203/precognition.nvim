@@ -28,12 +28,14 @@ local M = {}
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
+---@field highlightColor string
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
+---@field highlightColor? string
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -70,6 +72,7 @@ local defaultHintConfig = {
 local default = {
     startVisible = true,
     showBlankVirtLine = true,
+    highlightColor = "Comment",
     hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
@@ -140,7 +143,7 @@ local function build_virt_line(marks, line_len)
     if line:match("^%s+$") then
         return {}
     end
-    table.insert(virt_line, { line, "Comment" })
+    table.insert(virt_line, { line, config.highlightColor })
     return virt_line
 end
 
@@ -172,7 +175,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
                 text = config.gutterHints[hint].text,
-                texthl = "Comment",
+                texthl = config.highlightColor,
             })
             local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
                 lnum = loc,
@@ -244,8 +247,9 @@ local function display_marks()
 end
 
 local function on_cursor_moved(ev)
+    local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
     if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(ev.buf, ns, extmark, {
+        local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
             details = true,
         })
         if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
@@ -365,6 +369,18 @@ local state = {
     end,
     build_gutter_hints = function()
         return build_gutter_hints
+    end,
+    on_cursor_moved = function()
+        return on_cursor_moved
+    end,
+    extmark = function()
+        return extmark
+    end,
+    gutter_group = function()
+        return gutter_group
+    end,
+    ns = function()
+        return ns
     end,
 }
 

@@ -20,6 +20,7 @@ return {
     config = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
+    -- highlightColor = "Comment",
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
     --      Dollar = { text = "$", prio = 1 },
