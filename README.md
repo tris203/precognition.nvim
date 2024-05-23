@@ -52,9 +52,10 @@ return {
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it wont be
   rendered
-- `highlightColor` is set as a highlight table. It can be a `link` field
-  that must be a valid highlight, see `:highlight`. It can also be a table that defines
-  a set of custom [highlight values](<https://neovim.io/doc/user/api.html#nvim_set_hl()>).
+- highlightColor can be set in two ways:
+
+1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
+2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
 
 ## ❔Usage
 
