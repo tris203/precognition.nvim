@@ -20,7 +20,7 @@ return {
     config = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
-    -- highlightColor = "Comment",
+    -- highlightColor = { link = "Comment"),
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
     --      Dollar = { text = "$", prio = 1 },
@@ -52,10 +52,9 @@ return {
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it wont be
   rendered
-- `highlightColor` can be a string or a highlight table. If it's a string, it
-  must be a valid highlight, see `:highlight`. It can also be a table that defines
-  a set of [highlight values](https://neovim.io/doc/user/api.html#nvim_set_hl()).
-
+- `highlightColor` is set as a highlight table. It can be a `link` field
+  that must be a valid highlight, see `:highlight`. It can also be a table that defines
+  a set of custom [highlight values](<https://neovim.io/doc/user/api.html#nvim_set_hl()>).
 
 ## ❔Usage
 
