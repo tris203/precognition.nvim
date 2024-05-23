@@ -28,14 +28,14 @@ local M = {}
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
----@field highlightColor string
+---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
----@field highlightColor? string | vim.api.keyset.highlight
+---@field highlightColor? vim.api.keyset.highlight
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -72,7 +72,7 @@ local defaultHintConfig = {
 local default = {
     startVisible = true,
     showBlankVirtLine = true,
-    highlightColor = "Comment",
+    highlightColor = { link = "Comment" },
     hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
@@ -143,7 +143,7 @@ local function build_virt_line(marks, line_len)
     if line:match("^%s+$") then
         return {}
     end
-    table.insert(virt_line, { line, config.highlightColor })
+    table.insert(virt_line, { line, "PrecognitionHighlight" })
     return virt_line
 end
 
@@ -175,7 +175,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
             end
             vim.fn.sign_define(gutter_name_prefix .. hint, {
                 text = config.gutterHints[hint].text,
-                texthl = config.highlightColor,
+                texthl = "PrecognitionHighlight",
             })
             local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
                 lnum = loc,
@@ -352,16 +352,15 @@ end
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
     config = vim.tbl_deep_extend("force", default, opts or {})
+    if opts.highlightColor then
+        config.highlightColor = opts.highlightColor
+    end
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
-    if type(config.highlightColor) == "table" then
-        local hl_name = "Precognition"
-        vim.api.nvim_set_hl(ns, hl_name, config.highlightColor)
-        vim.api.nvim_set_hl_ns(ns)
-        config.highlightColor = hl_name
-    end
+    local hl_name = "PrecognitionHighlight"
+    vim.api.nvim_set_hl(0, hl_name, config.highlightColor)
 
     if config.startVisible then
         M.show()
