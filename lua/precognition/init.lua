@@ -35,7 +35,7 @@ local M = {}
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
----@field highlightColor? string
+---@field highlightColor? string | vim.api.keyset.highlight
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -355,6 +355,13 @@ function M.setup(opts)
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+
+    if type(config.highlightColor) == "table" then
+      vim.api.nvim_set_hl(ns, "precognition", config.highlightColor)
+      vim.api.nvim_set_hl_ns(ns)
+      config.highlightColor = "precognition"
+    end
+
     if config.startVisible then
         M.show()
     end
