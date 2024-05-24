@@ -1,5 +1,4 @@
 local hm = require("precognition.horizontal_motions")
-
 local vm = require("precognition.vertical_motions")
 local utils = require("precognition.utils")
 
