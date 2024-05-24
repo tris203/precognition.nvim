@@ -17,10 +17,11 @@ Installation with any package manager, Lazy example below:
 
 return {
     "tris203/precognition.nvim",
+    --event = "VeryLazy",
     config = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
-    -- highlightColor = "Comment",
+    -- highlightColor = { link = "Comment" },
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
     --      Dollar = { text = "$", prio = 1 },
@@ -52,6 +53,10 @@ return {
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it wont be
   rendered
+- highlightColor can be set in two ways:
+
+1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
+2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
 
 ## ❔Usage
 
