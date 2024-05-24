@@ -17,10 +17,11 @@ Installation with any package manager, Lazy example below:
 
 return {
     "tris203/precognition.nvim",
+    --event = "VeryLazy",
     config = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
-    -- highlightColor = { link = "Comment"),
+    -- highlightColor = { link = "Comment" },
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
     --      Dollar = { text = "$", prio = 1 },
