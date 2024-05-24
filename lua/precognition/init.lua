@@ -1,4 +1,5 @@
 local hm = require("precognition.horizontal_motions")
+
 local vm = require("precognition.vertical_motions")
 local utils = require("precognition.utils")
 
@@ -89,13 +90,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -105,9 +106,10 @@ local ns = vim.api.nvim_create_namespace("precognition")
 local gutter_group = "precognition_gutter"
 
 ---@param marks Precognition.VirtLine
+---@param line_num integer
 ---@param line_len integer
 ---@return table
-local function build_virt_line(marks, line_len)
+local function build_virt_line(marks, line_num, line_len)
     if not marks then
         return {}
     end
@@ -141,6 +143,33 @@ local function build_virt_line(marks, line_len)
         end
     end
 
+    if vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }) then
+        local inlays_hints = vim.lsp.inlay_hint.get({
+            bufnr = 0,
+            range = {
+                start = { line = line_num - 1, character = 0 },
+                ["end"] = { line = line_num - 1, character = line_len - 1 },
+            },
+        })
+        -- sort the hints by start character
+        table.sort(inlays_hints, function(a, b)
+            return a.inlay_hint.label[1].location.range.start.character
+                < b.inlay_hint.label[1].location.range.start.character
+        end)
+
+        local total_added = 0
+        local i = 0
+        for _, hint in ipairs(inlays_hints) do
+            local length = #hint.inlay_hint.label[1].value + 1
+            local start = hint.inlay_hint.label[1].location.range.start.character + 1
+            -- Pad characters to the left of the hint to avoid overlapping with the inlay hint
+            local pad = utils.create_pad_array(length, "")
+            table.insert(line_table, start + 1, pad)
+            total_added = total_added + length
+            i = i + 1
+            vim.print("Added " .. total_added .. " spaces over " .. i .. "occurrences")
+        end
+    end
     local line = table.concat(line_table)
     if line:match("^%s+$") then
         return {}
@@ -232,7 +261,7 @@ local function display_marks()
         Zero = 1,
     }
 
-    local virt_line = build_virt_line(virtual_line_marks, line_len)
+    local virt_line = build_virt_line(virtual_line_marks, cursorline, line_len)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
