@@ -1,6 +1,7 @@
 local hm = require("precognition.horizontal_motions")
 local vm = require("precognition.vertical_motions")
 local utils = require("precognition.utils")
+local compat = require("precognition.compat")
 
 local M = {}
 
@@ -89,13 +90,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -142,7 +143,7 @@ local function build_virt_line(marks, line_num, line_len)
         end
     end
 
-    if vim.lsp.inlay_hint.is_enabled({ bufnr = 0 }) then
+    if compat.inlay_hints_enabled({ bufnr = 0 }) then
         local inlays_hints = vim.lsp.inlay_hint.get({
             bufnr = 0,
             range = {
