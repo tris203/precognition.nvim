@@ -115,7 +115,7 @@ local function build_virt_line(marks, line_len)
         return {}
     end
     local virt_line = {}
-    local line = string.rep(" ", line_len)
+    local line_table = utils.create_pad_array(line_len, " ")
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
@@ -123,9 +123,9 @@ local function build_virt_line(marks, line_len)
         local col = loc
 
         if col ~= 0 and prio > 0 then
-            local existing = vim.fn.strcharpart(line, col - 1, 1)
+            local existing = line_table[col]
             if existing == " " and existing ~= hint then
-                line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+                line_table[col] = hint
             else -- if the character is not a space, then we need to check the prio
                 local existingKey
                 for key, value in pairs(config.hints) do
@@ -135,11 +135,13 @@ local function build_virt_line(marks, line_len)
                     end
                 end
                 if existing ~= " " and config.hints[mark].prio > config.hints[existingKey].prio then
-                    line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
+                    line_table[col] = hint
                 end
             end
         end
     end
+
+    local line = table.concat(line_table)
     if line:match("^%s+$") then
         return {}
     end
