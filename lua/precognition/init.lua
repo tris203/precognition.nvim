@@ -123,7 +123,7 @@ local function build_virt_line(marks, line_len)
         local col = loc
 
         if col ~= 0 and prio > 0 then
-            local existing = line:sub(col, col)
+            local existing = vim.fn.strcharpart(line, col - 1, 1)
             if existing == " " and existing ~= hint then
                 line = line:sub(1, col - 1) .. hint .. line:sub(col + 1)
             else -- if the character is not a space, then we need to check the prio
