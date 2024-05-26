@@ -52,3 +52,17 @@ describe("big_word classing", function()
         eq(utils.char_class(".", true), 1)
     end)
 end)
+
+describe("pad arrays", function()
+    it("are created with the right length", function()
+        local pad = utils.create_pad_array(10, " ")
+        eq(10, #pad)
+    end)
+
+    it("have the  right pad char", function()
+        local pad = utils.create_pad_array(10, " ")
+        for _, v in ipairs(pad) do
+            eq(" ", v)
+        end
+    end)
+end)
