@@ -149,9 +149,8 @@ local function build_virt_line(marks, line_len, extra_padding)
 
     if #extra_padding > 0 then
         for _, padding in ipairs(extra_padding) do
-            table.insert(line_table, padding.start, utils.create_pad_array(padding.length, " "))
+            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
         end
-        line_table = compat.flatten(line_table)
     end
 
     local line = table.concat(line_table)
