@@ -91,6 +91,15 @@ function M.count_motion(count, motion, str, cursorcol, linelen, big_word)
         return 0
     end
     return ret
+---@param len integer
+---@param str string
+---@return string[]
+function M.create_pad_array(len, str)
+    local pad_array = {}
+    for i = 1, len do
+        pad_array[i] = str
+    end
+    return pad_array
 end
 
 return M
