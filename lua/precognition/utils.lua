@@ -91,6 +91,8 @@ function M.count_motion(count, motion, str, cursorcol, linelen, big_word)
         return 0
     end
     return ret
+end
+
 ---@param len integer
 ---@param str string
 ---@return string[]
