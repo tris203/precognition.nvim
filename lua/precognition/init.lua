@@ -90,13 +90,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -151,24 +151,23 @@ local function build_virt_line(marks, line_num, line_len)
                 ["end"] = { line = line_num - 1, character = line_len - 1 },
             },
         })
-        -- sort the hints by start character
-        table.sort(inlays_hints, function(a, b)
-            return a.inlay_hint.label[1].location.range.start.character
-                < b.inlay_hint.label[1].location.range.start.character
-        end)
 
-        local total_added = 0
-        local i = 0
+        -- local total_added = 0
+        -- local i = 0
         for _, hint in ipairs(inlays_hints) do
             local length = #hint.inlay_hint.label[1].value + 1
-            local start = hint.inlay_hint.label[1].location.range.start.character + 1
+            local start = hint.inlay_hint.label[1].location.range.start.character + 2
+            vim.print(vim.inspect(hint.inlay_hint.label[1]))
+            -- + 2 as we want to add to the character after the hint
             -- Pad characters to the left of the hint to avoid overlapping with the inlay hint
-            local pad = utils.create_pad_array(length, "")
-            table.insert(line_table, start + 1, pad)
-            total_added = total_added + length
-            i = i + 1
-            vim.print("Added " .. total_added .. " spaces over " .. i .. "occurrences")
+            local pad = utils.create_pad_array(length, " ")
+            table.insert(line_table, start, pad)
+            vim.print("Added " .. length .. " spaces at " .. start)
+            -- total_added = total_added + length
+            -- i = i + 1
+            -- vim.print("Added " .. total_added .. " spaces over " .. i .. " occurrences")
         end
+        line_table = compat.flatten(line_table)
     end
     local line = table.concat(line_table)
     if line:match("^%s+$") then

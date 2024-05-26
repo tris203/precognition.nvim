@@ -226,7 +226,7 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1)
+        local virtual_line = precognition.build_virt_line(marks, 1, 1)
         eq("x", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
     end)
@@ -246,7 +246,7 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1)
+        local virtual_line = precognition.build_virt_line(marks, 1, 1)
         eq("â", virtual_line[1][1])
         eq(2, #virtual_line[1][1])
     end)
@@ -263,7 +263,7 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 8)
+        local virtual_line = precognition.build_virt_line(marks, 1, 8)
         eq("0^e w  $", virtual_line[1][1])
     end)
 
@@ -288,7 +288,7 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 8)
+        local virtual_line = precognition.build_virt_line(marks, 1, 8)
         eq("0âe w  $", virtual_line[1][1])
     end)
 end)
