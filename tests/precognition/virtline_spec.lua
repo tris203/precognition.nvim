@@ -207,3 +207,86 @@ describe("Priority", function()
         eq(1, #virtual_line[1][1])
     end)
 end)
+
+describe("replacment charcters", function()
+    it("regular replacement chars", function()
+        precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
+            hints = {
+                Caret = {
+                    prio = 100,
+                    text = "x",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 1,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 1)
+        eq("x", virtual_line[1][1])
+        eq(1, #virtual_line[1][1])
+    end)
+
+    it("extended alphabet chars", function()
+        precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
+            hints = {
+                Caret = {
+                    prio = 100,
+                    text = "â",
+                },
+            },
+        })
+
+        local marks = {
+            Caret = 1,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 1)
+        eq("â", virtual_line[1][1])
+        eq(2, #virtual_line[1][1])
+    end)
+
+    it("adjacent alphabet chars", function()
+        precognition.setup({})
+        -- hello
+
+        local marks = {
+            Zero = 1,
+            Caret = 2,
+            e = 3,
+            w = 5,
+            Dollar = 8,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 8)
+        eq("0^e w  $", virtual_line[1][1])
+    end)
+
+    it("adjacent extended chars", function()
+        precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
+            hints = {
+                Caret = {
+                    prio = 100,
+                    text = "â",
+                    -- text = "t",
+                },
+            },
+        })
+        -- hello
+
+        local marks = {
+            Zero = 1,
+            Caret = 2,
+            e = 3,
+            w = 5,
+            Dollar = 8,
+        }
+
+        local virtual_line = precognition.build_virt_line(marks, 8)
+        eq("0âe w  $", virtual_line[1][1])
+    end)
+end)
