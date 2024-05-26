@@ -55,6 +55,10 @@ local M = {}
 ---@field PrevParagraph Precognition.PlaceLoc
 ---@field NextParagraph Precognition.PlaceLoc
 
+---@class Precognition.ExtraPadding
+---@field start integer
+---@field length integer
+
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
     Caret = { text = "^", prio = 2 },
@@ -106,10 +110,10 @@ local ns = vim.api.nvim_create_namespace("precognition")
 local gutter_group = "precognition_gutter"
 
 ---@param marks Precognition.VirtLine
----@param line_num integer
 ---@param line_len integer
+---@param extra_padding Precognition.ExtraPadding[]
 ---@return table
-local function build_virt_line(marks, line_num, line_len)
+local function build_virt_line(marks, line_len, extra_padding)
     if not marks then
         return {}
     end
@@ -143,32 +147,13 @@ local function build_virt_line(marks, line_num, line_len)
         end
     end
 
-    if compat.inlay_hints_enabled({ bufnr = 0 }) then
-        local inlays_hints = vim.lsp.inlay_hint.get({
-            bufnr = 0,
-            range = {
-                start = { line = line_num - 1, character = 0 },
-                ["end"] = { line = line_num - 1, character = line_len - 1 },
-            },
-        })
-
-        -- local total_added = 0
-        -- local i = 0
-        for _, hint in ipairs(inlays_hints) do
-            local length = #hint.inlay_hint.label[1].value + 1
-            local start = hint.inlay_hint.label[1].location.range.start.character + 2
-            vim.print(vim.inspect(hint.inlay_hint.label[1]))
-            -- + 2 as we want to add to the character after the hint
-            -- Pad characters to the left of the hint to avoid overlapping with the inlay hint
-            local pad = utils.create_pad_array(length, " ")
-            table.insert(line_table, start, pad)
-            vim.print("Added " .. length .. " spaces at " .. start)
-            -- total_added = total_added + length
-            -- i = i + 1
-            -- vim.print("Added " .. total_added .. " spaces over " .. i .. " occurrences")
+    if #extra_padding > 0 then
+        for _, padding in ipairs(extra_padding) do
+            table.insert(line_table, padding.start, utils.create_pad_array(padding.length, " "))
         end
         line_table = compat.flatten(line_table)
     end
+
     local line = table.concat(line_table)
     if line:match("^%s+$") then
         return {}
@@ -238,6 +223,8 @@ local function display_marks()
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
     local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
+    ---@type Precognition.ExtraPadding[]
+    local extra_padding = {}
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
     -- local before_cursor_rev = string.reverse(before_cursor)
@@ -260,7 +247,22 @@ local function display_marks()
         Zero = 1,
     }
 
-    local virt_line = build_virt_line(virtual_line_marks, cursorline, line_len)
+    if compat.inlay_hints_enabled({ bufnr = 0 }) then
+        local inlays_hints = vim.lsp.inlay_hint.get({
+            bufnr = 0,
+            range = {
+                start = { line = cursorline - 1, character = 0 },
+                ["end"] = { line = cursorline - 1, character = line_len - 1 },
+            },
+        })
+
+        for _, hint in ipairs(inlays_hints) do
+            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, cursorcol)
+            table.insert(extra_padding, { start = ws_offset, length = length })
+        end
+    end
+
+    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 

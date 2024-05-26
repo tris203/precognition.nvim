@@ -49,4 +49,28 @@ function M.create_pad_array(len, str)
     return pad_array
 end
 
+---calculates the white space offset of a partial string
+---@param hint any
+---@param tab_width integer
+---@param cursorcol integer
+---@return integer
+---@return integer
+function M.calc_ws_offset(hint, tab_width, cursorcol)
+    -- + 1 here because of trailing padding
+    local length = #hint.inlay_hint.label[1].value + 1
+    local start = hint.inlay_hint.position.character
+    local finetune
+    if cursorcol - 1 >= start then
+        finetune = 1
+    else
+        finetune = -1
+    end
+
+    local unexpanded = vim.api.nvim_get_current_line()
+    local prefix = vim.fn.strcharpart(unexpanded, 0, start)
+    local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
+    local ws_offset = vim.fn.strcharlen(expanded) + finetune
+    return length, ws_offset
+end
+
 return M

@@ -8,7 +8,7 @@ describe("Build Virtual Line", function()
             Caret = 4,
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("   ^     $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -17,7 +17,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Caret = 4,
         }
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("   ^      ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -26,7 +26,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("         $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -35,7 +35,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Caret = 1,
         }
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("^         ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -50,7 +50,7 @@ describe("Build Virtual Line", function()
             w = 10,
             Dollar = 50,
         }
-        local virtual_line = precognition.build_virt_line(marks, 1, 50)
+        local virtual_line = precognition.build_virt_line(marks, 50, {})
         local line_num = 1
         for char in virtual_line[1][1]:gmatch(".") do
             if line_num == 1 then
@@ -74,7 +74,6 @@ describe("Build Virtual Line", function()
     it("example virtual line", function()
         local line = "abcdef ghijkl mnopqr stuvwx yz"
         local cursorcol = 2
-        local cursorline = 1
         local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
@@ -85,7 +84,7 @@ describe("Build Virtual Line", function()
             b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
-        }, cursorline, line_len)
+        }, line_len, {})
 
         eq("b    e w                     $", virt_line[1][1])
         eq(#line, #virt_line[1][1])
@@ -95,7 +94,6 @@ describe("Build Virtual Line", function()
         local line = "    abc def"
         -- abc def
         local cursorcol = 5
-        local cursorline = 1
         local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
@@ -106,7 +104,7 @@ describe("Build Virtual Line", function()
             b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
             Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
             Dollar = hm.line_end(cur_line, cursorcol, line_len),
-        }, cursorline, line_len)
+        }, line_len, {})
 
         eq("    ^ e w $", virt_line[1][1])
         eq(#line, #virt_line[1][1])
@@ -135,7 +133,7 @@ describe("Priority", function()
             Dollar = 10,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("     w    ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -161,7 +159,7 @@ describe("Priority", function()
             Dollar = 10,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 10)
+        local virtual_line = precognition.build_virt_line(marks, 10, {})
         eq("     w   $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -186,7 +184,7 @@ describe("Priority", function()
             Dollar = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 1)
+        local virtual_line = precognition.build_virt_line(marks, 1, {})
         eq("$", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
 
@@ -204,7 +202,7 @@ describe("Priority", function()
             },
         })
 
-        virtual_line = precognition.build_virt_line(marks, 1, 1)
+        virtual_line = precognition.build_virt_line(marks, 1, {})
         eq("^", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
     end)
@@ -226,7 +224,7 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 1)
+        local virtual_line = precognition.build_virt_line(marks, 1, {})
         eq("x", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
     end)
@@ -246,7 +244,7 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 1)
+        local virtual_line = precognition.build_virt_line(marks, 1, {})
         eq("â", virtual_line[1][1])
         eq(2, #virtual_line[1][1])
     end)
@@ -263,7 +261,7 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 8)
+        local virtual_line = precognition.build_virt_line(marks, 8, {})
         eq("0^e w  $", virtual_line[1][1])
     end)
 
@@ -288,7 +286,7 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, 8)
+        local virtual_line = precognition.build_virt_line(marks, 8, {})
         eq("0âe w  $", virtual_line[1][1])
     end)
 end)
