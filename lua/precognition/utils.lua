@@ -52,10 +52,9 @@ end
 ---calculates the white space offset of a partial string
 ---@param hint any
 ---@param tab_width integer
----@param cursorcol integer
 ---@return integer
 ---@return integer
-function M.calc_ws_offset(hint, tab_width, cursorcol)
+function M.calc_ws_offset(hint, tab_width)
     -- + 1 here because of trailing padding
     local length = #hint.inlay_hint.label[1].value + 1
     local start = hint.inlay_hint.position.character

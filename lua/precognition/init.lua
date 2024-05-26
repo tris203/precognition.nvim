@@ -256,7 +256,7 @@ local function display_marks()
         })
 
         for _, hint in ipairs(inlays_hints) do
-            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, cursorcol)
+            local length, ws_offset = utils.calc_ws_offset(hint, tab_width)
             table.insert(extra_padding, { start = ws_offset, length = length })
         end
     end
