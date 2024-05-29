@@ -256,7 +256,7 @@ local function display_marks()
         })
 
         for _, hint in ipairs(inlays_hints) do
-            local length, ws_offset = utils.calc_ws_offset(hint, tab_width)
+            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
             table.insert(extra_padding, { start = ws_offset, length = length })
         end
     end
