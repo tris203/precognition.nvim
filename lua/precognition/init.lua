@@ -180,29 +180,45 @@ local function apply_gutter_hints(gutter_hints, bufnr)
     if utils.is_blacklisted_buffer(bufnr) then
         return
     end
+
+    local line_table = {}
     for hint, loc in pairs(gutter_hints) do
-        if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
-            if gutter_signs_cache[hint] then
-                vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
-                gutter_signs_cache[hint] = nil
+        if gutter_signs_cache[hint] then
+            vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
+            gutter_signs_cache[hint] = nil
+        end
+
+        local prio = config.gutterHints[hint].prio
+
+        -- Build table of valid and priorised gutter hints.
+        if loc ~= 0 and loc ~= nil and prio > 0 then
+            local existing = line_table[loc]
+            if not existing or existing.prio < prio then
+                line_table[loc] = { hint = hint, prio = prio }
             end
-            vim.fn.sign_define(gutter_name_prefix .. hint, {
-                text = config.gutterHints[hint].text,
-                texthl = "PrecognitionHighlight",
-            })
-            local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
-                lnum = loc,
-                priority = 100,
-            })
-            if ok then
-                gutter_signs_cache[hint] = { line = loc, id = res }
-            end
-            if not ok and loc ~= 0 then
-                vim.notify_once(
-                    "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
-                    vim.log.levels.WARN
-                )
-            end
+        end
+    end
+
+    -- Only render valid and prioritised gutter hints.
+    for loc, data in pairs(line_table) do
+        local hint = data.hint
+        local sign_name = gutter_name_prefix .. hint
+        vim.fn.sign_define(sign_name, {
+            text = config.gutterHints[hint].text,
+            texthl = "PrecognitionHighlight",
+        })
+        local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
+            lnum = loc,
+            priority = 100,
+        })
+        if ok then
+            gutter_signs_cache[hint] = { line = loc, id = res }
+        end
+        if not ok and loc ~= 0 then
+            vim.notify_once(
+                "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
+                vim.log.levels.WARN
+            )
         end
     end
 end
