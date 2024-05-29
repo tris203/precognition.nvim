@@ -35,7 +35,6 @@ return {
     --      E = { text = "E", prio = 5 },
     -- },
     -- gutterHints = {
-    --     -- prio is not currently used for gutter hints
     --     G = { text = "G", prio = 1 },
     --     gg = { text = "gg", prio = 1 },
     --     PrevParagraph = { text = "{", prio = 1 },
@@ -47,11 +46,11 @@ return {
 
 ## ⚙️ Config
 
-- Items can be hidden by settings their priority to 0, if you want to hide the
-  entire virtual line. Set all elements to `prio = 0` in combination with the
-  below.
+- Items can be hidden by setting their priority to 0. If you want to hide the
+  entire virtual line, set all elements to `prio = 0` in combination with the
+  below. Gutter marks can also be hidden by setting `prio = 0`.
 - `showBlankVirtLine = false`
-  Setting this option will mean that if a Virtual Line would be blank it wont be
+  Setting this option will mean that if a Virtual Line would be blank it won't be
   rendered
 - highlightColor can be set in two ways:
 
