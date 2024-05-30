@@ -181,7 +181,7 @@ local function apply_gutter_hints(gutter_hints, bufnr)
         return
     end
 
-    local line_table = {}
+    local gutter_table = {}
     for hint, loc in pairs(gutter_hints) do
         if gutter_signs_cache[hint] then
             vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
@@ -192,15 +192,15 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 
         -- Build table of valid and priorised gutter hints.
         if loc ~= 0 and loc ~= nil and prio > 0 then
-            local existing = line_table[loc]
+            local existing = gutter_table[loc]
             if not existing or existing.prio < prio then
-                line_table[loc] = { hint = hint, prio = prio }
+                gutter_table[loc] = { hint = hint, prio = prio }
             end
         end
     end
 
     -- Only render valid and prioritised gutter hints.
-    for loc, data in pairs(line_table) do
+    for loc, data in pairs(gutter_table) do
         local hint = data.hint
         local sign_name = gutter_name_prefix .. hint
         vim.fn.sign_define(sign_name, {

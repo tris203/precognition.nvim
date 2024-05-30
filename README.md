@@ -48,7 +48,8 @@ return {
 
 - Items can be hidden by setting their priority to 0. If you want to hide the
   entire virtual line, set all elements to `prio = 0` in combination with the
-  below. Gutter marks can also be hidden by setting `prio = 0`.
+  below.
+- Gutter marks can also be hidden by setting `prio = 0`.
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it won't be
   rendered
