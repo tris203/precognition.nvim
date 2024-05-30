@@ -79,11 +79,10 @@ local default = {
     highlightColor = { link = "Comment" },
     hints = defaultHintConfig,
     gutterHints = {
-        --prio is not currentlt used for gutter hints
-        G = { text = "G", prio = 1 },
-        gg = { text = "gg", prio = 1 },
-        PrevParagraph = { text = "{", prio = 1 },
-        NextParagraph = { text = "}", prio = 1 },
+        G = { text = "G", prio = 10 },
+        gg = { text = "gg", prio = 9 },
+        PrevParagraph = { text = "{", prio = 8 },
+        NextParagraph = { text = "}", prio = 8 },
     },
 }
 
