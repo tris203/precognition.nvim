@@ -142,13 +142,15 @@ describe("Gutter hints table", function()
 end)
 
 local function dump(o)
-    if type(o) == 'table' then
-        local s = '{ '
-        for k,v in pairs(o) do
-            if type(k) ~= 'number' then k = '"'..k..'"' end
-            s = s .. '['..k..'] = ' .. dump(v) .. ','
+    if type(o) == "table" then
+        local s = "{ "
+        for k, v in pairs(o) do
+            if type(k) ~= "number" then
+                k = '"' .. k .. '"'
+            end
+            s = s .. "[" .. k .. "] = " .. dump(v) .. ","
         end
-        return s .. '} '
+        return s .. "} "
     else
         return tostring(o)
     end
@@ -163,7 +165,7 @@ describe("Priority", function()
                 gg = { text = "gg", prio = 9 },
                 PrevParagraph = { text = "{", prio = 8 },
                 NextParagraph = { text = "}", prio = 8 },
-            }
+            },
         })
 
         local testBuf = vim.api.nvim_create_buf(true, true)
