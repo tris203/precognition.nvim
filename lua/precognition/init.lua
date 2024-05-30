@@ -410,9 +410,6 @@ local state = {
     build_gutter_hints = function()
         return build_gutter_hints
     end,
-    apply_gutter_hints = function()
-        return apply_gutter_hints
-    end,
     on_cursor_moved = function()
         return on_cursor_moved
     end,
