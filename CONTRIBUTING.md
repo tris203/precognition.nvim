@@ -26,7 +26,7 @@ Any new or changed functions and module level locals should be annotated with Lu
 
 ### Add tests
 
-Tests should be added to cover any changes or new features. These can be found in the `spec` folder. To run the tests, [Make](https://www.gnu.org/software/make/) is required. Run `make test` from the repository root.
+Tests should be added to cover any changes or new features. These can be found in the `tests` folder. To run the tests, [Make](https://www.gnu.org/software/make/) is required. Run `make test` from the repository root.
 
 ### Format code
 
