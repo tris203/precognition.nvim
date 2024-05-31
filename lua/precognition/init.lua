@@ -54,6 +54,10 @@ local M = {}
 ---@field PrevParagraph Precognition.PlaceLoc
 ---@field NextParagraph Precognition.PlaceLoc
 
+---@class Precognition.ExtraPadding
+---@field start integer
+---@field length integer
+
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
     Caret = { text = "^", prio = 2 },
@@ -106,8 +110,9 @@ local gutter_group = "precognition_gutter"
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
+---@param extra_padding Precognition.ExtraPadding
 ---@return table
-local function build_virt_line(marks, line_len)
+local function build_virt_line(marks, line_len, extra_padding)
     if not marks then
         return {}
     end
@@ -134,10 +139,16 @@ local function build_virt_line(marks, line_len)
                         break
                     end
                 end
-                if existing ~= " " and config.hints[mark].prio > config.hints[existingKey].prio then
+                if existing ~= " " and (existingKey and config.hints[mark].prio > config.hints[existingKey].prio) then
                     line_table[col] = hint
                 end
             end
+        end
+    end
+
+    if #extra_padding > 0 then
+        for _, padding in ipairs(extra_padding) do
+            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
         end
     end
 
@@ -210,6 +221,8 @@ local function display_marks()
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
     local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
+    ---@type Precognition.ExtraPadding[]
+    local extra_padding = {}
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
     -- local before_cursor_rev = string.reverse(before_cursor)
@@ -232,7 +245,10 @@ local function display_marks()
         Zero = 1,
     }
 
-    local virt_line = build_virt_line(virtual_line_marks, line_len)
+    --multicharacter padding
+    utils.add_multibyte_padding(cur_line, extra_padding, line_len)
+
+    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 

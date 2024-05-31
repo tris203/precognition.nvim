@@ -49,4 +49,18 @@ function M.create_pad_array(len, str)
     return pad_array
 end
 
+---Add extra padding for multi byte character characters
+---@param cur_line string
+---@param extra_padding Precognition.ExtraPadding[]
+---@param line_len integer
+function M.add_multibyte_padding(cur_line, extra_padding, line_len)
+    for i = 1, line_len do
+        local char = vim.fn.strcharpart(cur_line, i - 1, 1)
+        local width = vim.fn.strdisplaywidth(char)
+        if width > 1 then
+            table.insert(extra_padding, { start = i, length = width - 1 })
+        end
+    end
+end
+
 return M

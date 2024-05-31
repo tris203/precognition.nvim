@@ -27,27 +27,26 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
-function M.next_word_boundary(str, cursorcol, _linelen, big_word)
+function M.next_word_boundary(str, cursorcol, linelen, big_word)
     local offset = cursorcol
-    local len = vim.fn.strcharlen(str)
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
 
     if c_class ~= cc.whitespace then
-        while utils.char_class(char, big_word) == c_class and offset <= len do
+        while utils.char_class(char, big_word) == c_class and offset <= linelen do
             offset = offset + 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
-    while utils.char_class(char, big_word) == cc.whitespace and offset <= len do
+    while utils.char_class(char, big_word) == cc.whitespace and offset <= linelen do
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
     end
-    if offset > len then
+    if offset > linelen then
         return 0
     end
 
@@ -114,11 +113,10 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
-function M.prev_word_boundary(str, cursorcol, _linelen, big_word)
-    local len = vim.fn.strcharlen(str)
+function M.prev_word_boundary(str, cursorcol, linelen, big_word)
     local offset = cursorcol - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -141,7 +139,7 @@ function M.prev_word_boundary(str, cursorcol, _linelen, big_word)
         end
     end
 
-    if offset == nil or offset > len or offset < 0 then
+    if offset == nil or offset > linelen or offset < 0 then
         return 0
     end
     return offset + 1
