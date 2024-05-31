@@ -36,5 +36,13 @@ The StyLua documentation details a number of ways this tool can be installed, in
 
 Please run StyLua before committing your code. Do not commit the StyLua executable to this repository.
 
+### Lint code
+
+This project uses [Luacheck](https://github.com/mpeterv/luacheck) for static analysis and linting of the code.
+
+### Continuous integration
+The CI system used by this repository will run the tests, check the code formatting with Stylua, and lint the code with Luacheck. These checks must pass before a pull request can be merged, so performing these tasks locally first before committing will avoid having to push fix up commits.
+
 ### Conventional commits for Commits and PR
 
+Please use the [Conventional Commits Specification](https://www.conventionalcommits.org/en/v1.0.0/) when writing your commit messages.
