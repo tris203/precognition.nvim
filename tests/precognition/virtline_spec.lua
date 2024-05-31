@@ -161,7 +161,7 @@ describe("Build Virtual Line", function()
         eq(#line + total_added, #virt_line[1][1])
     end)
 
-    it("example virtual line with emjois", function()
+    it("example virtual line with emoji", function()
         local line = "# 💭👀precognition.nvim"
         local cursorcol = 20
         local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
