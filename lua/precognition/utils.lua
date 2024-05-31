@@ -61,7 +61,6 @@ function M.calc_ws_offset(hint, tab_width, current_line)
     local start = hint.inlay_hint.position.character
     local prefix = vim.fn.strcharpart(current_line, 0, start)
     local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
-    vim.print(expanded)
     local ws_offset = vim.fn.strcharlen(expanded)
     return length, ws_offset
 end
