@@ -148,7 +148,7 @@ describe("e2e tests", function()
 
     it("supports debounce", function()
         precognition.setup({
-            debounce = 200,
+            debounceMs = 200,
         })
 
         local buffer = vim.api.nvim_create_buf(true, false)
