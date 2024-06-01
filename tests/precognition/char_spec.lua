@@ -65,7 +65,6 @@ describe("big_word classing", function()
         eq(utils.char_class("@", true), 1)
         eq(utils.char_class(".", true), 1)
     end)
-
 end)
 
 describe("pad arrays", function()
