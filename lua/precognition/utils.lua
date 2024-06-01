@@ -6,7 +6,7 @@ M.char_classes = {
     punctuation = 1,
     word = 2,
     emoji = 3,
-    other = 4,
+    other = "other",
     UNKNOWN = -1,
 }
 
@@ -24,17 +24,14 @@ function M.char_class(char, big_word)
     if char == "\0" then
         return cc.whitespace
     end
+
     local c_class = vim.fn.charclass(char)
 
     if big_word and c_class ~= 0 then
         return cc.punctuation
     end
 
-    if c_class == "other" then
-        return cc.other
-    end
-
-    return c_class --[[ @as cc ]]
+    return c_class
 end
 
 ---@param bufnr? integer
