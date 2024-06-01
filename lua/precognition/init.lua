@@ -60,16 +60,28 @@ local M = {}
 
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
-    Caret = { text = "^", prio = 2 },
-    Dollar = { text = "$", prio = 1 },
-    MatchingPair = { text = "%", prio = 5 },
-    Zero = { text = "0", prio = 1 },
-    w = { text = "w", prio = 10 },
-    b = { text = "b", prio = 9 },
-    e = { text = "e", prio = 8 },
-    W = { text = "W", prio = 7 },
-    B = { text = "B", prio = 6 },
-    E = { text = "E", prio = 5 },
+    -- Caret = { text = "^", prio = 2, fn = hm.line_start_non_whitespace },
+    -- Dollar = { text = "$", prio = 1, fn = hm.line_end },
+    MatchingPair = { text = "%", prio = 50, fn = hm.matching_pair },
+    Zero = {
+        text = "0",
+        prio = 1,
+        fn = function()
+            return 1
+        end,
+    },
+    -- w = { text = "w", prio = 10, fn = hm.next_word_boundary },
+    -- b = { text = "b", prio = 9, fn = hm.prev_word_boundary },
+    -- e = { text = "e", prio = 8, fn = hm.end_of_word },
+    -- W = {
+    --     text = "W",
+    --     prio = 7,
+    --     fn = hm.next_word_boundary,
+    --     -- FIXME: Is this needed? We can probably just check if the motion letter is uppercase.
+    --     big = true,
+    -- },
+    -- B = { text = "B", prio = 6, fn = hm.prev_word_boundary, big = true },
+    -- E = { text = "E", prio = 5, fn = hm.end_of_word, big = true },
 }
 
 ---@type Precognition.Config
@@ -80,10 +92,10 @@ local default = {
     hints = defaultHintConfig,
     gutterHints = {
         --prio is not currentlt used for gutter hints
-        G = { text = "G", prio = 1 },
-        gg = { text = "gg", prio = 1 },
-        PrevParagraph = { text = "{", prio = 1 },
-        NextParagraph = { text = "}", prio = 1 },
+        G = { text = "G", prio = 1, fn = vm.file_end },
+        gg = { text = "gg", prio = 1, fn = vm.file_start },
+        PrevParagraph = { text = "{", prio = 1, fn = vm.prev_paragraph_line },
+        NextParagraph = { text = "}", prio = 1, fn = vm.next_paragraph_line },
     },
 }
 
@@ -162,14 +174,11 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
-    ---@type Precognition.GutterHints
-    local gutter_hints = {
-        G = vm.file_end(),
-        gg = vm.file_start(),
-        PrevParagraph = vm.prev_paragraph_line(),
-        NextParagraph = vm.next_paragraph_line(),
-    }
-    return gutter_hints
+    return vim.iter(config.gutterHints)
+        :map(function(_, opts)
+            return opts.fn()
+        end)
+        :totable()
 end
 
 ---@param gutter_hints Precognition.GutterHints
@@ -232,18 +241,27 @@ local function display_marks()
     -- get char offsets for more complex motions.
     --
     ---@type Precognition.VirtLine
-    local virtual_line_marks = {
-        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
-        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
-        MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        Dollar = hm.line_end(cur_line, cursorcol, line_len),
-        Zero = 1,
-    }
+    local virtual_line_marks = vim.iter(config.hints)
+        :map(function(hint, opts)
+            return hint, opts.fn(cur_line, cursorcol, line_len, opts.big or false)
+        end)
+        :fold({}, function(acc, hint, pos)
+            acc[hint] = pos
+            return acc
+        end)
+
+    -- local virtual_line_marks = {
+    --     Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+    --     w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+    --     e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+    --     b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
+    --     W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
+    --     E = hm.end_of_word(cur_line, cursorcol, line_len, true),
+    --     B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
+    --     MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
+    --     Dollar = hm.line_end(cur_line, cursorcol, line_len),
+    --     Zero = 1,
+    -- }
 
     --multicharacter padding
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)

@@ -172,6 +172,7 @@ function M.matching_bracket(str, cursorcol, linelen)
         end
     end
 
+    --[[]]
     if not idxFound then
         for i, bracket in ipairs(supportedBrackets.close) do
             if bracket == under_cursor then
@@ -198,7 +199,10 @@ function M.matching_bracket(str, cursorcol, linelen)
             if char == openBracket then
                 depth = depth + 1
             end
-            if char == closeBracket or char == middleBracket then
+            if
+                --[[]]
+                char == closeBracket or char == middleBracket
+            then
                 depth = depth - 1
                 if depth == 0 then
                     break
@@ -210,7 +214,7 @@ function M.matching_bracket(str, cursorcol, linelen)
 
     if under_cursor == closeBracket then
         local depth = 1
-        offset = offset - 2
+        offset = offset - 1
         while offset >= 0 do
             local char = vim.fn.strcharpart(str, offset - 1, 1)
             if char == closeBracket then
@@ -272,21 +276,19 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
----@return function
-function M.matching_pair(str, cursorcol, _linelen)
+---@param line_len integer
+---@return Precognition.PlaceLoc
+function M.matching_pair(str, cursorcol, line_len)
     local char = vim.fn.strcharpart(str, cursorcol - 1, 1)
     if char == "/" or char == "*" then
-        return M.matching_comment
+        return M.matching_comment(str, cursorcol, line_len)
     end
 
     if vim.tbl_contains(supportedBrackets.open, char) or vim.tbl_contains(supportedBrackets.close, char) then
-        return M.matching_bracket
+        return M.matching_bracket(str, cursorcol, line_len)
     end
 
-    return function()
-        return 0
-    end
+    return 0
 end
 
 return M
