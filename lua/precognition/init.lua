@@ -24,7 +24,7 @@ local M = {}
 ---@field NextParagraph Precognition.HintOpts
 
 ---@class Precognition.Config
----@field debounce integer
+---@field debounceMs integer
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
 ---@field highlightColor vim.api.keyset.highlight
@@ -77,7 +77,7 @@ local defaultHintConfig = {
 
 ---@type Precognition.Config
 local default = {
-    debounce = 0,
+    debounceMs = 0,
     startVisible = true,
     showBlankVirtLine = true,
     highlightColor = { link = "Comment" },
@@ -410,8 +410,8 @@ function M.show()
 
     local prev_line
     local draw = display_marks
-    if config.debounce > 0 then
-        local debounced = utils.debounce_trailing(display_marks, config.debounce)
+    if config.debounceMs > 0 then
+        local debounced = utils.debounce_trailing(display_marks, config.debounceMs)
         draw = function(...)
             local line = vim.api.nvim_win_get_cursor(0)[1]
             if line == prev_line then
@@ -519,8 +519,8 @@ local state = {
     on_cursor_moved = function()
         local prev_line
         local draw = display_marks
-        if config.debounce > 0 then
-            local debounced = utils.debounce_trailing(display_marks, config.debounce)
+        if config.debounceMs > 0 then
+            local debounced = utils.debounce_trailing(display_marks, config.debounceMs)
             draw = function(...)
                 local line = vim.api.nvim_win_get_cursor(0)[1]
                 if line == prev_line then
