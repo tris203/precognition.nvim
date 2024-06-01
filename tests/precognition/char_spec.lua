@@ -6,7 +6,7 @@ local eq = assert.are.same
 describe("static classes", function()
     it("are set correctly", function()
         eq(cc.whitespace, 0)
-        eq(cc.puncuation, 1)
+        eq(cc.punctuation, 1)
         eq(cc.word, 2)
         eq(cc.emoji, 3)
         eq(cc.other, 4)

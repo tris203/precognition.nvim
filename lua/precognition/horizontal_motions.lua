@@ -69,8 +69,8 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     local rev_offset
 
     if
-        (c_class == cc.puncuation and next_char_class ~= cc.puncuation)
-        or (next_char_class == cc.puncuation and c_class ~= cc.puncuation)
+        (c_class == cc.punctuation and next_char_class ~= cc.punctuation)
+        or (next_char_class == cc.punctuation and c_class ~= cc.punctuation)
     then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)

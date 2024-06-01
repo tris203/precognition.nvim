@@ -3,7 +3,7 @@ local M = {}
 ---@enum cc
 M.char_classes = {
     whitespace = 0,
-    puncuation = 1,
+    punctuation = 1,
     word = 2,
     emoji = 3,
     other = 4,
@@ -27,7 +27,7 @@ function M.char_class(char, big_word)
     local c_class = vim.fn.charclass(char)
 
     if big_word and c_class ~= 0 then
-        return cc.puncuation
+        return cc.punctuation
     end
 
     if c_class == "other" then
