@@ -210,7 +210,7 @@ function M.matching_bracket(str, cursorcol, linelen)
 
     if under_cursor == closeBracket then
         local depth = 1
-        offset = offset - 2
+        offset = offset - 1
         while offset >= 0 do
             local char = vim.fn.strcharpart(str, offset - 1, 1)
             if char == closeBracket then
