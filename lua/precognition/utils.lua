@@ -5,6 +5,7 @@ M.char_classes = {
     whitespace = 0,
     other = 1,
     word = 2,
+    empty_string = 3,
 }
 
 ---@param char string
@@ -13,6 +14,11 @@ M.char_classes = {
 function M.char_class(char, big_word)
     assert(type(big_word) == "boolean", "big_word must be a boolean")
     local cc = M.char_classes
+
+    if char == "" then
+        return cc.empty_string
+    end
+
     local byte = string.byte(char)
 
     if byte and byte < 0x100 then
