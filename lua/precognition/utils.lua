@@ -65,7 +65,8 @@ function M.calc_ws_offset(hint, tab_width, current_line)
     local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
     local ws_offset = vim.fn.strcharlen(expanded)
     return length, ws_offset
-  
+end
+
 ---Add extra padding for multi byte character characters
 ---@param cur_line string
 ---@param extra_padding Precognition.ExtraPadding[]
