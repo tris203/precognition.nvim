@@ -9,6 +9,7 @@ describe("static classes", function()
         eq(cc.other, 1)
         eq(cc.word, 2)
         eq(cc.emoji, 3)
+        eq(cc.UNKNOWN, -1)
     end)
 end)
 
