@@ -132,6 +132,10 @@ function M.prev_word_boundary(str, cursorcol, linelen, big_word)
     while utils.char_class(char, big_word) == c_class and offset >= 0 do
         offset = offset - 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
+        if char == "" then
+            -- Gone outside the line boundary, so break.
+            break
+        end
         --if remaining string is whitespace, return nil_wrap
         local remaining = string.sub(str, offset)
         if remaining:match("^%s*$") and #remaining > 0 then

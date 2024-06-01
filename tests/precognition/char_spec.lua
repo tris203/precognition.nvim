@@ -63,11 +63,6 @@ describe("big_word classing", function()
         eq(utils.char_class("", false), 2)
         eq(utils.char_class("", false), 2)
     end)
-
-    it("can class the empty string", function()
-        eq(utils.char_class("", true), 3)
-        eq(utils.char_class("", false), 3)
-    end)
 end)
 
 describe("pad arrays", function()
