@@ -5,6 +5,7 @@ M.char_classes = {
     whitespace = 0,
     other = 1,
     word = 2,
+    emoji = 3,
 }
 
 ---@param char string
@@ -14,18 +15,19 @@ function M.char_class(char, big_word)
     assert(type(big_word) == "boolean", "big_word must be a boolean")
     local cc = M.char_classes
     local byte = string.byte(char)
+    if byte == nil then
+        return cc.other
+    end
+    if char == " " or char == "\t" or char == "\0" then
+        return cc.whitespace
+    end
 
-    if byte and byte < 0x100 then
-        if char == " " or char == "\t" or char == "\0" then
-            return cc.whitespace
-        end
-        if char == "_" or char:match("%w") then
-            return big_word and cc.other or cc.word
-        end
+    local c_class = require("precognition.ffi").utf_class(byte)
+    if big_word and c_class ~= 0 then
         return cc.other
     end
 
-    return cc.other -- scary unicode edge cases go here
+    return c_class
 end
 
 ---@param bufnr? integer
@@ -63,6 +65,19 @@ function M.calc_ws_offset(hint, tab_width, current_line)
     local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
     local ws_offset = vim.fn.strcharlen(expanded)
     return length, ws_offset
+  
+---Add extra padding for multi byte character characters
+---@param cur_line string
+---@param extra_padding Precognition.ExtraPadding[]
+---@param line_len integer
+function M.add_multibyte_padding(cur_line, extra_padding, line_len)
+    for i = 1, line_len do
+        local char = vim.fn.strcharpart(cur_line, i - 1, 1)
+        local width = vim.fn.strdisplaywidth(char)
+        if width > 1 then
+            table.insert(extra_padding, { start = i, length = width - 1 })
+        end
+    end
 end
 
 return M

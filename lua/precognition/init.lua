@@ -133,14 +133,14 @@ local function build_virt_line(marks, line_len, extra_padding)
             if existing == " " and existing ~= hint then
                 line_table[col] = hint
             else -- if the character is not a space, then we need to check the prio
-                local existingKey
+                local existing_key
                 for key, value in pairs(config.hints) do
                     if value.text == existing then
-                        existingKey = key
+                        existing_key = key
                         break
                     end
                 end
-                if existing ~= " " and config.hints[mark].prio > config.hints[existingKey].prio then
+                if existing ~= " " and config.hints[mark].prio > config.hints[existing_key].prio then
                     line_table[col] = hint
                 end
             end
@@ -213,8 +213,8 @@ local function display_marks()
     if utils.is_blacklisted_buffer(bufnr) then
         return
     end
-    local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
-    cursorcol = cursorcol + 1
+    local cursorline = vim.fn.line(".")
+    local cursorcol = vim.fn.charcol(".")
     if extmark and not dirty then
         return
     end
@@ -260,6 +260,8 @@ local function display_marks()
             table.insert(extra_padding, { start = ws_offset, length = length })
         end
     end
+    --multicharacter padding
+    utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
     local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 

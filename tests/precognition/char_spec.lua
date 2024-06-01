@@ -51,6 +51,17 @@ describe("big_word classing", function()
         eq(utils.char_class("@", true), 1)
         eq(utils.char_class(".", true), 1)
     end)
+
+    it("can class emoji characters", function()
+        eq(utils.char_class("🐱", false), 2)
+        eq(utils.char_class("😸", false), 2)
+        eq(utils.char_class("💩", false), 2)
+    end)
+
+    it("can class nerdfont characters", function()
+        eq(utils.char_class("", false), 2)
+        eq(utils.char_class("", false), 2)
+    end)
 end)
 
 describe("pad arrays", function()

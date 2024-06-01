@@ -1,5 +1,6 @@
 local precognition = require("precognition")
 local hm = require("precognition.horizontal_motions")
+local utils = require("precognition.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
 describe("Build Virtual Line", function()
@@ -157,6 +158,28 @@ describe("Build Virtual Line", function()
 
         eq("        ^ e w      $", virt_line[1][1])
         eq(#line + total_added, #virt_line[1][1])
+    end)
+
+    it("example virtual line with emoji", function()
+        local line = "# 💭👀precognition.nvim"
+        local cursorcol = 20
+        local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
+        local cur_line = line:gsub("\t", string.rep(" ", tab_width))
+        local line_len = vim.fn.strcharlen(cur_line)
+        local extra_padding = {}
+
+        utils.add_multibyte_padding(cur_line, extra_padding, line_len)
+
+        local virt_line = precognition.build_virt_line({
+            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+        }, line_len, extra_padding)
+
+        eq("^                  b  e", virt_line[1][1])
+        eq(vim.fn.strdisplaywidth(line), #virt_line[1][1])
     end)
 end)
 

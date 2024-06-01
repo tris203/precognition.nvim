@@ -85,14 +85,10 @@ This plugin supports stable and nightly. >0.9 at the time of writing.
 
 Contributions are what makes the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion to improve the plugin, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+If you have a suggestion to improve the plugin, please open an issue first, fork the repo, and create a pull request.
+
+If you have found a bug please open an issue, and submit a pull request with a failing test if possible.
+
+More details on how to contribute can be found in CONTRIBUTING.md. Please read this prior to creating a pull request.
+
 Don't forget to give the project a star! Thanks again!
-
-If there is something specific you want to work on then, please open an issue/discussion first to avoid duplication of efforts
-If you have found a bug please open an issue, or submit a PR with a failing test.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request
