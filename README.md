@@ -85,10 +85,10 @@ This plugin supports stable and nightly. >0.9 at the time of writing.
 
 Contributions are what makes the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion to improve the plugin, please open an issue first, fork the repo, and create a pull request. More details on how to contribute can be found in CONTRIBUTING.md.
+If you have a suggestion to improve the plugin, please open an issue first, fork the repo, and create a pull request.
 
-You can also simply open an issue with the tag "enhancement".
+If you have found a bug please open an issue, and submit a pull request with a failing test if possible.
 
-If you have found a bug please open an issue, or submit a PR with a failing test.
+More details on how to contribute can be found in CONTRIBUTING.md. Please read this prior to creating a pull request.
 
 Don't forget to give the project a star! Thanks again!
