@@ -3,28 +3,32 @@ local M = {}
 ---@enum cc
 M.char_classes = {
     whitespace = 0,
-    other = 1,
+    punctuation = 1,
     word = 2,
     emoji = 3,
+    other = "other",
+    UNKNOWN = -1,
 }
 
 ---@param char string
 ---@param big_word boolean
----@return integer
+---@return cc
 function M.char_class(char, big_word)
     assert(type(big_word) == "boolean", "big_word must be a boolean")
     local cc = M.char_classes
-    local byte = string.byte(char)
-    if byte == nil then
-        return cc.other
+
+    if char == "" then
+        return cc.UNKNOWN
     end
-    if char == " " or char == "\t" or char == "\0" then
+
+    if char == "\0" then
         return cc.whitespace
     end
 
-    local c_class = require("precognition.ffi").utf_class(byte)
+    local c_class = vim.fn.charclass(char)
+
     if big_word and c_class ~= 0 then
-        return cc.other
+        return cc.punctuation
     end
 
     return c_class

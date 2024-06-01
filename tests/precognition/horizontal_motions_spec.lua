@@ -109,6 +109,9 @@ describe("boundaries", function()
             local str = "a big.word string"
             eq(3, hm.prev_word_boundary(str, 10, #str, true))
             eq(3, hm.prev_word_boundary(str, 10, #str, true))
+
+            str = "big.word"
+            eq(1, hm.prev_word_boundary(str, 5, #str, true))
         end)
 
         it("can walk string with b", function()
