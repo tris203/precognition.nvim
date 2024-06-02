@@ -1,7 +1,3 @@
-local hm = require("precognition.horizontal_motions")
-local vm = require("precognition.vertical_motions")
-local utils = require("precognition.utils")
-
 local M = {}
 
 ---@class Precognition.HintOpts
@@ -119,7 +115,7 @@ local function build_virt_line(marks, line_len, extra_padding)
         return {}
     end
     local virt_line = {}
-    local line_table = utils.create_pad_array(line_len, " ")
+    local line_table = require("precognition.utils").create_pad_array(line_len, " ")
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
@@ -161,6 +157,7 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
+    local vm = require("precognition.vertical_motions")
     ---@type Precognition.GutterHints
     local gutter_hints = {
         G = vm.file_end(),
@@ -176,7 +173,7 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
         return
     end
 
@@ -224,7 +221,7 @@ end
 
 local function display_marks()
     local bufnr = vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
         return
     end
     local cursorline = vim.fn.line(".")
@@ -242,6 +239,8 @@ local function display_marks()
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
+
+    local hm = require("precognition.horizontal_motions")
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
@@ -261,7 +260,8 @@ local function display_marks()
     }
 
     --multicharacter padding
-    utils.add_multibyte_padding(cur_line, extra_padding, line_len)
+
+    require("precognition.utils").add_multibyte_padding(cur_line, extra_padding, line_len)
 
     local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 
