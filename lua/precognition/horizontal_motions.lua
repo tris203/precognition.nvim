@@ -1,6 +1,3 @@
-local utils = require("precognition.utils")
-local cc = utils.char_classes
-
 local M = {}
 
 local supportedBrackets = {
@@ -31,6 +28,9 @@ end
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
 function M.next_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -62,6 +62,9 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     if cursorcol >= linelen then
         return 0
     end
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -118,6 +121,9 @@ end
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
 function M.prev_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
