@@ -1,6 +1,3 @@
-local utils = require("precognition.utils")
-local cc = utils.char_classes
-
 local M = {}
 
 local supportedBrackets = {
@@ -31,6 +28,9 @@ end
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
 function M.next_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -62,6 +62,9 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     if cursorcol >= linelen then
         return 0
     end
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -69,7 +72,8 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     local rev_offset
 
     if
-        (c_class == cc.other and next_char_class ~= cc.other) or (next_char_class == cc.other and c_class ~= cc.other)
+        (c_class == cc.punctuation and next_char_class ~= cc.punctuation)
+        or (next_char_class == cc.punctuation and c_class ~= cc.punctuation)
     then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
@@ -117,6 +121,9 @@ end
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
 function M.prev_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -132,7 +139,7 @@ function M.prev_word_boundary(str, cursorcol, linelen, big_word)
     while utils.char_class(char, big_word) == c_class and offset >= 0 do
         offset = offset - 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
-        --if remaining string is whitespace, return nil_wrap
+        --if remaining string is whitespace, return 0
         local remaining = string.sub(str, offset)
         if remaining:match("^%s*$") and #remaining > 0 then
             return 0

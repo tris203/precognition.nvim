@@ -1,6 +1,3 @@
-local hm = require("precognition.horizontal_motions")
-local vm = require("precognition.vertical_motions")
-local utils = require("precognition.utils")
 local compat = require("precognition.compat")
 
 local M = {}
@@ -80,11 +77,10 @@ local default = {
     highlightColor = { link = "Comment" },
     hints = defaultHintConfig,
     gutterHints = {
-        --prio is not currentlt used for gutter hints
-        G = { text = "G", prio = 1 },
-        gg = { text = "gg", prio = 1 },
-        PrevParagraph = { text = "{", prio = 1 },
-        NextParagraph = { text = "}", prio = 1 },
+        G = { text = "G", prio = 10 },
+        gg = { text = "gg", prio = 9 },
+        PrevParagraph = { text = "{", prio = 8 },
+        NextParagraph = { text = "}", prio = 8 },
     },
 }
 
@@ -114,6 +110,7 @@ local gutter_group = "precognition_gutter"
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@return table
 local function build_virt_line(marks, line_len, extra_padding)
+    local utils = require("precognition.utils")
     if not marks then
         return {}
     end
@@ -163,6 +160,7 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
+    local vm = require("precognition.vertical_motions")
     ---@type Precognition.GutterHints
     local gutter_hints = {
         G = vm.file_end(),
@@ -178,37 +176,54 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
         return
     end
+
+    local gutter_table = {}
     for hint, loc in pairs(gutter_hints) do
-        if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
-            if gutter_signs_cache[hint] then
-                vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
-                gutter_signs_cache[hint] = nil
+        if gutter_signs_cache[hint] then
+            vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
+            gutter_signs_cache[hint] = nil
+        end
+
+        local prio = config.gutterHints[hint].prio
+
+        -- Build table of valid and priorised gutter hints.
+        if loc ~= 0 and loc ~= nil and prio > 0 then
+            local existing = gutter_table[loc]
+            if not existing or existing.prio < prio then
+                gutter_table[loc] = { hint = hint, prio = prio }
             end
-            vim.fn.sign_define(gutter_name_prefix .. hint, {
-                text = config.gutterHints[hint].text,
-                texthl = "PrecognitionHighlight",
-            })
-            local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
-                lnum = loc,
-                priority = 100,
-            })
-            if ok then
-                gutter_signs_cache[hint] = { line = loc, id = res }
-            end
-            if not ok and loc ~= 0 then
-                vim.notify_once(
-                    "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
-                    vim.log.levels.WARN
-                )
-            end
+        end
+    end
+
+    -- Only render valid and prioritised gutter hints.
+    for loc, data in pairs(gutter_table) do
+        local hint = data.hint
+        local sign_name = gutter_name_prefix .. hint
+        vim.fn.sign_define(sign_name, {
+            text = config.gutterHints[hint].text,
+            texthl = "PrecognitionHighlight",
+        })
+        local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
+            lnum = loc,
+            priority = 100,
+        })
+        if ok then
+            gutter_signs_cache[hint] = { line = loc, id = res }
+        end
+        if not ok and loc ~= 0 then
+            vim.notify_once(
+                "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
+                vim.log.levels.WARN
+            )
         end
     end
 end
 
 local function display_marks()
+    local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr) then
         return
@@ -228,6 +243,8 @@ local function display_marks()
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
+
+    local hm = require("precognition.horizontal_motions")
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
@@ -261,6 +278,7 @@ local function display_marks()
         end
     end
     --multicharacter padding
+
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
     local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
