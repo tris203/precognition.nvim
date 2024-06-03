@@ -35,11 +35,10 @@ return {
     --      E = { text = "E", prio = 5 },
     -- },
     -- gutterHints = {
-    --     -- prio is not currently used for gutter hints
-    --     G = { text = "G", prio = 1 },
-    --     gg = { text = "gg", prio = 1 },
-    --     PrevParagraph = { text = "{", prio = 1 },
-    --     NextParagraph = { text = "}", prio = 1 },
+    --     G = { text = "G", prio = 10 },
+    --     gg = { text = "gg", prio = 9 },
+    --     PrevParagraph = { text = "{", prio = 8 },
+    --     NextParagraph = { text = "}", prio = 8 },
     -- },
     },
 }
@@ -47,16 +46,21 @@ return {
 
 ## ⚙️ Config
 
-- Items can be hidden by settings their priority to 0, if you want to hide the
-  entire virtual line. Set all elements to `prio = 0` in combination with the
+- `hints` can be hidden by setting their priority to 0. If you want to hide the
+  entire virtual line, set all elements to `prio = 0` in combination with the
   below.
 - `showBlankVirtLine = false`
-  Setting this option will mean that if a Virtual Line would be blank it wont be
+  Setting this option will mean that if a Virtual Line would be blank it won't be
   rendered
-- highlightColor can be set in two ways:
+- `gutterHints` can be hidden by setting their priority to 0.
+- `highlightColor` can be set in two ways:
 
-1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
-2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
+    1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
+    2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
+
+### Hint priorities
+
+Any hints that could appear in the same place as others should have unique priorities to avoid conflicts.
 
 ## ❔Usage
 
@@ -85,14 +89,10 @@ This plugin supports stable and nightly. >0.9 at the time of writing.
 
 Contributions are what makes the open-source community such an amazing place to learn, inspire, and create. Any contributions you make are **greatly appreciated**.
 
-If you have a suggestion to improve the plugin, please fork the repo and create a pull request. You can also simply open an issue with the tag "enhancement".
+If you have a suggestion to improve the plugin, please open an issue first, fork the repo, and create a pull request.
+
+If you have found a bug please open an issue, and submit a pull request with a failing test if possible.
+
+More details on how to contribute can be found in CONTRIBUTING.md. Please read this prior to creating a pull request.
+
 Don't forget to give the project a star! Thanks again!
-
-If there is something specific you want to work on then, please open an issue/discussion first to avoid duplication of efforts
-If you have found a bug please open an issue, or submit a PR with a failing test.
-
-1. Fork the Project
-2. Create your Feature Branch (`git checkout -b feature/AmazingFeature`)
-3. Commit your Changes (`git commit -m 'Add some AmazingFeature'`)
-4. Push to the Branch (`git push origin feature/AmazingFeature`)
-5. Open a Pull Request

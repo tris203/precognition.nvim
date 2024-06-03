@@ -270,3 +270,65 @@ describe("e2e tests", function()
         eq(customMark, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
     end)
 end)
+
+describe("Gutter Priority", function()
+    it("0 priority item is not added", function()
+        precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
+            gutterHints = {
+                G = { text = "G", prio = 0 },
+            },
+        })
+
+        local testBuf = vim.api.nvim_create_buf(true, false)
+
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
+            "ABC",
+            "DEF",
+            "",
+            "GHI",
+            "",
+            "JKL",
+            "",
+            "MNO",
+        })
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 4, 0 })
+
+        precognition.on_cursor_moved()
+
+        local gutter_extmarks = get_gutter_extmarks(testBuf)
+
+        for _, extmark in pairs(gutter_extmarks) do
+            eq(true, extmark[4].sign_text ~= "G ")
+            eq(true, extmark[4].sign_name ~= "precognition_gutter_G")
+        end
+    end)
+
+    it("higher priority item replaces", function()
+        precognition.setup({
+            ---@diagnostic disable-next-line: missing-fields
+            gutterHints = {
+                G = { text = "G", prio = 3 },
+                gg = { text = "gg", prio = 100 },
+                NextParagraph = { text = "}", prio = 2 },
+                PrevParagraph = { text = "{", prio = 1 },
+            },
+        })
+
+        local testBuf = vim.api.nvim_create_buf(true, false)
+
+        vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {
+            "ABC",
+        })
+        vim.api.nvim_set_current_buf(testBuf)
+        vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+        precognition.on_cursor_moved()
+
+        local gutter_extmarks = get_gutter_extmarks(testBuf)
+
+        eq(1, vim.tbl_count(gutter_extmarks))
+        eq("gg", gutter_extmarks[1][4].sign_text)
+    end)
+end)

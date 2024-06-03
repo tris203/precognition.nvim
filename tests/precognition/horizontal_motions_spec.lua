@@ -109,6 +109,9 @@ describe("boundaries", function()
             local str = "a big.word string"
             eq(3, hm.prev_word_boundary(str, 10, #str, true))
             eq(3, hm.prev_word_boundary(str, 10, #str, true))
+
+            str = "big.word"
+            eq(1, hm.prev_word_boundary(str, 5, #str, true))
         end)
 
         it("can walk string with b", function()
@@ -303,5 +306,14 @@ describe("edge case", function()
         eq(16, hm.end_of_word(str, 14, #str, false))
         eq(16, hm.end_of_word(str, 15, #str, false))
         eq(22, hm.end_of_word(str, 21, #str, false))
+    end)
+
+    it("multibyte characters", function()
+        local str = "# 💭👀precognition.nvim"
+        local len = vim.fn.strcharlen(str)
+        eq(3, hm.next_word_boundary(str, 1, len, false))
+        eq(17, hm.prev_word_boundary(str, 18, len, false))
+        eq(3, hm.prev_word_boundary(str, 18, len, true))
+        eq(3, hm.prev_word_boundary(str, 5, len, false))
     end)
 end)

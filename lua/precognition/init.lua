@@ -1,7 +1,3 @@
-local hm = require("precognition.horizontal_motions")
-local vm = require("precognition.vertical_motions")
-local utils = require("precognition.utils")
-
 local M = {}
 
 ---@class Precognition.HintOpts
@@ -54,6 +50,10 @@ local M = {}
 ---@field PrevParagraph Precognition.PlaceLoc
 ---@field NextParagraph Precognition.PlaceLoc
 
+---@class Precognition.ExtraPadding
+---@field start integer
+---@field length integer
+
 ---@type Precognition.HintConfig
 local defaultHintConfig = {
     Caret = { text = "^", prio = 2 },
@@ -75,11 +75,10 @@ local default = {
     highlightColor = { link = "Comment" },
     hints = defaultHintConfig,
     gutterHints = {
-        --prio is not currentlt used for gutter hints
-        G = { text = "G", prio = 1 },
-        gg = { text = "gg", prio = 1 },
-        PrevParagraph = { text = "{", prio = 1 },
-        NextParagraph = { text = "}", prio = 1 },
+        G = { text = "G", prio = 10 },
+        gg = { text = "gg", prio = 9 },
+        PrevParagraph = { text = "{", prio = 8 },
+        NextParagraph = { text = "}", prio = 8 },
     },
 }
 
@@ -108,8 +107,9 @@ local showcmd
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
+---@param extra_padding Precognition.ExtraPadding
 ---@return table
-local function build_virt_line(marks, line_len)
+local function build_virt_line(marks, line_len, extra_padding)
     if not marks then
         return {}
     end
@@ -117,7 +117,7 @@ local function build_virt_line(marks, line_len)
         return {}
     end
     local virt_line = {}
-    local line_table = utils.create_pad_array(line_len, " ")
+    local line_table = require("precognition.utils").create_pad_array(line_len, " ")
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
@@ -129,17 +129,23 @@ local function build_virt_line(marks, line_len)
             if existing == " " and existing ~= hint then
                 line_table[col] = hint
             else -- if the character is not a space, then we need to check the prio
-                local existingKey
+                local existing_key
                 for key, value in pairs(config.hints) do
                     if value.text == existing then
-                        existingKey = key
+                        existing_key = key
                         break
                     end
                 end
-                if existing ~= " " and config.hints[mark].prio > config.hints[existingKey].prio then
+                if existing ~= " " and config.hints[mark].prio > config.hints[existing_key].prio then
                     line_table[col] = hint
                 end
             end
+        end
+    end
+
+    if #extra_padding > 0 then
+        for _, padding in ipairs(extra_padding) do
+            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
         end
     end
 
@@ -153,6 +159,7 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
+    local vm = require("precognition.vertical_motions")
     ---@type Precognition.GutterHints
     local gutter_hints = {
         G = vm.file_end(),
@@ -168,32 +175,48 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
         return
     end
+
+    local gutter_table = {}
     for hint, loc in pairs(gutter_hints) do
-        if config.gutterHints[hint] and loc ~= 0 and loc ~= nil then
-            if gutter_signs_cache[hint] then
-                vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
-                gutter_signs_cache[hint] = nil
+        if gutter_signs_cache[hint] then
+            vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
+            gutter_signs_cache[hint] = nil
+        end
+
+        local prio = config.gutterHints[hint].prio
+
+        -- Build table of valid and priorised gutter hints.
+        if loc ~= 0 and loc ~= nil and prio > 0 then
+            local existing = gutter_table[loc]
+            if not existing or existing.prio < prio then
+                gutter_table[loc] = { hint = hint, prio = prio }
             end
-            vim.fn.sign_define(gutter_name_prefix .. hint, {
-                text = config.gutterHints[hint].text,
-                texthl = "PrecognitionHighlight",
-            })
-            local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, gutter_name_prefix .. hint, bufnr, {
-                lnum = loc,
-                priority = 100,
-            })
-            if ok then
-                gutter_signs_cache[hint] = { line = loc, id = res }
-            end
-            if not ok and loc ~= 0 then
-                vim.notify_once(
-                    "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
-                    vim.log.levels.WARN
-                )
-            end
+        end
+    end
+
+    -- Only render valid and prioritised gutter hints.
+    for loc, data in pairs(gutter_table) do
+        local hint = data.hint
+        local sign_name = gutter_name_prefix .. hint
+        vim.fn.sign_define(sign_name, {
+            text = config.gutterHints[hint].text,
+            texthl = "PrecognitionHighlight",
+        })
+        local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
+            lnum = loc,
+            priority = 100,
+        })
+        if ok then
+            gutter_signs_cache[hint] = { line = loc, id = res }
+        end
+        if not ok and loc ~= 0 then
+            vim.notify_once(
+                "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
+                vim.log.levels.WARN
+            )
         end
     end
 end
@@ -205,11 +228,11 @@ local function display_marks()
         return
     end
     local bufnr = vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
         return
     end
-    local cursorline, cursorcol = unpack(vim.api.nvim_win_get_cursor(0))
-    cursorcol = cursorcol + 1
+    local cursorline = vim.fn.line(".")
+    local cursorcol = vim.fn.charcol(".")
     if extmark and not dirty then
         return
     end
@@ -217,10 +240,14 @@ local function display_marks()
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
     local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
+    ---@type Precognition.ExtraPadding[]
+    local extra_padding = {}
     -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
     -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
+
+    local hm = require("precognition.horizontal_motions")
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
@@ -239,7 +266,11 @@ local function display_marks()
         Zero = 1,
     }
 
-    local virt_line = build_virt_line(virtual_line_marks, line_len)
+    --multicharacter padding
+
+    require("precognition.utils").add_multibyte_padding(cur_line, extra_padding, line_len)
+
+    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 

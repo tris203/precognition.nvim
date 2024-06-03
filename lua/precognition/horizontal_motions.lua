@@ -1,6 +1,3 @@
-local utils = require("precognition.utils")
-local cc = utils.char_classes
-
 local M = {}
 
 local supportedBrackets = {
@@ -27,27 +24,29 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
-function M.next_word_boundary(str, cursorcol, _linelen, big_word)
+function M.next_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
-    local len = vim.fn.strcharlen(str)
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
 
     if c_class ~= cc.whitespace then
-        while utils.char_class(char, big_word) == c_class and offset <= len do
+        while utils.char_class(char, big_word) == c_class and offset <= linelen do
             offset = offset + 1
             char = vim.fn.strcharpart(str, offset - 1, 1)
         end
     end
 
-    while utils.char_class(char, big_word) == cc.whitespace and offset <= len do
+    while utils.char_class(char, big_word) == cc.whitespace and offset <= linelen do
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
     end
-    if offset > len then
+    if offset > linelen then
         return 0
     end
 
@@ -63,6 +62,9 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     if cursorcol >= linelen then
         return 0
     end
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -70,7 +72,8 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     local rev_offset
 
     if
-        (c_class == cc.other and next_char_class ~= cc.other) or (next_char_class == cc.other and c_class ~= cc.other)
+        (c_class == cc.punctuation and next_char_class ~= cc.punctuation)
+        or (next_char_class == cc.punctuation and c_class ~= cc.punctuation)
     then
         offset = offset + 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
@@ -114,11 +117,13 @@ end
 
 ---@param str string
 ---@param cursorcol integer
----@param _linelen integer
+---@param linelen integer
 ---@param big_word boolean
 ---@return Precognition.PlaceLoc
-function M.prev_word_boundary(str, cursorcol, _linelen, big_word)
-    local len = vim.fn.strcharlen(str)
+function M.prev_word_boundary(str, cursorcol, linelen, big_word)
+    local utils = require("precognition.utils")
+    local cc = utils.char_classes
+
     local offset = cursorcol - 1
     local char = vim.fn.strcharpart(str, offset - 1, 1)
     local c_class = utils.char_class(char, big_word)
@@ -134,14 +139,14 @@ function M.prev_word_boundary(str, cursorcol, _linelen, big_word)
     while utils.char_class(char, big_word) == c_class and offset >= 0 do
         offset = offset - 1
         char = vim.fn.strcharpart(str, offset - 1, 1)
-        --if remaining string is whitespace, return nil_wrap
+        --if remaining string is whitespace, return 0
         local remaining = string.sub(str, offset)
         if remaining:match("^%s*$") and #remaining > 0 then
             return 0
         end
     end
 
-    if offset == nil or offset > len or offset < 0 then
+    if offset == nil or offset > linelen or offset < 0 then
         return 0
     end
     return offset + 1
@@ -212,7 +217,7 @@ function M.matching_bracket(str, cursorcol, linelen)
 
     if under_cursor == closeBracket then
         local depth = 1
-        offset = offset - 2
+        offset = offset - 1
         while offset >= 0 do
             local char = vim.fn.strcharpart(str, offset - 1, 1)
             if char == closeBracket then
