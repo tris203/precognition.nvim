@@ -88,13 +88,13 @@ local config = default
 ---@type integer?
 local extmark -- the active extmark in the current buffer
 ---@type boolean
-local dirty -- whether a redraw is needed
+local dirty   -- whether a redraw is needed
 ---@type boolean
 local visible = false
 ---@type string
 local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
 ---@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
+local gutter_signs_cache = {}                     -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -222,13 +222,14 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 end
 
 local function display_marks()
+    local utils = require("precognition.utils")
     local count = utils.count_from_motionstring(showcmd)
     if count > 100 then
         vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
         return
     end
     local bufnr = vim.api.nvim_get_current_buf()
-    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
+    if utils.is_blacklisted_buffer(bufnr) then
         return
     end
     local cursorline = vim.fn.line(".")
