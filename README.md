@@ -64,21 +64,37 @@ Any hints that could appear in the same place as others should have unique prior
 
 ## ❔Usage
 
+`precognition` can be controlled with the `Precognition` user command, as well as programmatically via the Lua API.
+
 ### Toggling
 
 The hints can be toggled on and off with
 
+```vim
+:Precognition toggle
 ```
-:lua require("precognition").toggle()
+
+or
+
+```lua
+require("precognition").toggle()
 ```
+
+The subcommands and functions `show` and `hide` are also available.
 
 ### Peeking
 
 The hints can be peeked, this means that the hint will be show until the next
 cursor movement.
 
+```vim
+:Precognition peek
 ```
-:lua require("precognition").peek()
+
+or
+
+```lua
+require("precognition").peek()
 ```
 
 ## 💻 Supported Versions

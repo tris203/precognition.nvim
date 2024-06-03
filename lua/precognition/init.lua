@@ -314,6 +314,39 @@ local function on_buf_leave(ev)
     dirty = true
 end
 
+local function create_command()
+    local subcommands = {
+        peek = M.peek,
+        toggle = M.toggle,
+        show = M.show,
+        hide = M.hide,
+    }
+
+    local function execute(args)
+        local cmd_args = args.fargs
+        local subcmd = cmd_args[1]
+        if not subcmd then
+            return
+        end
+        if subcommands[subcmd] then
+            subcommands[subcmd]()
+        else
+            vim.notify("Invalid subcommand: " .. subcmd, vim.log.levels.ERROR, {
+                title = "Precognition",
+            })
+        end
+    end
+
+    local function complete(_line, _len, _arg_lead)
+        return vim.tbl_keys(subcommands)
+    end
+
+    vim.api.nvim_create_user_command("Precognition", execute, {
+        nargs = "*",
+        complete = complete,
+    })
+end
+
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
     display_marks()
@@ -394,6 +427,8 @@ function M.setup(opts)
 
     local hl_name = "PrecognitionHighlight"
     vim.api.nvim_set_hl(0, hl_name, config.highlightColor)
+
+    create_command()
 
     if config.startVisible then
         M.show()
