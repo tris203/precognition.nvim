@@ -18,7 +18,7 @@ Installation with any package manager, Lazy example below:
 return {
     "tris203/precognition.nvim",
     --event = "VeryLazy",
-    config = {
+    opts = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
     -- highlightColor = { link = "Comment" },
