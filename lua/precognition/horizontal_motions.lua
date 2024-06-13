@@ -91,9 +91,13 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     if c_class == cc.whitespace or next_char_class == cc.whitespace then
         local next_word_start = M.next_word_boundary(str, cursorcol, linelen, big_word)
         if next_word_start then
+            c_class = utils.char_class(vim.fn.strcharpart(str, next_word_start - 1, 1), big_word)
             next_char_class = utils.char_class(vim.fn.strcharpart(str, (next_word_start - 1) + 1, 1), big_word)
-            --next word is single char
             if next_char_class == cc.whitespace then
+                --next word is single char
+                rev_offset = next_word_start
+            elseif c_class == cc.punctuation then
+                --next word starts with punctuation
                 rev_offset = next_word_start
             else
                 rev_offset = M.end_of_word(str, next_word_start, linelen, big_word)

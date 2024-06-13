@@ -316,4 +316,9 @@ describe("edge case", function()
         eq(3, hm.prev_word_boundary(str, 18, len, true))
         eq(3, hm.prev_word_boundary(str, 5, len, false))
     end)
+
+    it("quoted strings", function()
+        local str = 'this = "that"'
+        eq(8, hm.end_of_word(str, 6, #str, false))
+    end)
 end)
