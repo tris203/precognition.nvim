@@ -320,5 +320,8 @@ describe("edge case", function()
     it("quoted strings", function()
         local str = 'this = "that"'
         eq(8, hm.end_of_word(str, 6, #str, false))
+
+        str = 'b = "^", c = 2 },'
+        eq(8, hm.end_of_word(str, 3, #str, false))
     end)
 end)

@@ -96,7 +96,7 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
             if next_char_class == cc.whitespace then
                 --next word is single char
                 rev_offset = next_word_start
-            elseif c_class == cc.punctuation then
+            elseif c_class == cc.punctuation and next_char_class ~= cc.punctuation then
                 --next word starts with punctuation
                 rev_offset = next_word_start
             else
