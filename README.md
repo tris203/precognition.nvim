@@ -7,7 +7,7 @@
 
 **precognition.nvim** assists with discovering motions (Both vertical and horizontal) to navigate your current buffer
 
-![image](https://github.com/tris203/precognition.nvim/assets/18444302/ea24caee-85da-42d8-b0e9-555b47268643)
+![image](https://github.com/tris203/precognition.nvim/assets/18444302/6250954f-01c1-4343-8d89-0bdb84504c8d)
 
 ## 📦 Installation
 
@@ -18,7 +18,7 @@ Installation with any package manager, Lazy example below:
 return {
     "tris203/precognition.nvim",
     --event = "VeryLazy",
-    config = {
+    opts = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
     -- highlightColor = { link = "Comment" },
@@ -64,21 +64,37 @@ Any hints that could appear in the same place as others should have unique prior
 
 ## ❔Usage
 
+`precognition` can be controlled with the `Precognition` user command, as well as programmatically via the Lua API.
+
 ### Toggling
 
 The hints can be toggled on and off with
 
+```vim
+:Precognition toggle
 ```
-:lua require("precognition").toggle()
+
+or
+
+```lua
+require("precognition").toggle()
 ```
+
+The subcommands and functions `show` and `hide` are also available.
 
 ### Peeking
 
 The hints can be peeked, this means that the hint will be show until the next
 cursor movement.
 
+```vim
+:Precognition peek
 ```
-:lua require("precognition").peek()
+
+or
+
+```lua
+require("precognition").peek()
 ```
 
 ## 💻 Supported Versions
