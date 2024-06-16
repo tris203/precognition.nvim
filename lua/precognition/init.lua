@@ -407,12 +407,14 @@ function M.hide()
 end
 
 --- Toggle automatic showing of hints
+--- with return value indicating the visible state
 function M.toggle()
     if visible then
         M.hide()
     else
         M.show()
     end
+    return visible
 end
 
 ---@param opts Precognition.PartialConfig

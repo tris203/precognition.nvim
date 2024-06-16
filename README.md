@@ -80,6 +80,16 @@ or
 require("precognition").toggle()
 ```
 
+The return value indicating the visible state can be used to produce a notification.
+
+```lua
+if require("precognition").toggle() then
+    vim.notify("precognition on")
+else
+    vim.notify("precognition off")
+end
+```
+
 The subcommands and functions `show` and `hide` are also available.
 
 ### Peeking
