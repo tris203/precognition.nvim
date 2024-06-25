@@ -48,4 +48,11 @@ describe("blacklist buffers", function()
         vim.api.nvim_open_term(test_buffer, {})
         eq(utils.is_blacklisted_buffer(test_buffer), true)
     end)
+
+    it("blacklisted buffer by filetype", function()
+        local test_buffer = vim.api.nvim_create_buf(true, false)
+        local test_fts = { "startify" }
+        vim.api.nvim_set_option_value("filetype", "startify", { buf = test_buffer })
+        eq(utils.is_blacklisted_buffer(test_buffer, test_fts), true)
+    end)
 end)
