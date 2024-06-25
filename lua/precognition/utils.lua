@@ -35,7 +35,7 @@ function M.char_class(char, big_word)
 end
 
 ---@param bufnr? integer
----@param disabled_fts? table
+---@param disabled_fts? string[]
 ---@return boolean
 function M.is_blacklisted_buffer(bufnr, disabled_fts)
     bufnr = bufnr or vim.api.nvim_get_current_buf()

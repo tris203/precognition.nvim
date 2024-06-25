@@ -27,7 +27,7 @@ local M = {}
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
----@field disabled_fts table
+---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
