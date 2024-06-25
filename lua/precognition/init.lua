@@ -27,6 +27,7 @@ local M = {}
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
+---@field disabled_fts table
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
@@ -79,6 +80,36 @@ local default = {
         gg = { text = "gg", prio = 9 },
         PrevParagraph = { text = "{", prio = 8 },
         NextParagraph = { text = "}", prio = 8 },
+    },
+    disabled_fts = {
+        "NvimTree",
+        "TelescopePrompt",
+        "aerial",
+        "alpha",
+        "checkhealth",
+        "dapui*",
+        "Diffview*",
+        "Dressing*",
+        "help",
+        "httpResult",
+        "lazy",
+        "lspinfo",
+        "Neogit*",
+        "mason",
+        "neotest%-summary",
+        "minifiles",
+        "neo%-tree*",
+        "netrw",
+        "noice",
+        "notify",
+        "prompt",
+        "qf",
+        "query",
+        "oil",
+        "undotree",
+        "trouble",
+        "Trouble",
+        "fugitive",
     },
 }
 

@@ -35,11 +35,22 @@ function M.char_class(char, big_word)
 end
 
 ---@param bufnr? integer
+---@param disabled_fts? table
 ---@return boolean
-function M.is_blacklisted_buffer(bufnr)
+function M.is_blacklisted_buffer(bufnr, disabled_fts)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
         return true
+    end
+
+    if disabled_fts == nil then
+        return false
+    end
+
+    for _, ft in ipairs(disabled_fts) do
+        if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == ft then
+            return true
+        end
     end
     return false
 end
