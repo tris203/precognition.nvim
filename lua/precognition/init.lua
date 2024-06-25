@@ -27,6 +27,7 @@ local M = {}
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
+---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
@@ -79,6 +80,9 @@ local default = {
         gg = { text = "gg", prio = 9 },
         PrevParagraph = { text = "{", prio = 8 },
         NextParagraph = { text = "}", prio = 8 },
+    },
+    disabled_fts = {
+        "startify",
     },
 }
 
