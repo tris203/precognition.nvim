@@ -40,6 +40,36 @@ return {
     --     PrevParagraph = { text = "{", prio = 8 },
     --     NextParagraph = { text = "}", prio = 8 },
     -- },
+    -- disabled_fts = {
+    -- "NvimTree",
+    -- "TelescopePrompt",
+    -- "aerial",
+    -- "alpha",
+    -- "checkhealth",
+    -- "dapui*",
+    -- "Diffview*",
+    -- "Dressing*",
+    -- "help",
+    -- "httpResult",
+    -- "lazy",
+    -- "lspinfo",
+    -- "Neogit*",
+    -- "mason",
+    -- "neotest%-summary",
+    -- "minifiles",
+    -- "neo%-tree*",
+    -- "netrw",
+    -- "noice",
+    -- "notify",
+    -- "prompt",
+    -- "qf",
+    -- "query",
+    -- "oil",
+    -- "undotree",
+    -- "trouble",
+    -- "Trouble",
+    -- "fugitive",
+    -- }
     },
 }
 ```
@@ -57,6 +87,8 @@ return {
 
     1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
     2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
+
+- `disabled_fts` can be used to disable `precognition` on specific filetypes.
 
 ### Hint priorities
 
