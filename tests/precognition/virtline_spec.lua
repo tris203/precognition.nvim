@@ -93,7 +93,6 @@ describe("Build Virtual Line", function()
 
     it("example virtual line with whitespace padding", function()
         local line = "    abc def"
-        -- abc def
         local cursorcol = 5
         local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))

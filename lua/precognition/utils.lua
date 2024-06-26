@@ -66,6 +66,22 @@ function M.create_pad_array(len, str)
     return pad_array
 end
 
+---calculates the white space offset of a partial string
+---@param hint vim.lsp.inlay_hint.get.ret
+---@param tab_width integer
+---@param current_line string
+---@return integer
+---@return integer
+function M.calc_ws_offset(hint, tab_width, current_line)
+    -- + 1 here because of trailing padding
+    local length = #hint.inlay_hint.label[1].value + 1
+    local start = hint.inlay_hint.position.character
+    local prefix = vim.fn.strcharpart(current_line, 0, start)
+    local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
+    local ws_offset = vim.fn.strcharlen(expanded)
+    return length, ws_offset
+end
+
 ---Add extra padding for multi byte character characters
 ---@param cur_line string
 ---@param extra_padding Precognition.ExtraPadding[]
