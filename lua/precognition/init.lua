@@ -324,6 +324,7 @@ local function create_command()
         toggle = M.toggle,
         show = M.show,
         hide = M.hide,
+        visibleState = M.visibleState,
     }
 
     local function execute(args)
@@ -393,6 +394,11 @@ function M.show()
     })
 
     display_marks()
+end
+
+--- Return the current visibility state
+function M.visibleState()
+    return visible
 end
 
 --- Disable automatic showing of hints
