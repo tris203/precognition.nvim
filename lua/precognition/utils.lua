@@ -35,11 +35,22 @@ function M.char_class(char, big_word)
 end
 
 ---@param bufnr? integer
+---@param disabled_fts? string[]
 ---@return boolean
-function M.is_blacklisted_buffer(bufnr)
+function M.is_blacklisted_buffer(bufnr, disabled_fts)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
     if vim.api.nvim_get_option_value("buftype", { buf = bufnr }) ~= "" then
         return true
+    end
+
+    if disabled_fts == nil then
+        return false
+    end
+
+    for _, ft in ipairs(disabled_fts) do
+        if vim.api.nvim_get_option_value("filetype", { buf = bufnr }) == ft then
+            return true
+        end
     end
     return false
 end
@@ -108,6 +119,22 @@ function M.create_pad_array(len, str)
         pad_array[i] = str
     end
     return pad_array
+end
+
+---calculates the white space offset of a partial string
+---@param hint vim.lsp.inlay_hint.get.ret
+---@param tab_width integer
+---@param current_line string
+---@return integer
+---@return integer
+function M.calc_ws_offset(hint, tab_width, current_line)
+    -- + 1 here because of trailing padding
+    local length = #hint.inlay_hint.label[1].value + 1
+    local start = hint.inlay_hint.position.character
+    local prefix = vim.fn.strcharpart(current_line, 0, start)
+    local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
+    local ws_offset = vim.fn.strcharlen(expanded)
+    return length, ws_offset
 end
 
 ---Add extra padding for multi byte character characters

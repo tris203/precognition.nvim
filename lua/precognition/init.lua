@@ -1,3 +1,5 @@
+local compat = require("precognition.compat")
+
 local M = {}
 
 ---@class Precognition.HintOpts
@@ -27,6 +29,7 @@ local M = {}
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
+---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
@@ -80,6 +83,9 @@ local default = {
         PrevParagraph = { text = "{", prio = 8 },
         NextParagraph = { text = "}", prio = 8 },
     },
+    disabled_fts = {
+        "startify",
+    },
 }
 
 ---@type Precognition.Config
@@ -107,9 +113,10 @@ local showcmd
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
----@param extra_padding Precognition.ExtraPadding
+---@param extra_padding Precognition.ExtraPadding[]
 ---@return table
 local function build_virt_line(marks, line_len, extra_padding)
+    local utils = require("precognition.utils")
     if not marks then
         return {}
     end
@@ -117,7 +124,7 @@ local function build_virt_line(marks, line_len, extra_padding)
         return {}
     end
     local virt_line = {}
-    local line_table = require("precognition.utils").create_pad_array(line_len, " ")
+    local line_table = utils.create_pad_array(line_len, " ")
 
     for mark, loc in pairs(marks) do
         local hint = config.hints[mark].text or mark
@@ -267,9 +274,23 @@ local function display_marks()
         Zero = 1,
     }
 
+    if compat.inlay_hints_enabled({ bufnr = 0 }) then
+        local inlays_hints = vim.lsp.inlay_hint.get({
+            bufnr = 0,
+            range = {
+                start = { line = cursorline - 1, character = 0 },
+                ["end"] = { line = cursorline - 1, character = line_len - 1 },
+            },
+        })
+
+        for _, hint in ipairs(inlays_hints) do
+            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
+            table.insert(extra_padding, { start = ws_offset, length = length })
+        end
+    end
     --multicharacter padding
 
-    require("precognition.utils").add_multibyte_padding(cur_line, extra_padding, line_len)
+    utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
     local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
 
@@ -415,17 +436,20 @@ function M.hide()
 end
 
 --- Toggle automatic showing of hints
+--- with return value indicating the visible state
 function M.toggle()
     if visible then
         M.hide()
     else
         M.show()
     end
+    return visible
 end
 
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
-    config = vim.tbl_deep_extend("force", default, opts or {})
+    opts = opts or {}
+    config = vim.tbl_deep_extend("force", default, opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end

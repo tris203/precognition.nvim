@@ -1,31 +1,7 @@
 local precognition = require("precognition")
+local tu = require("tests.precognition.utils.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
-
-local function get_gutter_extmarks(buffer)
-    local gutter_extmarks = {}
-    for _, extmark in
-        pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
-            details = true,
-        }))
-    do
-        if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match(precognition.gutter_group) then
-            table.insert(gutter_extmarks, extmark)
-        end
-    end
-    return gutter_extmarks
-end
-
-local function hex2dec(hex)
-    hex = hex:gsub("#", "")
-    local r = tonumber("0x" .. hex:sub(1, 2))
-    local g = tonumber("0x" .. hex:sub(3, 4))
-    local b = tonumber("0x" .. hex:sub(5, 6))
-
-    local dec = (r * 256 ^ 2) + (g * 256) + b
-
-    return dec
-end
 
 describe("e2e tests", function()
     before_each(function()
@@ -67,7 +43,7 @@ describe("e2e tests", function()
             details = true,
         })
 
-        local gutter_extmarks = get_gutter_extmarks(buffer)
+        local gutter_extmarks = tu.get_gutter_extmarks(buffer)
 
         for _, extmark in pairs(gutter_extmarks) do
             if extmark[4].sign_text == "G " then
@@ -126,7 +102,7 @@ describe("e2e tests", function()
         vim.api.nvim_win_set_cursor(0, { 2, 1 })
         precognition.on_cursor_moved()
 
-        gutter_extmarks = get_gutter_extmarks(buffer)
+        gutter_extmarks = tu.get_gutter_extmarks(buffer)
 
         extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
             details = true,
@@ -151,7 +127,7 @@ describe("e2e tests", function()
 
         vim.api.nvim_win_set_cursor(0, { 4, 1 })
         precognition.on_cursor_moved()
-        gutter_extmarks = get_gutter_extmarks(buffer)
+        gutter_extmarks = tu.get_gutter_extmarks(buffer)
 
         for _, extmark in pairs(gutter_extmarks) do
             if extmark[4].sign_text == "G " then
@@ -187,7 +163,7 @@ describe("e2e tests", function()
             details = true,
         })
 
-        local gutter_extmarks = get_gutter_extmarks(buffer)
+        local gutter_extmarks = tu.get_gutter_extmarks(buffer)
 
         for _, extmark in pairs(gutter_extmarks) do
             if extmark[4].sign_text == "G " then
@@ -221,7 +197,7 @@ describe("e2e tests", function()
         local background = "#00ff00"
         local foreground = "#ff0000"
         local customColor = { foreground = foreground, background = background }
-        local customMark = { fg = hex2dec(foreground), bg = hex2dec(background) }
+        local customMark = { fg = tu.hex2dec(foreground), bg = tu.hex2dec(background) }
         precognition.setup({ highlightColor = customColor })
         local buffer = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(buffer)
@@ -240,7 +216,7 @@ describe("e2e tests", function()
             details = true,
         })
 
-        local gutter_extmarks = get_gutter_extmarks(buffer)
+        local gutter_extmarks = tu.get_gutter_extmarks(buffer)
 
         for _, extmark in pairs(gutter_extmarks) do
             if extmark[4].sign_text == "G " then
@@ -297,7 +273,7 @@ describe("Gutter Priority", function()
 
         precognition.on_cursor_moved()
 
-        local gutter_extmarks = get_gutter_extmarks(testBuf)
+        local gutter_extmarks = tu.get_gutter_extmarks(testBuf)
 
         for _, extmark in pairs(gutter_extmarks) do
             eq(true, extmark[4].sign_text ~= "G ")
@@ -326,7 +302,7 @@ describe("Gutter Priority", function()
 
         precognition.on_cursor_moved()
 
-        local gutter_extmarks = get_gutter_extmarks(testBuf)
+        local gutter_extmarks = tu.get_gutter_extmarks(testBuf)
 
         eq(1, vim.tbl_count(gutter_extmarks))
         eq("gg", gutter_extmarks[1][4].sign_text)
