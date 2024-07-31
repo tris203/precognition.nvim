@@ -29,6 +29,7 @@ local M = {}
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
+---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
@@ -81,6 +82,9 @@ local default = {
         gg = { text = "gg", prio = 9 },
         PrevParagraph = { text = "{", prio = 8 },
         NextParagraph = { text = "}", prio = 8 },
+    },
+    disabled_fts = {
+        "startify",
     },
 }
 
@@ -425,17 +429,20 @@ function M.hide()
 end
 
 --- Toggle automatic showing of hints
+--- with return value indicating the visible state
 function M.toggle()
     if visible then
         M.hide()
     else
         M.show()
     end
+    return visible
 end
 
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
-    config = vim.tbl_deep_extend("force", default, opts or {})
+    opts = opts or {}
+    config = vim.tbl_deep_extend("force", default, opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end
