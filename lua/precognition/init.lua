@@ -180,7 +180,7 @@ end
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if require("precognition.utils").is_blacklisted_buffer(bufnr) then
+    if require("precognition.utils").is_blacklisted_buffer(bufnr, config.disabled_fts) then
         return
     end
 
@@ -229,7 +229,7 @@ end
 local function display_marks()
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr) then
+    if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
         return
     end
     local cursorline = vim.fn.line(".")
