@@ -73,8 +73,9 @@ end
 ---@return integer
 ---@return integer
 function M.calc_ws_offset(hint, tab_width, current_line)
+    local label = (hint.inlay_hint.label[1] and hint.inlay_hint.label[1].value) or hint.inlay_hint.label or ""
     -- + 1 here because of trailing padding
-    local length = #hint.inlay_hint.label[1].value + 1
+    local length = #label + 1
     local start = hint.inlay_hint.position.character
     local prefix = vim.fn.strcharpart(current_line, 0, start)
     local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
