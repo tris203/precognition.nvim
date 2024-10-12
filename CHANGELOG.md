@@ -1,5 +1,22 @@
 # Changelog
 
+## [1.1.0](https://github.com/tris203/precognition.nvim/compare/v1.0.0...v1.1.0) (2024-10-12)
+
+
+### Features
+
+* disable by filetype ([#78](https://github.com/tris203/precognition.nvim/issues/78)) ([2a566f0](https://github.com/tris203/precognition.nvim/commit/2a566f03eb06859298eff837f3a6686dfa5304a5))
+* inlay hints ([#38](https://github.com/tris203/precognition.nvim/issues/38)) ([6772d3a](https://github.com/tris203/precognition.nvim/commit/6772d3a6aa98f6e68b53fd7d4dfd7762bf3ae3bf))
+* toggling returns visible value ([#73](https://github.com/tris203/precognition.nvim/issues/73)) ([6aab38a](https://github.com/tris203/precognition.nvim/commit/6aab38a34847bc2881138541ed5a91ed7b058086))
+
+
+### Bug Fixes
+
+* **horizontal_motions:** handle quoted strings in word boundaries ([#68](https://github.com/tris203/precognition.nvim/issues/68)) ([7a76d43](https://github.com/tris203/precognition.nvim/commit/7a76d432f9d30f7ae79968a464d2fced69149d39))
+* support calling setup() w/o args ([#71](https://github.com/tris203/precognition.nvim/issues/71)) ([02dcc8f](https://github.com/tris203/precognition.nvim/commit/02dcc8f8db677fe02d2dd68da6155177283fe711))
+* **utils:** blacklisted buffers ([#84](https://github.com/tris203/precognition.nvim/issues/84)) ([de72c68](https://github.com/tris203/precognition.nvim/commit/de72c68e9a5fb76b030a40122b02c2ec4c7fb029))
+* **utils:** handle inlay hint label correctly ([#82](https://github.com/tris203/precognition.nvim/issues/82)) ([8a81c31](https://github.com/tris203/precognition.nvim/commit/8a81c310b4e76b4884fc5350a5741cf683c645c7))
+
 ## 1.0.0 (2024-06-09)
 
 
