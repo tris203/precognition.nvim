@@ -1,8 +1,15 @@
 {
+  "runtime": {
+    "version": "LuaJIT",
+    "pathStrict": true
+  },
+  "type": {
+    "checkTableShape": true
+  },
     "diagnostics.globals": [
         "describe",
         "it",
         "before_each",
-        "after_each",
+        "after_each"
     ]
 }
