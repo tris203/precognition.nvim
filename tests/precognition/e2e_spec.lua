@@ -16,11 +16,13 @@ describe("e2e tests", function()
         eq(7, vim.tbl_count(autocmds))
     end)
 
+    -- 0.1 only
     -- it("namespace is created", function()
     --     local ns = vim.api.nvim_get_namespaces()
     --
     --     eq(1, ns["precognition"])
     --     eq(2, ns["precognition_gutter"])
+    -- :end)
     -- end)
     --
     it("virtual line is displayed and updated", function()
@@ -68,6 +70,26 @@ describe("e2e tests", function()
         eq({ link = "Comment" }, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
 
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        precognition.on_cursor_moved()
+
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+
+        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
+        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
+
+        precognition.set_showcmd("2")
+        precognition.on_cursor_moved()
+
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+
+        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
+        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
+
+        precognition.set_showcmd("")
         precognition.on_cursor_moved()
 
         extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {

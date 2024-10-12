@@ -108,6 +108,8 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
+---@type string | nil
+local showcmd
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -228,6 +230,11 @@ end
 
 local function display_marks()
     local utils = require("precognition.utils")
+    local count = utils.count_from_motionstring(showcmd)
+    if count > 100 then
+        vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
+        return
+    end
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
         return
@@ -256,12 +263,12 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
-        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
+        w = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len, false),
+        e = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len, false),
+        b = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len, false),
+        W = utils.count_motion(count, hm.next_word_boundary, cur_line, cursorcol, line_len, true),
+        E = utils.count_motion(count, hm.end_of_word, cur_line, cursorcol, line_len, true),
+        B = utils.count_motion(count, hm.prev_word_boundary, cur_line, cursorcol, line_len, true),
         MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = hm.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
@@ -302,9 +309,9 @@ local function display_marks()
 end
 
 local function on_cursor_moved(ev)
-    local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
+    local bufnr = ev and ev.buf or vim.api.nvim_get_current_buf()
     if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
+        local ext = vim.api.nvim_buf_get_extmark_by_id(bufnr, ns, extmark, {
             details = true,
         })
         if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
@@ -450,6 +457,25 @@ function M.setup(opts)
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
+    ---@diagnostic disable-next-line: redundant-parameter
+    vim.ui_attach(ns, { ext_messages = true }, function(event, ...)
+        if event == "msg_showcmd" then
+            local content = ...
+            local prev_showcmd = showcmd
+            if #content == 0 then
+                showcmd = nil
+            else
+                showcmd = content[1][2]
+            end
+            if not visible then
+                return
+            end
+            if showcmd ~= prev_showcmd then
+                on_cursor_moved()
+                vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+            end
+        end
+    end)
     local hl_name = "PrecognitionHighlight"
     vim.api.nvim_set_hl(0, hl_name, config.highlightColor)
 
@@ -481,6 +507,12 @@ local state = {
     end,
     ns = function()
         return ns
+    end,
+    set_showcmd = function()
+        return function(cmd)
+            -- Wrapper here because ui is not available in tests
+            showcmd = cmd
+        end
     end,
 }
 
