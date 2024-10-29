@@ -439,6 +439,10 @@ function M.toggle()
     return visible
 end
 
+local function setup_highlights()
+    vim.api.nvim_set_hl(0, "PrecognitionHighlight", config.highlightColor)
+end
+
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
     opts = opts or {}
@@ -450,8 +454,12 @@ function M.setup(opts)
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 
-    local hl_name = "PrecognitionHighlight"
-    vim.api.nvim_set_hl(0, hl_name, config.highlightColor)
+    setup_highlights()
+    vim.api.nvim_create_autocmd("ColorScheme", {
+        desc = "Set precognition.nvim's highlights up",
+        group = au,
+        callback = setup_highlights,
+    })
 
     create_command()
 
