@@ -490,6 +490,9 @@ local state = {
     ns = function()
         return ns
     end,
+    is_visible = function()
+        return visible
+    end,
 }
 
 setmetatable(M, {
