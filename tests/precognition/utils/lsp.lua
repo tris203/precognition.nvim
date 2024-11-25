@@ -21,6 +21,7 @@ function M.server()
                 {
                     position = { line = 0, character = 3 },
                     label = { { value = "foo" } },
+                    paddingLeft = true,
                 },
             })
         else

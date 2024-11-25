@@ -70,12 +70,26 @@ end
 ---@param hint vim.lsp.inlay_hint.get.ret
 ---@param tab_width integer
 ---@param current_line string
----@return integer
----@return integer
+---@return integer length total padding required for the hint
+---@return integer offset offset where the padding starts
 function M.calc_ws_offset(hint, tab_width, current_line)
-    local label = (hint.inlay_hint.label[1] and hint.inlay_hint.label[1].value) or hint.inlay_hint.label or ""
-    -- + 1 here because of trailing padding
-    local length = #label + 1
+    ---@alias InlayHintLabelPartArray lsp.InlayHintLabelPart[]
+    local length = 0
+    if type(hint.inlay_hint.label) == "string" then
+        length = #hint.inlay_hint.label
+    elseif type(hint.inlay_hint.label) == "table" then
+        for _, v in
+            ipairs(hint.inlay_hint.label --[[@as InlayHintLabelPartArray]])
+        do
+            length = length + #v.value
+        end
+    end
+    if hint.inlay_hint.paddingLeft then
+        length = length + 1
+    end
+    if hint.inlay_hint.paddingRight then
+        length = length + 1
+    end
     local start = hint.inlay_hint.position.character
     local prefix = vim.fn.strcharpart(current_line, 0, start)
     local expanded = string.gsub(prefix, "\t", string.rep(" ", tab_width))
