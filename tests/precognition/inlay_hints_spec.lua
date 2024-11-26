@@ -1,5 +1,6 @@
 local server = require("tests.precognition.utils.lsp").server
 local compat = require("tests.precognition.utils.compat")
+local utils = require("precognition.utils")
 local precognition = require("precognition")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
@@ -13,6 +14,91 @@ local function wait(condition, msg)
     neq(false, result, msg)
     neq(nil, result, msg)
 end
+
+describe("inlay hint utils", function()
+    it("calculates lua style inlay hints", function()
+        local length, wsoffset = utils.calc_ws_offset({
+            bufnr = 1,
+            client_id = 1,
+            inlay_hint = {
+                kind = 2,
+                label = {
+                    {
+                        location = {
+                            range = {
+                                ["end"] = {
+                                    character = 24,
+                                    line = 9,
+                                },
+                                start = {
+                                    character = 17,
+                                    line = 9,
+                                },
+                            },
+                            uri = "file:///home/tris/.local/share/nvim/mason/packages/lua-language-server/libexec/meta/LuaJIT%20en-us%20utf8/package.lua",
+                        },
+                        value = "modname:",
+                    },
+                },
+                paddingLeft = false,
+                paddingRight = true,
+                position = {
+                    character = 23,
+                    line = 0,
+                },
+            },
+        }, 2, [[local compat = require("precognition.compat")]])
+
+        eq(9, length)
+        eq(23, wsoffset)
+    end)
+
+    it("calculates rust style inlay hints", function()
+        local length, wsoffset = utils.calc_ws_offset({
+            bufnr = 1,
+            client_id = 1,
+            inlay_hint = {
+                data = {
+                    file_id = 0,
+                },
+                kind = 1,
+                label = {
+                    {
+                        value = ": ",
+                    },
+                    {
+                        location = {
+                            range = {
+                                ["end"] = {
+                                    character = 17,
+                                    line = 364,
+                                },
+                                start = {
+                                    character = 11,
+                                    line = 364,
+                                },
+                            },
+                            uri = "file:///home/tris/.rustup/toolchains/stable-x86_64-unknown-linux-gnu/lib/rustlib/src/rust/library/alloc/src/string.rs",
+                        },
+                        value = "String",
+                    },
+                    {
+                        value = "",
+                    },
+                },
+                paddingLeft = false,
+                paddingRight = false,
+                position = {
+                    character = 16,
+                    line = 7,
+                },
+            },
+        }, 2, [[        let body = res.text().await?;]])
+
+        eq(8, length)
+        eq(16, wsoffset)
+    end)
+end)
 
 describe("lsp based tests", function()
     before_each(function()
