@@ -139,6 +139,7 @@ describe("e2e tests", function()
 
         precognition.on_cursor_moved()
 
+        ---@diagnostic disable-next-line: undefined-field
         assert.is_nil(precognition.extmark)
 
         eq(
@@ -153,6 +154,7 @@ describe("e2e tests", function()
             coroutine.resume(co)
         end, 210))
 
+        ---@diagnostic disable-next-line: undefined-field
         assert.not_nil(precognition.extmark)
 
         local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
