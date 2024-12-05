@@ -411,7 +411,7 @@ function M.show()
     local prev_line
     local draw = display_marks
     if config.debounceMs > 0 then
-        local debounced = utils.debounce_trailing(display_marks, config.debounceMs)
+        local debounced = require("precognition.utils").debounce_trailing(display_marks, config.debounceMs)
         draw = function(...)
             local line = vim.api.nvim_win_get_cursor(0)[1]
             if line == prev_line then
@@ -520,7 +520,7 @@ local state = {
         local prev_line
         local draw = display_marks
         if config.debounceMs > 0 then
-            local debounced = utils.debounce_trailing(display_marks, config.debounceMs)
+            local debounced = require("precognition.utils").debounce_trailing(display_marks, config.debounceMs)
             draw = function(...)
                 local line = vim.api.nvim_win_get_cursor(0)[1]
                 if line == prev_line then
