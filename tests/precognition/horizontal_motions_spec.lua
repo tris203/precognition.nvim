@@ -324,4 +324,9 @@ describe("edge case", function()
         str = 'b = "^", c = 2 },'
         eq(8, hm.end_of_word(str, 3, #str, false))
     end)
+
+    it("end of words with specials", function()
+        local str = "b t~a"
+        eq(3, hm.end_of_word(str, 1, #str, false))
+    end)
 end)
