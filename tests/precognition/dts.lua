@@ -15,6 +15,10 @@ local M = {}
 function M.test(seed)
     local data = dts.generate_random_line(seed)
 
+    --TODO: Currently bracket matching only works with M cpoptions
+    --see  `:h %`
+    vim.o.cpoptions = vim.o.cpoptions .. "M"
+
     local cur_line = data.line
     local cursorcol = data.cursor_col
     local line_len = vim.fn.strcharlen(cur_line)
