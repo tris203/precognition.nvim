@@ -2,7 +2,7 @@ TESTS_INIT=tests/minimal.lua
 TESTS_DIR=tests/
 DTS_SCRIPT=tests/precognition/dts.lua
 SEED_START=0
-NUM_TESTS=100000
+NUM_TESTS=1000000
 
 .PHONY: test
 
