@@ -54,12 +54,10 @@ function M.test(seed)
                     )
                 )
                 vim.print(vim.inspect(virtual_line_marks))
+                require("precognition.sim").stop()
                 os.exit(1)
             end
         end
-    end
-    if seed % 10000 == 0 then
-        vim.print(string.format("[SEED: %d]", seed))
     end
     vim.api.nvim_buf_delete(temp_buf, { force = true })
 end
@@ -72,8 +70,18 @@ if (not num_sims or type(num_sims) ~= "number") or (not seed_start or type(seed_
 else
     local seed = seed_start
     local seed_end = seed_start + num_sims
+    local start_time = vim.uv.hrtime()
     while seed <= seed_end do
         M.test(seed)
+        if seed % 10000 == 0 then
+            vim.print(string.format("[SEED: %d]", seed))
+            local cur_time = vim.uv.hrtime()
+            local elapsed_seconds = (cur_time - start_time) / 1e9
+            local completed = seed - seed_start
+            local rate = completed / elapsed_seconds
+            local remaining = num_sims - completed
+            vim.print(string.format("%d sims remaing (est %d seconds)", remaining, remaining / rate))
+        end
         seed = seed + 1
     end
 end
