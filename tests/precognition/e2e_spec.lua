@@ -63,7 +63,7 @@ describe("e2e tests", function()
         end
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b   e w                  $", extmarks[3].virt_lines[1][1][1])
+        eq("b%  e w                  $", extmarks[3].virt_lines[1][1][1])
         eq("PrecognitionHighlight", extmarks[3].virt_lines[1][1][2])
         eq({ link = "Comment" }, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
 
@@ -75,7 +75,7 @@ describe("e2e tests", function()
         })
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
+        eq("b     %   e w            $", extmarks[3].virt_lines[1][1][1])
 
         vim.api.nvim_win_set_cursor(0, { 2, 1 })
         precognition.on_cursor_moved()
@@ -101,7 +101,7 @@ describe("e2e tests", function()
         end
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b  e w", extmarks[3].virt_lines[1][1][1])
+        eq("b% e w", extmarks[3].virt_lines[1][1][1])
 
         vim.api.nvim_win_set_cursor(0, { 4, 1 })
         precognition.on_cursor_moved()
@@ -166,7 +166,7 @@ describe("e2e tests", function()
         end
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b   e w                  $", extmarks[3].virt_lines[1][1][1])
+        eq("b%  e w                  $", extmarks[3].virt_lines[1][1][1])
         eq("PrecognitionHighlight", extmarks[3].virt_lines[1][1][2])
         eq({ link = "Function" }, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
     end)
@@ -219,7 +219,7 @@ describe("e2e tests", function()
         end
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b   e w                  $", extmarks[3].virt_lines[1][1][1])
+        eq("b%  e w                  $", extmarks[3].virt_lines[1][1][1])
         eq("PrecognitionHighlight", extmarks[3].virt_lines[1][1][2])
         eq(customMark, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
     end)

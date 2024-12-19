@@ -1,5 +1,4 @@
 local precognition = require("precognition")
-local hm = require("precognition.horizontal_motions")
 local utils = require("precognition.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
@@ -79,12 +78,14 @@ describe("Build Virtual Line", function()
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
+        local sim = require("precognition.sim").check(cur_line, cursorcol)
+
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+            w = sim["w"],
+            e = sim["e"],
+            b = sim["b"],
+            Caret = sim["Caret"],
+            Dollar = sim["Dollar"],
         }, line_len, {})
 
         eq("b    e w                     $", virt_line[1][1])
@@ -98,12 +99,14 @@ describe("Build Virtual Line", function()
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
+        local sim = require("precognition.sim").check(cur_line, cursorcol)
+
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+            w = sim["w"],
+            e = sim["e"],
+            b = sim["b"],
+            Caret = sim["Caret"],
+            Dollar = sim["Dollar"],
         }, line_len, {})
 
         eq("    ^ e w $", virt_line[1][1])
@@ -118,12 +121,14 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
         local extra_padding = { { start = 4, length = 4 } }
 
+        local sim = require("precognition.sim").check(cur_line, cursorcol)
+
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+            w = sim["w"],
+            e = sim["e"],
+            b = sim["b"],
+            Caret = sim["Caret"],
+            Dollar = sim["Dollar"],
         }, line_len, extra_padding)
 
         local total_added = 0
@@ -143,12 +148,14 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
         local extra_padding = { { start = 4, length = 4 }, { start = 10, length = 5 } }
 
+        local sim = require("precognition.sim").check(cur_line, cursorcol)
+
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+            w = sim["w"],
+            e = sim["e"],
+            b = sim["b"],
+            Caret = sim["Caret"],
+            Dollar = sim["Dollar"],
         }, line_len, extra_padding)
 
         local total_added = 0
@@ -170,12 +177,14 @@ describe("Build Virtual Line", function()
 
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
+        local sim = require("precognition.sim").check(cur_line, cursorcol)
+
         local virt_line = precognition.build_virt_line({
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
+            w = sim["w"],
+            e = sim["e"],
+            b = sim["b"],
+            Caret = sim["Caret"],
+            Dollar = sim["Dollar"],
         }, line_len, extra_padding)
 
         eq("^                  b  e", virt_line[1][1])
