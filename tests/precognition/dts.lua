@@ -1,5 +1,4 @@
 local precognition = require("precognition")
-local hm = require("precognition.horizontal_motions")
 local dts = require("tests.precognition.utils.dts")
 
 local USAGE = [[
@@ -15,27 +14,17 @@ local M = {}
 function M.test(seed)
     local data = dts.generate_random_line(seed)
 
-    --TODO: Currently bracket matching only works with M cpoptions
-    --see  `:h %`
-    vim.o.cpoptions = vim.o.cpoptions .. "M"
-
     local cur_line = data.line
     local cursorcol = data.cursor_col
-    local line_len = vim.fn.strcharlen(cur_line)
 
-    local virtual_line_marks = {
-        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
-        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
-        -- TODO: fix some edge cases around pairs and we can enable this
-        -- MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        Dollar = hm.line_end(cur_line, cursorcol, line_len),
-        Zero = 1,
-    }
+    ---@type Precognition.VirtLine
+    local virtual_line_marks = require("precognition.sim").check(cur_line, cursorcol)
+    ---return 0 for any hint that is not found in the simmed table
+    setmetatable(virtual_line_marks, {
+        __index = function()
+            return 0
+        end,
+    })
 
     local temp_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
