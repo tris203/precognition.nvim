@@ -3,71 +3,75 @@ local hm = require("precognition.horizontal_motions")
 local dts = require("tests.precognition.utils.dts")
 
 local USAGE = [[
-Generates lua-ls annotations for lsp.
+Runs dts testing for precognition marks
 
 USAGE:
-nvim -u tests/minimal.lua -l tests/precognition/dts.lua SEED_START
+nvim -u tests/minimal.lua -l tests/precognition/dts.lua SEED_START NUM_SIMS
+
 ]]
 
 local M = {}
 
 function M.test(seed)
-    while true do
-        local data = dts.generate_random_line(seed)
+    local data = dts.generate_random_line(seed)
 
-        local cur_line = data.line
-        local cursorcol = data.cursor_col
-        local line_len = vim.fn.strcharlen(cur_line)
+    local cur_line = data.line
+    local cursorcol = data.cursor_col
+    local line_len = vim.fn.strcharlen(cur_line)
 
-        local virtual_line_marks = {
-            Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-            b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
-            -- E = hm.end_of_word(cur_line, cursorcol, line_len, true),
-            B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
-            -- MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-            Dollar = hm.line_end(cur_line, cursorcol, line_len),
-            Zero = 1,
-        }
+    local virtual_line_marks = {
+        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
+        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
+        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
+        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
+        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
+        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
+        -- MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
+        Dollar = hm.line_end(cur_line, cursorcol, line_len),
+        Zero = 1,
+    }
 
-        local temp_buf = vim.api.nvim_create_buf(false, true)
-        vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
+    local temp_buf = vim.api.nvim_create_buf(false, true)
+    vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
 
-        for loc, col in pairs(virtual_line_marks) do
-            local key = precognition.default_hint_config[loc].text
-            vim.api.nvim_set_current_buf(temp_buf)
-            vim.api.nvim_win_set_cursor(0, { 1, cursorcol - 1 })
-            vim.api.nvim_feedkeys(key, "ntx", true)
-            local cur = vim.api.nvim_win_get_cursor(0)
-            -- eq(cursorcol, 1)
-            if col ~= 0 then
-                if col ~= cur[2] + 1 then
-                    vim.print(string.format("[SEED: %d]%s", seed, cur_line))
-                    vim.print(
-                        string.format(
-                            "with cursor at %s, motion %s, expected %s, got %s",
-                            cursorcol,
-                            key,
-                            col,
-                            cur[2] + 1
-                        )
-                    )
-                end
+    for loc, col in pairs(virtual_line_marks) do
+        local key = precognition.default_hint_config[loc].text
+        vim.api.nvim_set_current_buf(temp_buf)
+        -- vim.api.nvim_win_set_cursor(0, { 1, cursorcol - 1 })
+        vim.fn.setcursorcharpos(1, cursorcol)
+        vim.api.nvim_feedkeys(key, "ntx", true)
+        local cur = vim.fn.getcursorcharpos(0)
+        local actual_col = cur[3]
+        -- eq(cursorcol, 1)
+        if col ~= 0 then
+            if col ~= actual_col then
+                vim.print(string.format("[SEED: %d]%s", seed, cur_line))
+                vim.print(
+                    string.format("with cursor at %s, motion %s, expected %s, got %s", cursorcol, key, col, actual_col)
+                )
+                os.exit(1)
             end
         end
-        -- vim.print(string.format("seed: %s, done", seed))
-        seed = seed + 1
     end
+    if seed % 10000 == 0 then
+        vim.print(string.format("[SEED: %d]", seed))
+    end
+    vim.api.nvim_buf_delete(temp_buf, { force = true })
 end
 
-local seed = tonumber(_G.arg[1])
+local seed_start = tonumber(_G.arg[1])
+local num_sims = tonumber(_G.arg[2])
 
-if not seed or type(seed) ~= "number" then
+if (not num_sims or type(num_sims) ~= "number") or (not seed_start or type(seed_start) ~= "number") then
     print(USAGE)
 else
-    M.test(seed)
+    local seed = seed_start
+    local seed_end = seed_start + num_sims
+    while seed <= seed_end do
+        M.test(seed)
+        seed = seed + 1
+    end
 end
 
 return M

@@ -40,7 +40,7 @@ function M.generate_random_line(seed)
     end
 
     -- Choose a random cursor position within the line
-    local cursor_col = math.random(1, vim.fn.strdisplaywidth(line)) -- Ensure valid cursor position
+    local cursor_col = math.random(1, vim.fn.strcharlen(line)) -- Ensure valid cursor position
     ---@type dts.Random
     return {
         cursor_col = cursor_col,
