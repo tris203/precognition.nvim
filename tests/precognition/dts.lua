@@ -26,6 +26,8 @@ function M.test(seed)
         end,
     })
 
+    virtual_line_marks.MatchingPair = nil
+
     local temp_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
 
@@ -34,7 +36,7 @@ function M.test(seed)
         vim.api.nvim_set_current_buf(temp_buf)
         vim.fn.setcursorcharpos(1, cursorcol)
         local cur_before = vim.fn.getcursorcharpos(0)
-        vim.api.nvim_feedkeys(key, "ntx", true)
+        vim.api.nvim_feedkeys(key, "x", true)
         local cur_after = vim.fn.getcursorcharpos(0)
         local actual_col = cur_after[3]
         if col ~= 0 then
