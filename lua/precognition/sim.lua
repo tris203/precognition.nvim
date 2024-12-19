@@ -2,6 +2,26 @@ local mt = require("mini.test")
 
 local M = {}
 
+local remote_instance = nil
+
+-- Metatable for remote instance
+local remote_mt = {
+    __gc = function(self)
+        if self.instance then
+            self.instance.stop()
+        end
+    end,
+}
+
+local function get_remote()
+    if not remote_instance then
+        local remote = mt.new_child_neovim()
+        remote.start()
+        remote_instance = setmetatable({ instance = remote }, remote_mt)
+    end
+    return remote_instance.instance
+end
+
 local function check_pos(string, col, default_config)
     local result = {}
     local locations = vim.tbl_keys(default_config)
@@ -26,12 +46,8 @@ local function check_pos(string, col, default_config)
 end
 
 M.check = function(line, col)
-    local remote = mt.new_child_neovim()
-    remote.start()
-
-    local remote_data = remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
-    remote.stop()
-    return remote_data
+    local remote = get_remote()
+    return remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
 end
 
 return M
