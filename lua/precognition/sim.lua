@@ -48,6 +48,13 @@ local function check_pos(string, col, default_config)
     return result
 end
 
+M.stop = function()
+    if remote_instance and remote_instance.instance then
+        remote_instance.instance.stop()
+        remote_instance.instance = nil
+    end
+end
+
 M.check = function(line, col)
     local remote = get_remote()
     local result = remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
