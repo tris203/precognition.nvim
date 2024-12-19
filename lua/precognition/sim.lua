@@ -31,11 +31,14 @@ local function check_pos(string, col, default_config)
     for _, motion_name in ipairs(locations) do
         local motion_key = default_config[motion_name].text
         vim.fn.setcursorcharpos(2, col)
+        local start_col = vim.fn.getcursorcharpos(0)[3]
         vim.api.nvim_feedkeys(motion_key, "x", true)
         local cur_pos = vim.fn.getcursorcharpos(0)
         if cur_pos[2] == 2 then
-            if motion_name == "MatchingPair" and cur_pos[3] ~= col then
-                result[motion_name] = cur_pos[3]
+            if motion_name == "MatchingPair" then
+                if cur_pos[3] ~= start_col then
+                    result[motion_name] = cur_pos[3]
+                end
             else
                 result[motion_name] = cur_pos[3]
             end
@@ -47,7 +50,8 @@ end
 
 M.check = function(line, col)
     local remote = get_remote()
-    return remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
+    local result = remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
+    return result
 end
 
 return M

@@ -134,7 +134,7 @@ describe("lsp based tests", function()
             details = true,
         })
 
-        eq("b% e w         $", extmarks[3].virt_lines[1][1][1])
+        eq("b  e w         $", extmarks[3].virt_lines[1][1][1])
 
         vim.lsp.inlay_hint.enable(true, { bufnr = buf })
         -- NOTE:The test LSP replies with an inlay hint, that suggest "foo" as line 1, position 4
@@ -146,7 +146,7 @@ describe("lsp based tests", function()
             details = true,
         })
 
-        eq("b%     e w         $", extmarks[3].virt_lines[1][1][1])
+        eq("b      e w         $", extmarks[3].virt_lines[1][1][1])
     end)
 
     after_each(function()
