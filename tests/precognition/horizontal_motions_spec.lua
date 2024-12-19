@@ -317,11 +317,27 @@ describe("edge case", function()
         eq(3, hm.prev_word_boundary(str, 5, len, false))
     end)
 
+    it("multibyte end_of_word", function()
+        local str = "# 💭👀precognition.nvim"
+        local len = vim.fn.strcharlen(str)
+        eq(4, hm.end_of_word(str, 1, len, false))
+        eq(16, hm.end_of_word(str, 4, len, false))
+
+        str = "🌞7😘aa"
+        len = vim.fn.strcharlen(str)
+        eq(3, hm.end_of_word(str, 2, len, false))
+    end)
+
     it("quoted strings", function()
         local str = 'this = "that"'
         eq(8, hm.end_of_word(str, 6, #str, false))
 
         str = 'b = "^", c = 2 },'
         eq(8, hm.end_of_word(str, 3, #str, false))
+    end)
+
+    it("end of words with specials", function()
+        local str = "b t~a"
+        eq(3, hm.end_of_word(str, 1, #str, false))
     end)
 end)

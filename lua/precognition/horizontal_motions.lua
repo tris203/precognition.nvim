@@ -70,8 +70,9 @@ end
 ---@param cursorcol integer
 ---@param linelen integer
 ---@param big_word boolean
+---@param recursive boolean?
 ---@return Precognition.PlaceLoc
-function M.end_of_word(str, cursorcol, linelen, big_word)
+function M.end_of_word(str, cursorcol, linelen, big_word, recursive)
     if cursorcol >= linelen then
         return 0
     end
@@ -83,15 +84,18 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
     local c_class = utils.char_class(char, big_word)
     local next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1), big_word)
     local rev_offset
-
-    if
-        (c_class == cc.punctuation and next_char_class ~= cc.punctuation)
-        or (next_char_class == cc.punctuation and c_class ~= cc.punctuation)
-    then
-        offset = offset + 1
-        char = vim.fn.strcharpart(str, offset - 1, 1)
-        c_class = utils.char_class(char, big_word)
-        next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1), big_word)
+    if not recursive then
+        if
+            (c_class == cc.punctuation and next_char_class ~= cc.punctuation)
+            or (next_char_class == cc.punctuation and c_class ~= cc.punctuation)
+            or (c_class == cc.emoji and next_char_class ~= cc.emoji)
+            or (next_char_class == cc.emoji and c_class ~= cc.emoji)
+        then
+            offset = offset + 1
+            char = vim.fn.strcharpart(str, offset - 1, 1)
+            c_class = utils.char_class(char, big_word)
+            next_char_class = utils.char_class(vim.fn.strcharpart(str, (offset - 1) + 1, 1), big_word)
+        end
     end
 
     if c_class ~= cc.whitespace and next_char_class ~= cc.whitespace then
@@ -113,7 +117,7 @@ function M.end_of_word(str, cursorcol, linelen, big_word)
                 --next word starts with punctuation
                 rev_offset = next_word_start
             else
-                rev_offset = M.end_of_word(str, next_word_start, linelen, big_word)
+                rev_offset = M.end_of_word(str, next_word_start, linelen, big_word, true)
             end
         end
     end
