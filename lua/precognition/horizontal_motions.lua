@@ -1,10 +1,23 @@
 local M = {}
 
+local pairs = vim.split(vim.o.matchpairs, ",")
+
+-- local match_bracket_escape = not vim.o.cpoptions:find("M")
+
 local supportedBrackets = {
-    open = { "(", "[", "{" },
-    middle = { nil, nil, nil },
-    close = { ")", "]", "}" },
+    open = {},
+    middle = {},
+    close = {},
 }
+
+for _, pair in ipairs(pairs) do
+    local open, close = pair:match("(.):(.)")
+    if open and close then
+        table.insert(supportedBrackets.open, open)
+        table.insert(supportedBrackets.middle, nil)
+        table.insert(supportedBrackets.close, close)
+    end
+end
 
 ---@param str string
 ---@param _cursorcol integer
@@ -260,7 +273,7 @@ function M.matching_comment(str, cursorcol, linelen)
             next_char = vim.fn.strcharpart(str, offset, 1)
             if char == "*" and next_char == "/" then
                 -- return the slash of the closing comment
-                return offset + 1
+                return offset
             end
             offset = offset + 1
         end
