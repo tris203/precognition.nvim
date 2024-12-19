@@ -490,6 +490,9 @@ local state = {
     ns = function()
         return ns
     end,
+    default_hint_config = function()
+        return defaultHintConfig
+    end,
     is_visible = function()
         return visible
     end,

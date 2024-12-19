@@ -1,0 +1,27 @@
+name: DTS
+
+on:
+  pull_request:
+    branches:
+      - "main"
+
+jobs:
+  test:
+    runs-on: ${{ matrix.os }}
+    strategy:
+      matrix:
+        nvim-versions: ['nightly']
+        os: [ubuntu-latest]
+      fail-fast: false
+    name: DTS Tests
+    steps:
+      - name: checkout
+        uses: actions/checkout@v4
+
+      - uses: rhysd/action-setup-vim@v1
+        with:
+          neovim: true
+          version: ${{ matrix.nvim-versions }}
+
+      - name: run dts
+        run: make dts
