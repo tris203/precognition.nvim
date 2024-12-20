@@ -59,6 +59,7 @@ end
 
 M.check = function(line, col)
     local remote = get_remote()
+    remote.o.cpoptions = vim.o.cpoptions
     local result = remote.lua_func(check_pos, line, col, require("precognition").default_hint_config)
     return result
 end

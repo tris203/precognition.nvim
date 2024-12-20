@@ -16,6 +16,5 @@ test:
 dts:
 	@nvim \
 		--headless \
-		--noplugin \
 		-u ${TESTS_INIT} \
 		-l ${DTS_SCRIPT} ${SEED_START} ${NUM_TESTS} \

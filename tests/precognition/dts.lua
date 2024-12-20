@@ -26,8 +26,6 @@ function M.test(seed)
         end,
     })
 
-    virtual_line_marks.MatchingPair = nil
-
     local temp_buf = vim.api.nvim_create_buf(false, true)
     vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
 
