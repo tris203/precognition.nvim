@@ -13,11 +13,15 @@ local remote_mt = {
     end,
 }
 
+local function set_opts(cpooptions)
+    vim.o.cpoptions = cpooptions
+end
+
 local function get_remote()
     if not remote_instance then
         local remote = mt.new_child_neovim()
         remote.start()
-        remote.o.cpoptions = vim.o.cpoptions
+        remote.lua_func(set_opts, vim.o.cpoptions)
         remote_instance = setmetatable({ instance = remote }, remote_mt)
     end
     return remote_instance.instance
