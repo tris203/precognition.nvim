@@ -45,6 +45,8 @@ local function check_pos(string, col, default_config)
         end
     end
 
+    vim.api.nvim_buf_delete(buf, { force = true })
+
     return result
 end
 
