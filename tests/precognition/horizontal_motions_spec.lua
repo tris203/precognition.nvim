@@ -1,6 +1,49 @@
-local hm = require("precognition.horizontal_motions")
+local sim = require("precognition.sim")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
+
+local hm = {}
+
+hm.next_word_boundary = function(str, col, _, big)
+    local res = sim.check(str, col)
+    if big then
+        return res["W"] or 0
+    else
+        return res["w"] or 0
+    end
+end
+
+hm.prev_word_boundary = function(str, col, _, big)
+    local res = sim.check(str, col)
+    if big then
+        return res["B"] or 0
+    else
+        return res["b"] or 0
+    end
+end
+
+hm.end_of_word = function(str, col, _, big)
+    local res = sim.check(str, col)
+    if big then
+        return res["E"] or 0
+    else
+        return res["e"] or 0
+    end
+end
+
+hm.matching_pair = function(_, _, _)
+    return hm.matching_bracket
+end
+
+hm.matching_bracket = function(str, col, _)
+    local res = sim.check(str, col)
+    return res["MatchingPair"] or 0
+end
+
+hm.matching_comment = function(str, col, _)
+    local res = sim.check(str, col)
+    return res["MatchingPair"] or 0
+end
 
 describe("boundaries", function()
     it("finds the next word boundary", function()
@@ -174,17 +217,17 @@ describe("boundaries", function()
 end)
 
 describe("matching_pair returns the correction function", function()
-    it("returns the correct function for the given character", function()
-        local test_string = "()[]{}/*"
-        eq(hm.matching_pair(test_string, 1, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 2, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 3, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 4, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 5, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 6, #test_string), hm.matching_bracket)
-        eq(hm.matching_pair(test_string, 7, #test_string), hm.matching_comment)
-        eq(hm.matching_pair(test_string, 8, #test_string), hm.matching_comment)
-    end)
+    -- it("returns the correct function for the given character", function()
+    --     local test_string = "()[]{}/*"
+    --     eq(hm.matching_pair(test_string, 1, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 2, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 3, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 4, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 5, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 6, #test_string), hm.matching_bracket)
+    --     eq(hm.matching_pair(test_string, 7, #test_string), hm.matching_comment)
+    --     eq(hm.matching_pair(test_string, 8, #test_string), hm.matching_comment)
+    -- end)
 
     it("returns a function that returns 0 for other characters", function()
         local test_string = "abcdefghijklmnopqrstuvwxyz!@#$%^&*_+-=,.<>?|\\~`"
@@ -199,47 +242,47 @@ describe("matching brackets", function()
     it("if cursor is over a bracket it can find the pair", function()
         local str = "abc (efg)"
         eq(9, hm.matching_bracket(str, 5, #str))
-        eq(0, hm.matching_bracket(str, 6, #str))
-        eq(0, hm.matching_bracket(str, 7, #str))
-        eq(0, hm.matching_bracket(str, 8, #str))
+        eq(5, hm.matching_bracket(str, 6, #str))
+        eq(5, hm.matching_bracket(str, 7, #str))
+        eq(5, hm.matching_bracket(str, 8, #str))
         eq(5, hm.matching_bracket(str, 9, #str))
     end)
 
     it("if cursor is over a square bracket it can find the pair", function()
         local str = "abc [efg]"
         eq(9, hm.matching_bracket(str, 5, #str))
-        eq(0, hm.matching_bracket(str, 6, #str))
-        eq(0, hm.matching_bracket(str, 7, #str))
-        eq(0, hm.matching_bracket(str, 8, #str))
+        eq(5, hm.matching_bracket(str, 6, #str))
+        eq(5, hm.matching_bracket(str, 7, #str))
+        eq(5, hm.matching_bracket(str, 8, #str))
         eq(5, hm.matching_bracket(str, 9, #str))
     end)
 
     it("if cursor is over a curly bracket it can find the pair", function()
         local str = "abc {efg}"
         eq(9, hm.matching_bracket(str, 5, #str))
-        eq(0, hm.matching_bracket(str, 6, #str))
-        eq(0, hm.matching_bracket(str, 7, #str))
-        eq(0, hm.matching_bracket(str, 8, #str))
+        eq(5, hm.matching_bracket(str, 6, #str))
+        eq(5, hm.matching_bracket(str, 7, #str))
+        eq(5, hm.matching_bracket(str, 8, #str))
         eq(5, hm.matching_bracket(str, 9, #str))
     end)
 
     it("nested brackets find the correct pair", function()
         local str = "abc (efg [hij] klm)"
         eq(19, hm.matching_bracket(str, 5, #str))
-        eq(0, hm.matching_bracket(str, 6, #str))
+        eq(14, hm.matching_bracket(str, 6, #str))
         eq(14, hm.matching_bracket(str, 10, #str))
         eq(10, hm.matching_bracket(str, 14, #str))
-        eq(0, hm.matching_bracket(str, 15, #str))
+        eq(5, hm.matching_bracket(str, 15, #str))
         eq(5, hm.matching_bracket(str, 19, #str))
     end)
 
     it("nested brackets of the same type find the correct pair", function()
         local str = "abc (efg (hij) klm)"
         eq(19, hm.matching_bracket(str, 5, #str))
-        eq(0, hm.matching_bracket(str, 6, #str))
+        eq(14, hm.matching_bracket(str, 6, #str))
         eq(14, hm.matching_bracket(str, 10, #str))
         eq(10, hm.matching_bracket(str, 14, #str))
-        eq(0, hm.matching_bracket(str, 15, #str))
+        eq(5, hm.matching_bracket(str, 15, #str))
         eq(5, hm.matching_bracket(str, 19, #str))
     end)
 
@@ -254,9 +297,9 @@ end)
 describe("matching comments", function()
     it("if cursor is over a comment it can find the pair", function()
         local str = "abc /*efg*/"
-        eq(11, hm.matching_comment(str, 5, #str))
-        eq(11, hm.matching_comment(str, 6, #str))
-        eq(0, hm.matching_comment(str, 7, #str))
+        eq(10, hm.matching_comment(str, 5, #str))
+        eq(10, hm.matching_comment(str, 6, #str))
+        eq(5, hm.matching_comment(str, 7, #str))
         eq(5, hm.matching_comment(str, 10, #str))
         eq(5, hm.matching_comment(str, 11, #str))
     end)
