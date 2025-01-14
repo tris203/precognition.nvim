@@ -1,5 +1,21 @@
 # Changelog
 
+## [1.2.0](https://github.com/tris203/precognition.nvim/compare/v1.1.0...v1.2.0) (2025-01-14)
+
+
+### Features
+
+* add function to get visible state ([#92](https://github.com/tris203/precognition.nvim/issues/92)) ([0189e8d](https://github.com/tris203/precognition.nvim/commit/0189e8d6f96275a079b2805d68d49414871885cd))
+* **tests:** dts testing ([32d653e](https://github.com/tris203/precognition.nvim/commit/32d653e08ce1f64da33397e1b5245d570fbfaef8))
+* **utils:** enhance inlay hint spacing calculation ([#95](https://github.com/tris203/precognition.nvim/issues/95)) ([531971e](https://github.com/tris203/precognition.nvim/commit/531971e6d883e99b1572bf47294e22988d8fbec0))
+
+
+### Bug Fixes
+
+* **horizontal_motions:** edge cases around end words ([24f2cc5](https://github.com/tris203/precognition.nvim/commit/24f2cc51dccecec4cf3de04bfbd14f5b9e79df0b))
+* **horizontal_motions:** fix matching pairs edge cases ([35a76ac](https://github.com/tris203/precognition.nvim/commit/35a76ac5b8b020704cb399980e4bcc910f676e93))
+* preserve PrecognitionHighlight through colorscheme changes ([#90](https://github.com/tris203/precognition.nvim/issues/90)) ([19d9706](https://github.com/tris203/precognition.nvim/commit/19d970623b752448abe023bb6684a76141ca200a))
+
 ## [1.1.0](https://github.com/tris203/precognition.nvim/compare/v1.0.0...v1.1.0) (2024-10-12)
 
 
