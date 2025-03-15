@@ -248,7 +248,8 @@ local function display_marks()
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
 
-    local hm = require("precognition.horizontal_motions")
+    local hm_integration = require("precognition.integrations").get_hm_integration()
+    local hm = hm_integration or require("precognition.horizontal_motions")
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
