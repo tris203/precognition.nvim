@@ -1,5 +1,5 @@
 local precognition = require("precognition")
-local hm = require("precognition.horizontal_motions")
+local hm = require("precognition.motions").horizontal_motions
 local dts = require("tests.precognition.utils.dts")
 
 local USAGE = [[

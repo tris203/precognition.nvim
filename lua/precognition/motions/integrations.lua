@@ -1,4 +1,4 @@
-local default_hm = require("precognition.horizontal_motions")
+local default_hm = require("precognition.motions").horizontal_motions
 
 --- This module contains functions for integrating with other plugins.
 --- Other plugins can use these to inform Precognition about their
