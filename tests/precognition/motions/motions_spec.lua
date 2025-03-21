@@ -15,6 +15,12 @@ describe("motions", function()
             end_of_word = function() end,
             prev_word_boundary = function() end,
             matching_pair = function() end,
+            matching_comment = function() end,
+            matching_bracket = function() end,
+            file_start = function() end,
+            file_end = function() end,
+            next_paragraph_line = function() end,
+            prev_paragraph_line = function() end,
         }
         motions.register_motions(test_adapter)
 

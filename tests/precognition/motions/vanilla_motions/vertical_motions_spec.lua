@@ -1,4 +1,4 @@
-local vm = require("precognition.motions").vertical_motions
+local vm = require("precognition.motions.vanilla_motions.vertical_motions")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
 

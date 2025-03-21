@@ -164,13 +164,13 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
-    local vm = require("precognition.motions").vertical_motions
+    local m = require("precognition.motions").get_motions()
     ---@type Precognition.GutterHints
     local gutter_hints = {
-        G = vm.file_end(),
-        gg = vm.file_start(),
-        PrevParagraph = vm.prev_paragraph_line(),
-        NextParagraph = vm.next_paragraph_line(),
+        G = m.file_end(),
+        gg = m.file_start(),
+        PrevParagraph = m.prev_paragraph_line(),
+        NextParagraph = m.next_paragraph_line(),
     }
     return gutter_hints
 end
@@ -248,22 +248,22 @@ local function display_marks()
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
 
-    local hm = hm_integration or require("precognition.motions").horizontal_motions
+    local m = require("precognition.motions").get_motions()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
     --
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
-        Caret = hm.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = hm.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = hm.end_of_word(cur_line, cursorcol, line_len, false),
-        b = hm.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = hm.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = hm.end_of_word(cur_line, cursorcol, line_len, true),
-        B = hm.prev_word_boundary(cur_line, cursorcol, line_len, true),
-        MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        Dollar = hm.line_end(cur_line, cursorcol, line_len),
+        Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
+        e = m.end_of_word(cur_line, cursorcol, line_len, false),
+        b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
+        W = m.next_word_boundary(cur_line, cursorcol, line_len, true),
+        E = m.end_of_word(cur_line, cursorcol, line_len, true),
+        B = m.prev_word_boundary(cur_line, cursorcol, line_len, true),
+        MatchingPair = m.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
+        Dollar = m.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
     }
 
