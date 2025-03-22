@@ -1,3 +1,4 @@
+---@type Precognition.MotionsAdapter
 local M = {}
 
 ---@return Precognition.PlaceLoc

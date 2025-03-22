@@ -1,0 +1,97 @@
+--- @diagnostic disable:missing-return, unused-local
+
+---@alias Precognition.BigWord boolean referring to the motion scope, usually whether is
+---within (W, E, B) motions or (w, e, b) motions
+
+---@alias Precognition.MotionFunction fun(line_content: string, cursorcol: integer,
+---linelen: integer): Precognition.PlaceLoc
+---
+---@alias Precognition.MotionFunctionWithBigWord fun(line_content: string, cursorcol: integer, linelen: integer,
+---big_word: Precognition.BigWord): Precognition.PlaceLoc
+---
+---@alias Precognition.EndOfWordMotionFunction fun(line_content: string, cursorcol: integer, linelen: integer,
+---big_word: Precognition.BigWord, recursive?: boolean): Precognition.PlaceLoc
+---
+---@alias Precognition.MatchingPairMotionFunction fun(line_content: string, cursorcol: integer,
+---linelen: integer): fun(): Precognition.PlaceLoc
+
+--- This interface defines the contract for implementing custom motion logic
+--- in Precognition. Plugin developers can implement any subset of these
+--- functions to customize motion behavior.
+---
+--- In order to integrate with Precognition, plugin developers should create
+--- a `Precognition.MotionsAdapter` table implementing the desired motion functions
+--- calling `require("precognition.motions").register_motions(adapter)`.
+---
+--- The functions that are not implemented will fallback to the default vanilla motions.
+---
+--- Example:
+---     ```lua
+---     local vanilla_motions = require("precognition.motions").get_motions()
+---
+---     require("precognition.motions").register_motions({
+---      next_word_boundary = function(line_content, cursorcol, linelen, big_word)
+---         -- using the plugin custom implementation for the "W" motion
+---         if (big_word) then
+---             return plugin_custom_motion_logic(line_content, cursorcol, linelen, big_word)
+---
+---         -- calling the default for the "w" motion
+---         -- useful the cases in which the plugin does not implement custom motions
+---         else
+---             return vanilla_motions.next_word_boundary(line_content, cursorcol, linelen, big_word)
+---         end
+---      end
+---     })
+---
+---     ```
+---
+---@class Precognition.MotionsAdapter
+---
+--- Returns the location of the first non-whitespace character in the line.
+---@field line_start_non_whitespace? Precognition.MotionFunction
+---
+--- Returns the location of the end of the current line.
+---@field line_end? Precognition.MotionFunction
+---
+--- Returns the location of the end of the current line.
+---@field next_word_boundary? Precognition.MotionFunctionWithBigWord
+---
+--- Returns the location at the end of the current word, considering recursion if needed.
+---@field end_of_word? Precognition.EndOfWordMotionFunction
+---
+--- Returns the location of the previous word boundary before the cursor.
+---@field prev_word_boundary? Precognition.MotionFunctionWithBigWord
+---
+--- Returns the location of the comment block matching the one under the cursor.
+---@field matching_comment? Precognition.MotionFunction
+---
+--- Returns the location of the bracket matching the one under the cursor.
+---@field matching_bracket? Precognition.MotionFunction
+---
+--- Returns a motion function depending on the character under the cursor:
+--- it returns `matching_comment` or `matching_bracket` based on the character.
+---@field matching_pair? Precognition.MatchingPairMotionFunction
+---
+--- Returns the location corresponding to the start of the file.
+---@field file_start? fun(): Precognition.PlaceLoc
+---
+--- Returns the location corresponding to the end of the file.
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field file_end? fun(bufnr?: integer): Precognition.PlaceLoc
+---
+--- Finds the start line of the next paragraph visible from the current cursor position.
+--- A paragraph is defined as a block of non-empty lines separated by at least one empty line.
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field next_paragraph_line? fun(bufnr?: integer): Precognition.PlaceLoc
+---
+--- Finds the start line of the previous paragraph visible from the current cursor position.
+--- A paragraph is defined as a block of non-empty lines separated by at least one empty line.
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field prev_paragraph_line? fun(bufnr?: integer): Precognition.PlaceLoc
+---
+local M = {}
+
+return M
