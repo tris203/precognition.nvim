@@ -1,5 +1,5 @@
 local precognition = require("precognition")
-local m = require("precognition.motions").get_motions()
+local motions = require("precognition.motions").get_motions()
 local dts = require("tests.precognition.utils.dts")
 
 local USAGE = [[
@@ -24,16 +24,16 @@ function M.test(seed)
     local line_len = vim.fn.strcharlen(cur_line)
 
     local virtual_line_marks = {
-        Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = m.end_of_word(cur_line, cursorcol, line_len, false),
-        b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = m.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = m.end_of_word(cur_line, cursorcol, line_len, true),
-        B = m.prev_word_boundary(cur_line, cursorcol, line_len, true),
+        Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+        w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+        e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+        b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+        W = motions.next_word_boundary(cur_line, cursorcol, line_len, true),
+        E = motions.end_of_word(cur_line, cursorcol, line_len, true),
+        B = motions.prev_word_boundary(cur_line, cursorcol, line_len, true),
         -- TODO: fix some edge cases around pairs and we can enable this
         -- MatchingPair = hm.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        Dollar = m.line_end(cur_line, cursorcol, line_len),
+        Dollar = motions.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
     }
 

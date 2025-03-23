@@ -1,5 +1,5 @@
 local precognition = require("precognition")
-local m = require("precognition.motions").get_motions()
+local motions = require("precognition.motions").get_motions()
 local utils = require("precognition.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
@@ -80,11 +80,11 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = m.end_of_word(cur_line, cursorcol, line_len, false),
-            b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = m.line_end(cur_line, cursorcol, line_len),
+            w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+            b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = motions.line_end(cur_line, cursorcol, line_len),
         }, line_len, {})
 
         eq("b    e w                     $", virt_line[1][1])
@@ -99,11 +99,11 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
 
         local virt_line = precognition.build_virt_line({
-            w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = m.end_of_word(cur_line, cursorcol, line_len, false),
-            b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = m.line_end(cur_line, cursorcol, line_len),
+            w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+            b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = motions.line_end(cur_line, cursorcol, line_len),
         }, line_len, {})
 
         eq("    ^ e w $", virt_line[1][1])
@@ -119,11 +119,11 @@ describe("Build Virtual Line", function()
         local extra_padding = { { start = 4, length = 4 } }
 
         local virt_line = precognition.build_virt_line({
-            w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = m.end_of_word(cur_line, cursorcol, line_len, false),
-            b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = m.line_end(cur_line, cursorcol, line_len),
+            w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+            b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = motions.line_end(cur_line, cursorcol, line_len),
         }, line_len, extra_padding)
 
         local total_added = 0
@@ -144,11 +144,11 @@ describe("Build Virtual Line", function()
         local extra_padding = { { start = 4, length = 4 }, { start = 10, length = 5 } }
 
         local virt_line = precognition.build_virt_line({
-            w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = m.end_of_word(cur_line, cursorcol, line_len, false),
-            b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = m.line_end(cur_line, cursorcol, line_len),
+            w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+            b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = motions.line_end(cur_line, cursorcol, line_len),
         }, line_len, extra_padding)
 
         local total_added = 0
@@ -171,11 +171,11 @@ describe("Build Virtual Line", function()
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
         local virt_line = precognition.build_virt_line({
-            w = m.next_word_boundary(cur_line, cursorcol, line_len, false),
-            e = m.end_of_word(cur_line, cursorcol, line_len, false),
-            b = m.prev_word_boundary(cur_line, cursorcol, line_len, false),
-            Caret = m.line_start_non_whitespace(cur_line, cursorcol, line_len),
-            Dollar = m.line_end(cur_line, cursorcol, line_len),
+            w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
+            e = motions.end_of_word(cur_line, cursorcol, line_len, false),
+            b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
+            Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
+            Dollar = motions.line_end(cur_line, cursorcol, line_len),
         }, line_len, extra_padding)
 
         eq("^                  b  e", virt_line[1][1])
