@@ -23,6 +23,10 @@
 --- a `Precognition.MotionsAdapter` table implementing the desired motion functions
 --- calling `require("precognition.motions").register_motions(adapter)`.
 ---
+--- Motion functions return `Precognition.PlaceLoc` representing 1-based indexed line
+--- or column location, depending on the function. If no valid location exists,
+--- the value returned is 0.
+---
 --- The functions that are not implemented will fallback to the default vanilla motions.
 ---
 --- Example:
