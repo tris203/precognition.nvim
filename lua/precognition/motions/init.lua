@@ -1,6 +1,3 @@
-local vanilla_horizontal_motions = require("precognition.motions.vanilla_motions.horizontal_motions")
-local vanilla_vertical_motions = require("precognition.motions.vanilla_motions.vertical_motions")
-
 ---@type Precognition.MotionsAdapter
 local VANILLA_MOTIONS_ADAPTER = vim.fn.copy(require("precognition.motions.vanilla_motions"))
 
