@@ -1,5 +1,5 @@
 ---@type Precognition.MotionsAdapter
-local VANILLA_MOTIONS_ADAPTER = vim.fn.copy(require("precognition.motions.vanilla_motions"))
+local VANILLA_MOTIONS_ADAPTER = vim.deepcopy(require("precognition.motions.vanilla_motions"))
 
 --- This module contains the core logic for managing motions in Precognition.
 ---@class Precognition.Motions
