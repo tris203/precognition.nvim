@@ -124,6 +124,8 @@ If you have a suggestion to improve the plugin, please open an issue first, fork
 
 If you have found a bug please open an issue, and submit a pull request with a failing test if possible.
 
+If you’re interested in adding custom motions to Precognition, take a look at [interface.lua](https://github.com/tris203/precognition.nvim/blob/main/lua/precognition/motions/interface.lua) for the available integration points.
+
 More details on how to contribute can be found in CONTRIBUTING.md. Please read this prior to creating a pull request.
 
 Don't forget to give the project a star! Thanks again!

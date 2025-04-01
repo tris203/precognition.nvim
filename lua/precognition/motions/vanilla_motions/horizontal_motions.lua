@@ -1,3 +1,4 @@
+---@type Precognition.MotionsAdapter
 local M = {}
 
 local pairs = vim.split(vim.o.matchpairs, ",")
