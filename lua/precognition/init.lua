@@ -450,10 +450,12 @@ function M.setup(opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end
-
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-
+    local ok, spider_integration = pcall(require, "spider.precognition-integration")
+    if ok then
+        spider_integration.register_adapter()
+    end
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
         desc = "Set precognition.nvim's highlights up",
