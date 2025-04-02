@@ -1,5 +1,5 @@
 local compat = require("precognition.compat")
-local _motions = require("precognition.motions")
+
 local M = {}
 
 ---@class Precognition.HintOpts
@@ -164,7 +164,7 @@ end
 
 ---@return Precognition.GutterHints
 local function build_gutter_hints()
-    local motions = _motions.get_motions()
+    local motions = require("precognition.motions").get_motions()
     ---@type Precognition.GutterHints
     local gutter_hints = {
         G = motions.file_end(),
@@ -248,7 +248,7 @@ local function display_marks()
     -- local before_cursor_rev = string.reverse(before_cursor)
     -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
 
-    local motions = _motions.get_motions()
+    local motions = require("precognition.motions").get_motions()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
@@ -454,7 +454,7 @@ function M.setup(opts)
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     local ok, spider_adapter = pcall(require, "spider.precognition-adapter")
     if ok then
-        _motions.register_motions(spider_adapter)
+        require("precognition.motions").register_motions(spider_adapter)
     end
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
