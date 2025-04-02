@@ -452,9 +452,9 @@ function M.setup(opts)
     end
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-    local ok, spider_adapter = pcall(require, "spider.precognition-adapter")
+    local ok, spider_integration = pcall(require, "spider.precognition-integration")
     if ok then
-        require("precognition.motions").register_motions(spider_adapter)
+        spider_integration.register_adapter()
     end
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
