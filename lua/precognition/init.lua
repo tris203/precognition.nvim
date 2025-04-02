@@ -450,25 +450,12 @@ function M.setup(opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end
-    -- local ok, _spider_adapter = pcall(require, "spider.precognition_adapter")
-    -- local spider_adapter = vim.deepcopy(_spider_adapter)
-    -- if ok then
-    --     _motions.register_motions(spider_adapter)
-    --     vim.api.nvim_echo({
-    --         {
-    --             string.format(
-    --                 "spider adapter: %s\n get_motions: %s,\n vanilla_motions: %s\n",
-    --                 spider_adapter,
-    --                 _motions.get_motions(),
-    --                 require("precognition.motions.vanilla_motions")
-    --             ),
-    --         },
-    --     }, true, { err = false })
-    -- end
-
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-
+    local ok, spider_adapter = pcall(require, "spider.precognition-adapter")
+    if ok then
+        _motions.register_motions(spider_adapter)
+    end
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
         desc = "Set precognition.nvim's highlights up",

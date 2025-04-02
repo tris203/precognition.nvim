@@ -54,11 +54,6 @@ end
 --- Get motions adapter.
 ---@return Precognition.MotionsAdapter
 function M.get_motions()
-    -- vim.api.nvim_echo(
-    --     { { string.format("motions adapter: %s\n", M.motions_adapter == VANILLA_MOTIONS_ADAPTER) } },
-    --     true,
-    --     { err = false }
-    -- )
     return M.motions_adapter
 end
 
