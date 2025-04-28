@@ -37,7 +37,6 @@ local M = {}
 ---@field highlightColor? vim.api.keyset.highlight
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
-
 ---@class (exact) Precognition.VirtLine
 ---@field w Precognition.PlaceLoc
 ---@field e Precognition.PlaceLoc
@@ -452,10 +451,6 @@ function M.setup(opts)
     end
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-    local ok, spider_integration = pcall(require, "spider.precognition-integration")
-    if ok then
-        spider_integration.register_adapter()
-    end
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
         desc = "Set precognition.nvim's highlights up",

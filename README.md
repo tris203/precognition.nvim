@@ -18,10 +18,6 @@ Installation with any package manager, Lazy example below:
 return {
     "tris203/precognition.nvim",
     --event = "VeryLazy",
-    -- dependencies = {
-    --   'chrisgrieser/nvim-spider',
-    -- },
-
     opts = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
@@ -123,13 +119,13 @@ This plugin supports stable and nightly. >0.9 at the time of writing.
 
 ## 🔗 Integrations
 
-### [spider.nvim](https://github.com/chrisgrieser/nvim-spider)
+### [nvim-spider](https://github.com/chrisgrieser/nvim-spider)
 
-Add `spider.nvim` as a dependency to your config and `precognition` will automatically hint your spider motions:
+Add `nvim-spider` as a dependency and make sure to either set `opts = {}`, call `require('spider').setup()` inside `config`, or set `config = true`.
 
 ```lua
     dependencies = {
-      'chrisgrieser/nvim-spider',
+      { 'chrisgrieser/nvim-spider', opts = {} },
     },
 ```
 
