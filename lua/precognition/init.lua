@@ -37,6 +37,7 @@ local M = {}
 ---@field highlightColor? vim.api.keyset.highlight
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
+
 ---@class (exact) Precognition.VirtLine
 ---@field w Precognition.PlaceLoc
 ---@field e Precognition.PlaceLoc
@@ -449,8 +450,10 @@ function M.setup(opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end
+
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
         desc = "Set precognition.nvim's highlights up",
