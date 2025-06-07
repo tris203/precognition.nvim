@@ -233,13 +233,17 @@ local function display_marks()
         return
     end
     local cursorline = vim.fn.line(".")
-    local cursorcol = vim.fn.charcol(".")
+
+    local cur_line = vim.api.nvim_get_current_line()
+    local leading_tabs = #string.match(cur_line, "^(\t*)")
+    local taboffset = vim.bo.tabstop * leading_tabs
+    local cursorcol = vim.fn.charcol(".") + taboffset - leading_tabs
     if extmark and not dirty then
         return
     end
 
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
+    cur_line = cur_line:gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
