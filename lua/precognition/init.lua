@@ -228,7 +228,8 @@ end
 local function calculate_cursorcol(cur_line, charcol, tabstop)
     --matches all leading spaces and tabs in any order
     local leading_whitespace = string.match(cur_line, "^([ \t]*)")
-    -- offset would be the equivalent space characters occupied by the whitespace, ie after all tabs are subbed with tabstop no of spaces
+    -- offset would be the equivalent space characters occupied by the whitespace,
+    -- ie after all tabs are subbed with tabstop no of spaces
     local offset = #leading_whitespace:gsub("\t", string.rep(" ", tabstop))
     local cursorcol = charcol - #leading_whitespace + offset
     return cursorcol

@@ -1,6 +1,4 @@
 local precognition = require("precognition")
-local motions = require("precognition.motions").get_motions()
-local utils = require("precognition.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
 
@@ -10,8 +8,9 @@ describe("Calculate current cursorcol position", function()
     it("calc current cursor col position for an empty string", function()
         local whitespace = ""
         local current_line = whitespace .. ""
-        local num_tabs = select(2, string.gsub(whitespace, "\t", "")) -- number of tabs in the whitespace we're testing for
-        local cursorposition = #whitespace + 1 -- empty lines would just place cursor on first col
+        -- number of tabs in the whitespace we're testing for
+        local num_tabs = select(2, string.gsub(whitespace, "\t", ""))
+        local cursorposition = #whitespace + 1 -- cursor starts at column 1 for empty lines
         local cursorcol = precognition.calculate_cursorcol(current_line, cursorposition, tabstop)
         eq(cursorcol, cursorposition + tabstop * num_tabs - num_tabs)
     end)
