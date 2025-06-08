@@ -225,6 +225,14 @@ local function apply_gutter_hints(gutter_hints, bufnr)
         end
     end
 end
+local function calculate_cursorcol(cur_line, charcol, tabstop)
+    --matches all leading spaces and tabs in any order
+    local leading_whitespace = string.match(cur_line, "^([ \t]*)")
+    -- offset would be the equivalent space characters occupied by the whitespace, ie after all tabs are subbed with tabstop no of spaces
+    local offset = #leading_whitespace:gsub("\t", string.rep(" ", tabstop))
+    local cursorcol = charcol - #leading_whitespace + offset
+    return cursorcol
+end
 
 local function display_marks()
     local utils = require("precognition.utils")
@@ -233,11 +241,8 @@ local function display_marks()
         return
     end
     local cursorline = vim.fn.line(".")
-
     local cur_line = vim.api.nvim_get_current_line()
-    local leading_tabs = #string.match(cur_line, "^(\t*)")
-    local taboffset = vim.bo.tabstop * leading_tabs
-    local cursorcol = vim.fn.charcol(".") + taboffset - leading_tabs
+    local cursorcol = calculate_cursorcol(cur_line, vim.fn.charcol("."), vim.bo.tabstop)
     if extmark and not dirty then
         return
     end
@@ -478,6 +483,10 @@ end
 local state = {
     build_virt_line = function()
         return build_virt_line
+    end,
+
+    calculate_cursorcol = function()
+        return calculate_cursorcol
     end,
     build_gutter_hints = function()
         return build_gutter_hints
