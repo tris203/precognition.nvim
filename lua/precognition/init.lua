@@ -225,12 +225,11 @@ local function apply_gutter_hints(gutter_hints, bufnr)
         end
     end
 end
-local function calculate_cursorcol(cur_line, charcol, tabstop)
+local function calculate_cursorcol(cur_line, charcol, offset)
     --matches all leading spaces and tabs in any order
     local leading_whitespace = string.match(cur_line, "^([ \t]*)")
-    -- offset would be the equivalent space characters occupied by the whitespace,
-    -- ie after all tabs are subbed with tabstop no of spaces
-    local offset = #leading_whitespace:gsub("\t", string.rep(" ", tabstop))
+    -- offset would be the equivalent space characters occupied by the whitespace
+    -- vim.fn.indent gives us this value
     local cursorcol = charcol - #leading_whitespace + offset
     return cursorcol
 end
@@ -243,7 +242,7 @@ local function display_marks()
     end
     local cursorline = vim.fn.line(".")
     local cur_line = vim.api.nvim_get_current_line()
-    local cursorcol = calculate_cursorcol(cur_line, vim.fn.charcol("."), vim.bo.tabstop)
+    local cursorcol = calculate_cursorcol(cur_line, vim.fn.charcol("."), vim.fn.indent(cursorline))
     if extmark and not dirty then
         return
     end
