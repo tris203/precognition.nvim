@@ -226,6 +226,23 @@ local function apply_gutter_hints(gutter_hints, bufnr)
     end
 end
 
+---@param cur_line string
+---@param charcol number
+---@param offset number
+---@return number
+---@return string
+---@return number
+local function calculate_visual_cursorcol(cur_line, charcol, offset)
+    --matches all leading spaces and tabs in any order
+    local leading_whitespace = string.match(cur_line, "^([ \t]*)")
+    -- offset would be the equivalent space characters occupied by the whitespace
+    -- vim.fn.indent gives us this value
+    local cursorcol = charcol - #leading_whitespace + offset
+    local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
+    local sanitised_line = cur_line:gsub("\t", string.rep(" ", tab_width))
+    return cursorcol, sanitised_line, tab_width
+end
+
 local function display_marks()
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
@@ -233,13 +250,12 @@ local function display_marks()
         return
     end
     local cursorline = vim.fn.line(".")
-    local cursorcol = vim.fn.charcol(".")
+    local cursorcol, cur_line, tab_width =
+        calculate_visual_cursorcol(vim.api.nvim_get_current_line(), vim.fn.charcol("."), vim.fn.indent(cursorline))
     if extmark and not dirty then
         return
     end
 
-    local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local cur_line = vim.api.nvim_get_current_line():gsub("\t", string.rep(" ", tab_width))
     local line_len = vim.fn.strcharlen(cur_line)
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
@@ -474,6 +490,9 @@ end
 local state = {
     build_virt_line = function()
         return build_virt_line
+    end,
+    calculate_visual_cursorcol = function()
+        return calculate_visual_cursorcol
     end,
     build_gutter_hints = function()
         return build_gutter_hints
