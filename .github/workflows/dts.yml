@@ -16,7 +16,7 @@ jobs:
     name: DTS Tests
     steps:
       - name: checkout
-        uses: actions/checkout@v4
+        uses: actions/checkout@v5
 
       - uses: rhysd/action-setup-vim@v1
         with:
