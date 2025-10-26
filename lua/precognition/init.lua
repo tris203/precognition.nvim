@@ -22,6 +22,9 @@ local M = {}
 ---@field gg Precognition.HintOpts
 ---@field PrevParagraph Precognition.HintOpts
 ---@field NextParagraph Precognition.HintOpts
+---@field H Precognition.HintOpts
+---@field M Precognition.HintOpts
+---@field L Precognition.HintOpts
 
 ---@class Precognition.Config
 ---@field startVisible boolean
@@ -52,6 +55,9 @@ local M = {}
 ---@field gg Precognition.PlaceLoc
 ---@field PrevParagraph Precognition.PlaceLoc
 ---@field NextParagraph Precognition.PlaceLoc
+---@field H Precognition.PlaceLoc
+---@field M Precognition.PlaceLoc
+---@field L Precognition.PlaceLoc
 
 ---@class Precognition.ExtraPadding
 ---@field start integer
@@ -82,6 +88,9 @@ local default = {
         gg = { text = "gg", prio = 9 },
         PrevParagraph = { text = "{", prio = 8 },
         NextParagraph = { text = "}", prio = 8 },
+        H = { text = "H", prio = 7 },
+        M = { text = "M", prio = 6 },
+        L = { text = "L", prio = 5 },
     },
     disabled_fts = {
         "startify",
@@ -171,6 +180,9 @@ local function build_gutter_hints()
         gg = motions.file_start(),
         PrevParagraph = motions.prev_paragraph_line(),
         NextParagraph = motions.next_paragraph_line(),
+        H = motions.home_line(),
+        M = motions.middle_line(),
+        L = motions.last_line(),
     }
     return gutter_hints
 end

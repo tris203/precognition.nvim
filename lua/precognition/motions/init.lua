@@ -15,6 +15,9 @@ local FUNCTION_NAMES = {
     "file_end",
     "next_paragraph_line",
     "prev_paragraph_line",
+    "home_line",
+    "middle_line",
+    "last_line",
     -- horizontal motions
     "line_start_non_whitespace",
     "line_end",

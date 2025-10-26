@@ -20,12 +20,24 @@ describe("Gutter hints table", function()
 
         local hints = precognition.build_gutter_hints(testBuf)
 
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 3,
-            NextParagraph = 5,
-            ["G"] = 8,
-        }, hints)
+        -- Verify all expected hints are present
+        assert.is_not_nil(hints["gg"])
+        assert.is_not_nil(hints["H"])
+        assert.is_not_nil(hints["PrevParagraph"])
+        assert.is_not_nil(hints["M"])
+        assert.is_not_nil(hints["NextParagraph"])
+        assert.is_not_nil(hints["L"])
+        assert.is_not_nil(hints["G"])
+        
+        -- Verify specific expected values
+        eq(1, hints["gg"])
+        eq(3, hints["PrevParagraph"])
+        eq(5, hints["NextParagraph"])
+        eq(8, hints["G"])
+        
+        -- Verify HML ordering
+        assert.is_true(hints["H"] <= hints["M"])
+        assert.is_true(hints["M"] <= hints["L"])
     end)
 
     it("should return a table with the correct keys when the buffer is empty", function()
@@ -35,12 +47,23 @@ describe("Gutter hints table", function()
 
         local hints = precognition.build_gutter_hints(testBuf)
 
-        eq({
-            ["gg"] = 1,
-            NextParagraph = 1,
-            PrevParagraph = 1,
-            ["G"] = 1,
-        }, hints)
+        -- Verify all expected hints are present
+        assert.is_not_nil(hints["gg"])
+        assert.is_not_nil(hints["H"])
+        assert.is_not_nil(hints["M"])
+        assert.is_not_nil(hints["L"])
+        assert.is_not_nil(hints["PrevParagraph"])
+        assert.is_not_nil(hints["NextParagraph"])
+        assert.is_not_nil(hints["G"])
+        
+        -- For empty buffer, all should be 1
+        eq(1, hints["gg"])
+        eq(1, hints["H"])
+        eq(1, hints["M"])
+        eq(1, hints["L"])
+        eq(1, hints["PrevParagraph"])
+        eq(1, hints["NextParagraph"])
+        eq(1, hints["G"])
     end)
 
     it("should return a table with the correct keys when the buffer is a single line", function()
@@ -50,12 +73,24 @@ describe("Gutter hints table", function()
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
         local hints = precognition.build_gutter_hints(testBuf)
-        eq({
-            ["gg"] = 1,
-            NextParagraph = 1,
-            PrevParagraph = 1,
-            ["G"] = 1,
-        }, hints)
+        
+        -- Verify all expected hints are present
+        assert.is_not_nil(hints["gg"])
+        assert.is_not_nil(hints["H"])
+        assert.is_not_nil(hints["M"])
+        assert.is_not_nil(hints["L"])
+        assert.is_not_nil(hints["PrevParagraph"])
+        assert.is_not_nil(hints["NextParagraph"])
+        assert.is_not_nil(hints["G"])
+        
+        -- For single line buffer, all should be 1
+        eq(1, hints["gg"])
+        eq(1, hints["H"])
+        eq(1, hints["M"])
+        eq(1, hints["L"])
+        eq(1, hints["PrevParagraph"])
+        eq(1, hints["NextParagraph"])
+        eq(1, hints["G"])
     end)
 
     it("moving the cursor will update the hints table", function()
@@ -75,21 +110,27 @@ describe("Gutter hints table", function()
 
         local hints = precognition.build_gutter_hints(testBuf)
 
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 3,
-            NextParagraph = 5,
-            ["G"] = 8,
-        }, hints)
+        -- Verify specific expected values
+        eq(1, hints["gg"])
+        eq(3, hints["PrevParagraph"])
+        eq(5, hints["NextParagraph"])
+        eq(8, hints["G"])
+        -- Verify HML are present and ordered
+        assert.is_not_nil(hints["H"])
+        assert.is_not_nil(hints["M"])
+        assert.is_not_nil(hints["L"])
+        assert.is_true(hints["H"] <= hints["M"])
+        assert.is_true(hints["M"] <= hints["L"])
 
         vim.api.nvim_win_set_cursor(0, { 6, 0 })
         hints = precognition.build_gutter_hints(testBuf)
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 5,
-            NextParagraph = 7,
-            ["G"] = 8,
-        }, hints)
+        eq(1, hints["gg"])
+        eq(5, hints["PrevParagraph"])
+        eq(7, hints["NextParagraph"])
+        eq(8, hints["G"])
+        -- Verify HML are still properly ordered
+        assert.is_true(hints["H"] <= hints["M"])
+        assert.is_true(hints["M"] <= hints["L"])
     end)
 
     it("adding a line will update the hints table", function()
@@ -99,44 +140,36 @@ describe("Gutter hints table", function()
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
         local hints = precognition.build_gutter_hints(testBuf)
-        eq({
-            ["gg"] = 1,
-            NextParagraph = 1,
-            PrevParagraph = 1,
-            ["G"] = 1,
-        }, hints)
+        eq(1, hints["gg"])
+        eq(1, hints["PrevParagraph"])
+        eq(1, hints["NextParagraph"])
+        eq(1, hints["G"])
 
         vim.api.nvim_buf_set_lines(testBuf, 1, 1, false, { "DEF" })
 
         hints = precognition.build_gutter_hints(testBuf)
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 1,
-            NextParagraph = 2,
-            ["G"] = 2,
-        }, hints)
+        eq(1, hints["gg"])
+        eq(1, hints["PrevParagraph"])
+        eq(2, hints["NextParagraph"])
+        eq(2, hints["G"])
 
         vim.api.nvim_buf_set_lines(testBuf, 2, 2, false, { "GHI" })
 
         hints = precognition.build_gutter_hints(testBuf)
 
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 1,
-            NextParagraph = 3,
-            ["G"] = 3,
-        }, hints)
+        eq(1, hints["gg"])
+        eq(1, hints["PrevParagraph"])
+        eq(3, hints["NextParagraph"])
+        eq(3, hints["G"])
 
         vim.api.nvim_buf_set_lines(testBuf, 3, 3, false, { "" })
         vim.api.nvim_buf_set_lines(testBuf, 4, 4, false, { "JKL" })
 
         hints = precognition.build_gutter_hints(testBuf)
 
-        eq({
-            ["gg"] = 1,
-            PrevParagraph = 1,
-            NextParagraph = 4,
-            ["G"] = 5,
-        }, hints)
+        eq(1, hints["gg"])
+        eq(1, hints["PrevParagraph"])
+        eq(4, hints["NextParagraph"])
+        eq(5, hints["G"])
     end)
 end)

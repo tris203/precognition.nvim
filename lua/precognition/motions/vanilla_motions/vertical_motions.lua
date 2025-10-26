@@ -1,6 +1,8 @@
 ---@type Precognition.MotionsAdapter
 local M = {}
 
+local hml_utils = require("precognition.motions.vanilla_motions.hml_utils")
+
 ---@return Precognition.PlaceLoc
 function M.file_start()
     return 1
@@ -73,6 +75,36 @@ function M.prev_paragraph_line(bufnr)
     --check if line above is empty
     --if so, return the line above that
     return loc
+end
+
+---@param bufnr? integer
+---@return Precognition.PlaceLoc
+function M.home_line(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    local H_line, _, _ = hml_utils.calculate_hml_lines(bufnr)
+    return H_line or vim.fn.line("w0")
+end
+
+---@param bufnr? integer
+---@return Precognition.PlaceLoc
+function M.middle_line(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    local _, M_line, _ = hml_utils.calculate_hml_lines(bufnr)
+    if M_line then
+        return M_line
+    end
+    -- Fallback to original behavior if HML calculation fails
+    local top_line = vim.fn.line("w0")
+    local bottom_line = vim.fn.line("w$")
+    return top_line + math.floor((bottom_line - top_line) / 2)
+end
+
+---@param bufnr? integer
+---@return Precognition.PlaceLoc
+function M.last_line(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    local _, _, L_line = hml_utils.calculate_hml_lines(bufnr)
+    return L_line or vim.fn.line("w$")
 end
 
 return M

@@ -21,6 +21,9 @@ describe("motions", function()
             file_end = function() end,
             next_paragraph_line = function() end,
             prev_paragraph_line = function() end,
+            home_line = function() end,
+            middle_line = function() end,
+            last_line = function() end,
         }
         motions.register_motions(test_adapter)
 

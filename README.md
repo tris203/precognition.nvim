@@ -39,6 +39,9 @@ return {
     --     gg = { text = "gg", prio = 9 },
     --     PrevParagraph = { text = "{", prio = 8 },
     --     NextParagraph = { text = "}", prio = 8 },
+    --     H = { text = "H", prio = 7 },
+    --     M = { text = "M", prio = 6 },
+    --     L = { text = "L", prio = 5 },
     -- },
     -- disabled_fts = {
     --     "startify",

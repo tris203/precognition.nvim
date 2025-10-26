@@ -96,6 +96,21 @@
 --- Otherwise, it uses the current buffer.
 ---@field prev_paragraph_line? fun(bufnr?: integer): Precognition.PlaceLoc
 ---
+--- Returns the location corresponding to the first visible line in the window (H motion).
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field home_line? fun(bufnr?: integer): Precognition.PlaceLoc
+---
+--- Returns the location corresponding to the middle visible line in the window (M motion).
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field middle_line? fun(bufnr?: integer): Precognition.PlaceLoc
+---
+--- Returns the location corresponding to the last visible line in the window (L motion).
+--- If a buffer number (`bufnr`) is provided, it uses that buffer.
+--- Otherwise, it uses the current buffer.
+---@field last_line? fun(bufnr?: integer): Precognition.PlaceLoc
+---
 local M = {}
 
 return M
