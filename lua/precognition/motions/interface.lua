@@ -13,7 +13,7 @@
 ---big_word: Precognition.BigWord, recursive?: boolean): Precognition.PlaceLoc
 ---
 ---@alias Precognition.MatchingPairMotionFunction fun(line_content: string, cursorcol: integer,
----linelen: integer): fun(): Precognition.PlaceLoc
+---linelen: integer): fun(line_content: string, cursorcol: integer, linelen: integer): Precognition.PlaceLoc
 
 --- This interface defines the contract for implementing custom motion logic
 --- in Precognition. Plugin developers can implement any subset of these
