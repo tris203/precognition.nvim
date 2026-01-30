@@ -2,14 +2,13 @@ local M = {}
 
 local ranges = {
     { 32, 126 }, -- Basic Latin (ASCII)
-    --TODO: Add other character ranges but this opens a load of multibyte edge cases
-    -- { 160, 591 }, -- Latin-1 Supplement and Latin Extended-A
-    -- { 880, 2047 }, -- Greek, Cyrillic, Armenian, Hebrew
-    -- { 8192, 8303 }, -- General Punctuation
-    -- { 9728, 9983 }, -- Miscellaneous Symbols
-    -- { 12352, 12447 }, -- Hiragana
-    -- { 19904, 19967 }, -- Mahjong Tiles
-    -- { 0x1F300, 0x1F6FF }, -- Emoji
+    { 160, 591 }, -- Latin-1 Supplement and Latin Extended-A
+    { 880, 2047 }, -- Greek, Cyrillic, Armenian, Hebrew
+    { 8192, 8303 }, -- General Punctuation
+    { 9728, 9983 }, -- Miscellaneous Symbols
+    { 12352, 12447 }, -- Hiragana
+    { 19904, 19967 }, -- Mahjong Tiles
+    { 0x1F300, 0x1F6FF }, -- Emoji
 }
 
 ---@class dts.Random
