@@ -42,6 +42,9 @@ local M = {}
 ---@field w Precognition.PlaceLoc
 ---@field e Precognition.PlaceLoc
 ---@field b Precognition.PlaceLoc
+---@field W Precognition.PlaceLoc
+---@field E Precognition.PlaceLoc
+---@field B Precognition.PlaceLoc
 ---@field Zero Precognition.PlaceLoc
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
@@ -257,18 +260,14 @@ local function display_marks()
     end
 
     local line_len = vim.fn.strcharlen(cur_line)
+
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
-    -- local after_cursor = vim.fn.strcharpart(cur_line, cursorcol + 1)
-    -- local before_cursor = vim.fn.strcharpart(cur_line, 0, cursorcol - 1)
-    -- local before_cursor_rev = string.reverse(before_cursor)
-    -- local under_cursor = vim.fn.strcharpart(cur_line, cursorcol - 1, 1)
-
     local motions = require("precognition.motions").get_motions()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
-    --
+
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),

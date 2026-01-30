@@ -15,10 +15,6 @@ local M = {}
 function M.test(seed)
     local data = dts.generate_random_line(seed)
 
-    --TODO: Currently bracket matching only works with M cpoptions
-    --see  `:h %`
-    vim.o.cpoptions = vim.o.cpoptions .. "M"
-
     local cur_line = data.line
     local cursorcol = data.cursor_col
     local line_len = vim.fn.strcharlen(cur_line)
@@ -45,7 +41,7 @@ function M.test(seed)
         vim.api.nvim_set_current_buf(temp_buf)
         vim.fn.setcursorcharpos(1, cursorcol)
         local cur_before = vim.fn.getcursorcharpos(0)
-        vim.api.nvim_feedkeys(key, "ntx", true)
+        vim.api.nvim_feedkeys(key, "nx", true)
         local cur_after = vim.fn.getcursorcharpos(0)
         local actual_col = cur_after[3]
         if col ~= 0 then
@@ -67,9 +63,6 @@ function M.test(seed)
             end
         end
     end
-    if seed % 10000 == 0 then
-        vim.print(string.format("[SEED: %d]", seed))
-    end
     vim.api.nvim_buf_delete(temp_buf, { force = true })
 end
 
@@ -81,8 +74,18 @@ if (not num_sims or type(num_sims) ~= "number") or (not seed_start or type(seed_
 else
     local seed = seed_start
     local seed_end = seed_start + num_sims
+    local start_time = vim.uv.hrtime()
     while seed <= seed_end do
         M.test(seed)
+        if seed % 10000 == 0 then
+            vim.print(string.format("[SEED: %d]", seed))
+            local cur_time = vim.uv.hrtime()
+            local elapsed_seconds = (cur_time - start_time) / 1e9
+            local completed = seed - seed_start
+            local rate = completed / elapsed_seconds
+            local remaining = num_sims - completed
+            vim.print(string.format("%d sims remaing (est %d seconds)", remaining, remaining / rate))
+        end
         seed = seed + 1
     end
 end
