@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.0](https://github.com/tris203/precognition.nvim/compare/v1.2.0...v1.3.0) (2026-01-30)
+
+
+### Features
+
+* **simulation:** add simulation motions adapter ([#98](https://github.com/tris203/precognition.nvim/issues/98)) ([06e4bfa](https://github.com/tris203/precognition.nvim/commit/06e4bfa339ddc55a49fd1adcbb403f6e0855c43b))
+
 ## [1.2.0](https://github.com/tris203/precognition.nvim/compare/v1.1.0...v1.2.0) (2025-08-14)
 
 
