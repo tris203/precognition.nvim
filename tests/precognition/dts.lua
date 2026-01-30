@@ -82,7 +82,9 @@ else
             local cur_time = vim.uv.hrtime()
             local elapsed_seconds = (cur_time - start_time) / 1e9
             local completed = seed - seed_start
-            local rate = completed / elapsed_seconds
+            elapsed_seconds = elapsed_seconds > 0 and elapsed_seconds or 1
+            completed = completed > 0 and completed or 1
+            local rate = completed / (elapsed_seconds or 1)
             local remaining = num_sims - completed
             vim.print(string.format("%d sims remaing (est %d seconds)", remaining, remaining / rate))
         end

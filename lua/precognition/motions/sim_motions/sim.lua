@@ -10,10 +10,10 @@ local function ensure_sim_buf()
     end
 
     sim_buf = vim.api.nvim_create_buf(false, true)
-    vim.b[sim_buf].bufhidden = "hide"
-    vim.b[sim_buf].buftype = "nofile"
-    vim.b[sim_buf].swapfile = false
-    vim.b[sim_buf].matchpairs = vim.o.matchpairs
+    vim.bo[sim_buf].bufhidden = "hide"
+    vim.bo[sim_buf].buftype = "nofile"
+    vim.bo[sim_buf].swapfile = false
+    vim.bo[sim_buf].matchpairs = vim.o.matchpairs
 
     return sim_buf
 end
