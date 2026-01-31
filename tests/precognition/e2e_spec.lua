@@ -122,6 +122,49 @@ describe("e2e tests", function()
         end
     end)
 
+    it("supports debounce", function()
+        precognition.setup({
+            debounceMs = 200,
+        })
+
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+
+        precognition.on_cursor_moved()
+
+        ---@diagnostic disable-next-line: undefined-field
+        assert.is_nil(precognition.extmark)
+
+        eq(
+            {},
+            vim.api.nvim_buf_get_extmarks(buffer, precognition.ns, 0, -1, {
+                details = true,
+            })
+        )
+
+        local co = coroutine.running()
+        coroutine.yield(vim.defer_fn(function()
+            coroutine.resume(co)
+        end, 210))
+
+        ---@diagnostic disable-next-line: undefined-field
+        assert.not_nil(precognition.extmark)
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+
+        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
+        eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
+    end)
+
     it("virtual line text color can be customised", function()
         precognition.setup({ highlightColor = { link = "Function" } })
         local buffer = vim.api.nvim_create_buf(true, false)

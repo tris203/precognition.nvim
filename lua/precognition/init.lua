@@ -24,6 +24,7 @@ local M = {}
 ---@field NextParagraph Precognition.HintOpts
 
 ---@class Precognition.Config
+---@field debounceMs integer
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
 ---@field highlightColor vim.api.keyset.highlight
@@ -76,6 +77,7 @@ local defaultHintConfig = {
 
 ---@type Precognition.Config
 local default = {
+    debounceMs = 0,
     startVisible = true,
     showBlankVirtLine = true,
     highlightColor = { link = "Comment" },
@@ -316,27 +318,30 @@ local function display_marks()
     dirty = false
 end
 
-local function on_cursor_moved(ev)
-    local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
-    if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
-            details = true,
-        })
-        if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
-            vim.api.nvim_buf_del_extmark(0, ns, extmark)
-            extmark = nil
-        end
-    end
-    dirty = true
-    display_marks()
-end
-
 local function on_insert_enter(ev)
     if extmark then
         vim.api.nvim_buf_del_extmark(ev.buf, ns, extmark)
         extmark = nil
     end
     dirty = true
+end
+
+---@param draw fun()
+local function cursor_moved_handler(draw)
+    return function(ev)
+        local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
+        if extmark then
+            local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
+                details = true,
+            })
+            if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
+                vim.api.nvim_buf_del_extmark(0, ns, extmark)
+                extmark = nil
+            end
+        end
+        dirty = true
+        draw()
+    end
 end
 
 local function on_buf_edit()
@@ -403,29 +408,44 @@ function M.show()
     end
     visible = true
 
+    local prev_line
+    local draw = display_marks
+    if config.debounceMs > 0 then
+        local debounced = require("precognition.utils").debounce_trailing(display_marks, config.debounceMs)
+        draw = function(...)
+            local line = vim.api.nvim_win_get_cursor(0)[1]
+            if line == prev_line then
+                display_marks()
+            else
+                prev_line = line
+            end
+            debounced(...)
+        end
+    end
+
+    -- clear and redraw the hints when the cursor moves
+    vim.api.nvim_create_autocmd("CursorMoved", {
+        group = au,
+        callback = cursor_moved_handler(draw),
+    })
+
     -- clear the extmark entirely when leaving a buffer (hints should only show in current buffer)
     vim.api.nvim_create_autocmd("BufLeave", {
         group = au,
         callback = on_buf_leave,
     })
 
+    -- clear the extmark when the cursor moves in insert mode
     vim.api.nvim_create_autocmd("CursorMovedI", {
         group = au,
         callback = on_buf_edit,
     })
-    -- clear the extmark when the cursor moves, or when insert mode is entered
-    --
-    vim.api.nvim_create_autocmd("CursorMoved", {
-        group = au,
-        callback = on_cursor_moved,
-    })
-
     vim.api.nvim_create_autocmd("InsertEnter", {
         group = au,
         callback = on_insert_enter,
     })
 
-    display_marks()
+    draw()
 end
 
 --- Disable automatic showing of hints
@@ -497,7 +517,22 @@ local state = {
         return build_gutter_hints
     end,
     on_cursor_moved = function()
-        return on_cursor_moved
+        local prev_line
+        local draw = display_marks
+        if config.debounceMs > 0 then
+            local debounced = require("precognition.utils").debounce_trailing(display_marks, config.debounceMs)
+            draw = function(...)
+                local line = vim.api.nvim_win_get_cursor(0)[1]
+                if line == prev_line then
+                    display_marks()
+                else
+                    prev_line = line
+                end
+                debounced(...)
+            end
+        end
+
+        return cursor_moved_handler(draw)
     end,
     extmark = function()
         return extmark
