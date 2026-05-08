@@ -11,8 +11,8 @@ local buf
 local function wait(condition, msg)
     vim.wait(100, condition)
     local result = condition()
-    neq(false, result, msg)
-    neq(nil, result, msg)
+    neq(false, result, { fail_reason = msg })
+    neq(nil, result, { fail_reason = msg })
 end
 
 describe("inlay hint utils", function()

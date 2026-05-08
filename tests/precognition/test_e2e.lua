@@ -29,7 +29,6 @@ describe("e2e tests", function()
         precognition.setup({})
     end)
     after_each(function()
-        vim.wait(300)
         rawset(vim.api, "nvim_get_mode", original_get_mode)
         pcall(precognition.hide)
         if child.is_running() then
@@ -150,6 +149,7 @@ describe("e2e tests", function()
 
         not_nil(precognition.extmark)
         neq({}, tu.get_gutter_extmarks(buffer))
+        vim.wait(250)
     end)
 
     it("supports debounce", function()
@@ -275,6 +275,9 @@ describe("Gutter Priority", function()
     end)
     after_each(function()
         pcall(precognition.hide)
+        if child.is_running() then
+            child.stop()
+        end
     end)
 
     it("0 priority item is not added", function()
