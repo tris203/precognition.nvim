@@ -34,6 +34,7 @@ local M = {}
 ---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
+---@field debounceMs? integer
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
 ---@field highlightFullVirtLine? boolean
@@ -116,6 +117,9 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
+
+---@type function?
+local cached_on_cursor_moved
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -358,7 +362,7 @@ local function cursor_moved_handler(draw)
                 details = true,
             })
             if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
-                vim.api.nvim_buf_del_extmark(0, ns, extmark)
+                vim.api.nvim_buf_del_extmark(buf, ns, extmark)
                 extmark = nil
             end
         end
@@ -408,25 +412,7 @@ local function create_command()
     })
 end
 
---- Show the hints until the next keypress or CursorMoved event
-function M.peek()
-    display_marks()
-
-    vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave" }, {
-        buffer = vim.api.nvim_get_current_buf(),
-        once = true,
-        group = au,
-        callback = on_buf_leave,
-    })
-end
-
---- Enable automatic showing of hints
-function M.show()
-    if visible then
-        return
-    end
-    visible = true
-
+local function make_draw()
     local prev_line
     local draw = display_marks
     if config.debounceMs > 0 then
@@ -447,10 +433,41 @@ function M.show()
         end
     end
 
+    return draw
+end
+
+local function get_on_cursor_moved()
+    if not cached_on_cursor_moved then
+        cached_on_cursor_moved = cursor_moved_handler(make_draw())
+    end
+
+    return cached_on_cursor_moved
+end
+
+--- Show the hints until the next keypress or CursorMoved event
+function M.peek()
+    display_marks()
+
+    vim.api.nvim_create_autocmd({ "CursorMoved", "InsertEnter", "BufLeave" }, {
+        buffer = vim.api.nvim_get_current_buf(),
+        once = true,
+        group = au,
+        callback = on_buf_leave,
+    })
+end
+
+--- Enable automatic showing of hints
+function M.show()
+    if visible then
+        return
+    end
+    visible = true
+    cached_on_cursor_moved = nil
+
     -- clear and redraw the hints when the cursor moves
     vim.api.nvim_create_autocmd("CursorMoved", {
         group = au,
-        callback = cursor_moved_handler(draw),
+        callback = get_on_cursor_moved(),
     })
 
     -- clear the extmark entirely when leaving a buffer (hints should only show in current buffer)
@@ -459,7 +476,7 @@ function M.show()
         callback = on_buf_leave,
     })
 
-    -- hide all hints when the cursor moves in insert mode
+    -- clear extmarks and gutter hints when the cursor moves in insert mode
     vim.api.nvim_create_autocmd("CursorMovedI", {
         group = au,
         callback = on_insert_enter,
@@ -478,6 +495,7 @@ function M.hide()
         return
     end
     visible = false
+    cached_on_cursor_moved = nil
     if extmark then
         vim.api.nvim_buf_del_extmark(0, ns, extmark)
         extmark = nil
@@ -512,6 +530,7 @@ function M.setup(opts)
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+    cached_on_cursor_moved = nil
 
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
@@ -541,22 +560,7 @@ local state = {
         return build_gutter_hints
     end,
     on_cursor_moved = function()
-        local prev_line
-        local draw = display_marks
-        if config.debounceMs > 0 then
-            local debounced = require("precognition.utils").debounce_trailing(display_marks, config.debounceMs)
-            draw = function(...)
-                local line = vim.api.nvim_win_get_cursor(0)[1]
-                if line == prev_line then
-                    display_marks()
-                else
-                    prev_line = line
-                end
-                debounced(...)
-            end
-        end
-
-        return cursor_moved_handler(draw)
+        return get_on_cursor_moved()
     end,
     extmark = function()
         return extmark

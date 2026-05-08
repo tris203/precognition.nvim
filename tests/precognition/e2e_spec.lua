@@ -185,14 +185,18 @@ describe("e2e tests", function()
             return { mode = "i" }
         end)
 
-        vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
+        local ok, err = pcall(function()
+            vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
 
-        local co = coroutine.running()
-        coroutine.yield(vim.defer_fn(function()
-            coroutine.resume(co)
-        end, 200))
-
+            local co = coroutine.running()
+            coroutine.yield(vim.defer_fn(function()
+                coroutine.resume(co)
+            end, 200))
+        end)
         rawset(vim.api, "nvim_get_mode", get_mode)
+        if not ok then
+            error(err)
+        end
 
         ---@diagnostic disable-next-line: undefined-field
         assert.is_nil(precognition.extmark)
