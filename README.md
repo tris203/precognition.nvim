@@ -21,6 +21,7 @@ return {
     opts = {
     -- startVisible = true,
     -- showBlankVirtLine = true,
+    -- highlightFullVirtLine = false,
     -- highlightColor = { link = "Comment" },
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
@@ -55,6 +56,10 @@ return {
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it won't be
   rendered
+- `highlightFullVirtLine = true`
+  Pads Inline Hint virtual lines to the current window width. This is useful when
+  `highlightColor` includes a background color and you want that background to
+  extend across the whole visible row.
 - `gutterHints` can be hidden by setting their priority to 0.
 - `highlightColor` can be set in two ways:
 

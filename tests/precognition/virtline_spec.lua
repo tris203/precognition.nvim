@@ -160,6 +160,32 @@ describe("Build Virtual Line", function()
         eq(#line + total_added, #virt_line[1][1])
     end)
 
+    it("can pad a virtual line to a minimum width", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = precognition.build_virt_line(marks, 10, {}, 20)
+        eq("   ^     $          ", virtual_line[1][1])
+        eq(20, #virtual_line[1][1])
+    end)
+
+    it("does not truncate a virtual line longer than the minimum width", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = precognition.build_virt_line(marks, 10, {}, 5)
+        eq("   ^     $", virtual_line[1][1])
+        eq(10, #virtual_line[1][1])
+    end)
+
+    it("can render a blank virtual line when padding to a minimum width", function()
+        local virtual_line = precognition.build_virt_line({}, 5, {}, 12)
+        eq("            ", virtual_line[1][1])
+        eq(12, #virtual_line[1][1])
+    end)
+
     it("example virtual line with emoji", function()
         local line = "# 💭👀precognition.nvim"
         local cursorcol = 20
