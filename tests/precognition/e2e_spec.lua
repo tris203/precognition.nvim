@@ -2,6 +2,15 @@ local precognition = require("precognition")
 local tu = require("tests.precognition.utils.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
+local function neq(expected, actual)
+    ---@diagnostic disable-next-line: undefined-field
+    assert.are_not.same(expected, actual)
+end
+
+local function not_nil(value)
+    ---@diagnostic disable-next-line: undefined-field
+    assert.not_nil(value)
+end
 
 describe("e2e tests", function()
     before_each(function()
@@ -137,8 +146,8 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        assert.not_nil(precognition.extmark)
-        assert.are_not.same({}, tu.get_gutter_extmarks(buffer))
+        not_nil(precognition.extmark)
+        neq({}, tu.get_gutter_extmarks(buffer))
 
         vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
 
@@ -166,16 +175,15 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        ---@diagnostic disable-next-line: undefined-field
-        assert.not_nil(precognition.extmark)
+        not_nil(precognition.extmark)
 
         vim.api.nvim_win_set_cursor(0, { 2, 1 })
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
 
         local get_mode = vim.api.nvim_get_mode
-        vim.api.nvim_get_mode = function()
+        rawset(vim.api, "nvim_get_mode", function()
             return { mode = "i" }
-        end
+        end)
 
         vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
 
@@ -184,7 +192,7 @@ describe("e2e tests", function()
             coroutine.resume(co)
         end, 200))
 
-        vim.api.nvim_get_mode = get_mode
+        rawset(vim.api, "nvim_get_mode", get_mode)
 
         ---@diagnostic disable-next-line: undefined-field
         assert.is_nil(precognition.extmark)
@@ -210,9 +218,8 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        ---@diagnostic disable-next-line: undefined-field
-        assert.not_nil(precognition.extmark)
-        assert.are_not.same({}, tu.get_gutter_extmarks(buffer))
+        not_nil(precognition.extmark)
+        neq({}, tu.get_gutter_extmarks(buffer))
     end)
 
     it("supports debounce", function()
@@ -247,8 +254,7 @@ describe("e2e tests", function()
             coroutine.resume(co)
         end, 300))
 
-        ---@diagnostic disable-next-line: undefined-field
-        assert.not_nil(precognition.extmark)
+        not_nil(precognition.extmark)
 
         local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
             details = true,
