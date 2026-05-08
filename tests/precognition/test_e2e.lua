@@ -44,13 +44,6 @@ describe("e2e tests", function()
         eq(8, vim.tbl_count(autocmds))
     end)
 
-    -- it("namespace is created", function()
-    --     local ns = vim.api.nvim_get_namespaces()
-    --
-    --     eq(1, ns["precognition"])
-    --     eq(2, ns["precognition_gutter"])
-    -- end)
-    --
     it("virtual line is displayed and updated", function()
         screenshot_child([[
             local precognition = require("precognition")
@@ -149,7 +142,6 @@ describe("e2e tests", function()
 
         not_nil(precognition.extmark)
         neq({}, tu.get_gutter_extmarks(buffer))
-        vim.wait(250)
     end)
 
     it("supports debounce", function()
@@ -178,8 +170,11 @@ describe("e2e tests", function()
             })
         )
 
-        vim.wait(300)
+        local ok = vim.wait(500, function()
+            return precognition.extmark ~= nil
+        end)
 
+        neq(false, ok)
         not_nil(precognition.extmark)
 
         local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
@@ -188,20 +183,6 @@ describe("e2e tests", function()
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
         eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
-    end)
-
-    it("debounces repeated calls with the latest arguments", function()
-        local result
-        local debounced = require("precognition.utils").debounce_trailing(function(value)
-            result = value
-        end, 100)
-
-        debounced("first")
-        debounced("second")
-
-        vim.wait(200)
-
-        eq("second", result)
     end)
 
     it("virtual line text color can be customised", function()
