@@ -28,7 +28,7 @@ local FUNCTION_NAMES = {
 
 --- Reset to vanilla motion adapters.
 function M.reset_default()
-    M.motions_adapter = VANILLA_MOTIONS_ADAPTER
+    M.motions_adapter = vim.deepcopy(VANILLA_MOTIONS_ADAPTER)
 end
 
 --- Register a motions adapter.
@@ -36,7 +36,7 @@ end
 function M.register_motions(adapter)
     assert(vim.tbl_isempty(adapter) == false, "cannot register an empty adapter")
 
-    local current_adapter = M.motions_adapter
+    local current_adapter = vim.deepcopy(M.motions_adapter)
 
     -- override the functions defined in the adapter
     vim.iter(FUNCTION_NAMES)

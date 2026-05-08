@@ -1,6 +1,5 @@
 local precognition = require("precognition")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("Calculate current cursorcol position", function()
     it("calc current cursor col position for an empty string", function()

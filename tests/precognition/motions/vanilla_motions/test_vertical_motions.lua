@@ -1,6 +1,5 @@
 local vm = require("precognition.motions.vanilla_motions.vertical_motions")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("gutter motion locations", function()
     it("can find file start in a single line buffer", function()

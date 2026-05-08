@@ -16,7 +16,7 @@ jobs:
         nvim-versions: ['stable', 'nightly']
         os: [ubuntu-latest, windows-latest, macos-latest]
       fail-fast: false
-    name: Plenary Tests
+    name: Mini.test
     steps:
       - name: checkout
         uses: actions/checkout@v5

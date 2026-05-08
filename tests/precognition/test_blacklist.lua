@@ -1,6 +1,5 @@
 local utils = require("precognition.utils")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("blacklist buffers", function()
     it("a regular buffer is not blacklisted", function()

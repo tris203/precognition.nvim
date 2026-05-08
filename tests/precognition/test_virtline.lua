@@ -1,9 +1,12 @@
 local precognition = require("precognition")
 local motions = require("precognition.motions").get_motions()
 local utils = require("precognition.utils")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 describe("Build Virtual Line", function()
+    before_each(function()
+        require("precognition.motions").reset_default()
+    end)
+
     it("can build a simple virtual line", function()
         local marks = {
             Caret = 4,

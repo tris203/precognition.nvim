@@ -6,7 +6,7 @@ local USAGE = [[
 Runs dts testing for precognition marks
 
 USAGE:
-nvim -u tests/minimal.lua -l tests/precognition/dts.lua SEED_START NUM_SIMS
+nvim -u scripts/minimal_init.lua -l tests/precognition/dts.lua SEED_START NUM_SIMS
 
 ]]
 

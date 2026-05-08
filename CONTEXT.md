@@ -28,6 +28,10 @@ _Avoid_: Location, place, mark
 A temporary display of Hints until the next cursor movement, insert mode entry, or buffer exit.
 _Avoid_: Preview, flash
 
+**Screen Assertion**:
+A test assertion that verifies rendered Hints as they appear in a Neovim screen, rather than only inspecting internal data structures.
+_Avoid_: Visual confirmation, screenshot test
+
 **Hint Priority**:
 The precedence used to choose which Hint appears when multiple Hints share the same Destination.
 _Avoid_: Weight, rank
@@ -43,6 +47,9 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - An **Inline Hint** is a **Hint** for the column component of a **Destination** on the current line.
 - A **Gutter Hint** is a **Hint** for the line component of a **Destination**.
 - A **Peek** temporarily displays the currently available **Hints**.
+- A **Screen Assertion** can verify whether **Hints** appear at the expected on-screen positions.
+- End-to-end tests that assert what a user sees should prefer **Screen Assertions** over inspecting rendering internals.
+- **Screen Assertions** run across supported CI operating systems to verify rendered **Hint** consistency.
 - A **Hint Priority** resolves conflicts between **Hints** with the same **Destination**.
 - A **Hint** with priority zero is suppressed.
 - An **Excluded Buffer** suppresses all **Hints**.
@@ -67,3 +74,4 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - "motion" was used to mean both the Vim command and the resulting position - resolved: use **Motion** for the command and **Destination** for the position.
 - "virtual line" describes a Neovim rendering mechanism, not the user-facing concept - resolved: use **Inline Hint** for the user-facing Hint.
 - Insert-mode behavior was ambiguous because Inline Hints and Gutter Hints could be treated differently - resolved: entering insert mode suppresses all **Hints**.
+- "visual confirmation" was ambiguous because it could mean manual review or automated testing - resolved: use **Screen Assertion** for automated tests of rendered Hints.
