@@ -255,6 +255,9 @@ describe("e2e tests", function()
 
     it("pads full-width virtual lines to the text area", function()
         precognition.setup({ highlightFullVirtLine = true })
+        local orig_width = vim.api.nvim_win_get_width(0)
+        local orig_number = vim.wo.number
+        local orig_signcolumn = vim.wo.signcolumn
         local buffer = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(buffer)
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World" })
@@ -270,6 +273,9 @@ describe("e2e tests", function()
         })
         local win_info = vim.fn.getwininfo(vim.fn.win_getid())[1]
         eq(vim.api.nvim_win_get_width(0) - win_info.textoff, #extmarks[3].virt_lines[1][1][1])
+        vim.wo.number = orig_number
+        vim.wo.signcolumn = orig_signcolumn
+        vim.api.nvim_win_set_width(0, orig_width)
     end)
 
     it("preserves highlight groups through a colorscheme change", function()
