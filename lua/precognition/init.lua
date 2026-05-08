@@ -24,6 +24,7 @@ local M = {}
 ---@field NextParagraph Precognition.HintOpts
 
 ---@class Precognition.Config
+---@field debounceMs integer
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
 ---@field highlightFullVirtLine boolean
@@ -33,6 +34,7 @@ local M = {}
 ---@field disabled_fts string[]
 
 ---@class Precognition.PartialConfig
+---@field debounceMs? integer
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
 ---@field highlightFullVirtLine? boolean
@@ -78,6 +80,7 @@ local defaultHintConfig = {
 
 ---@type Precognition.Config
 local default = {
+    debounceMs = 0,
     startVisible = true,
     showBlankVirtLine = true,
     highlightFullVirtLine = false,
@@ -114,6 +117,9 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
+
+---@type function?
+local cached_on_cursor_moved
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -258,6 +264,10 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
 local function display_marks()
+    if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+        return
+    end
+
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
@@ -333,31 +343,32 @@ local function display_marks()
     dirty = false
 end
 
-local function on_cursor_moved(ev)
-    local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
-    if extmark then
-        local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
-            details = true,
-        })
-        if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
-            vim.api.nvim_buf_del_extmark(0, ns, extmark)
-            extmark = nil
-        end
-    end
-    dirty = true
-    display_marks()
-end
-
 local function on_insert_enter(ev)
     if extmark then
         vim.api.nvim_buf_del_extmark(ev.buf, ns, extmark)
         extmark = nil
     end
+    vim.fn.sign_unplace(gutter_group)
+    gutter_signs_cache = {}
     dirty = true
 end
 
-local function on_buf_edit()
-    apply_gutter_hints(build_gutter_hints())
+---@param draw fun()
+local function cursor_moved_handler(draw)
+    return function(ev)
+        local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
+        if extmark then
+            local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
+                details = true,
+            })
+            if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
+                vim.api.nvim_buf_del_extmark(buf, ns, extmark)
+                extmark = nil
+            end
+        end
+        dirty = true
+        draw()
+    end
 end
 
 local function on_buf_leave(ev)
@@ -401,6 +412,38 @@ local function create_command()
     })
 end
 
+local function make_draw()
+    local prev_line
+    local draw = display_marks
+    if config.debounceMs > 0 then
+        local debounced = require("precognition.utils").debounce_trailing(function()
+            if not visible then
+                return
+            end
+            display_marks()
+        end, config.debounceMs)
+        draw = function(...)
+            local line = vim.api.nvim_win_get_cursor(0)[1]
+            if line == prev_line then
+                display_marks()
+            else
+                prev_line = line
+            end
+            debounced(...)
+        end
+    end
+
+    return draw
+end
+
+local function get_on_cursor_moved()
+    if not cached_on_cursor_moved then
+        cached_on_cursor_moved = cursor_moved_handler(make_draw())
+    end
+
+    return cached_on_cursor_moved
+end
+
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
     display_marks()
@@ -419,6 +462,13 @@ function M.show()
         return
     end
     visible = true
+    cached_on_cursor_moved = nil
+
+    -- clear and redraw the hints when the cursor moves
+    vim.api.nvim_create_autocmd("CursorMoved", {
+        group = au,
+        callback = get_on_cursor_moved(),
+    })
 
     -- clear the extmark entirely when leaving a buffer (hints should only show in current buffer)
     vim.api.nvim_create_autocmd("BufLeave", {
@@ -426,17 +476,11 @@ function M.show()
         callback = on_buf_leave,
     })
 
+    -- clear extmarks and gutter hints when the cursor moves in insert mode
     vim.api.nvim_create_autocmd("CursorMovedI", {
         group = au,
-        callback = on_buf_edit,
+        callback = on_insert_enter,
     })
-    -- clear the extmark when the cursor moves, or when insert mode is entered
-    --
-    vim.api.nvim_create_autocmd("CursorMoved", {
-        group = au,
-        callback = on_cursor_moved,
-    })
-
     vim.api.nvim_create_autocmd("InsertEnter", {
         group = au,
         callback = on_insert_enter,
@@ -451,6 +495,7 @@ function M.hide()
         return
     end
     visible = false
+    cached_on_cursor_moved = nil
     if extmark then
         vim.api.nvim_buf_del_extmark(0, ns, extmark)
         extmark = nil
@@ -485,6 +530,7 @@ function M.setup(opts)
 
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
+    cached_on_cursor_moved = nil
 
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
@@ -514,7 +560,7 @@ local state = {
         return build_gutter_hints
     end,
     on_cursor_moved = function()
-        return on_cursor_moved
+        return get_on_cursor_moved()
     end,
     extmark = function()
         return extmark

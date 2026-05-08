@@ -20,6 +20,7 @@ return {
     --event = "VeryLazy",
     opts = {
     -- startVisible = true,
+    -- debounceMs = 0,
     -- showBlankVirtLine = true,
     -- highlightFullVirtLine = false,
     -- highlightColor = { link = "Comment" },
@@ -53,6 +54,9 @@ return {
 - `hints` can be hidden by setting their priority to 0. If you want to hide the
   entire virtual line, set all elements to `prio = 0` in combination with the
   below.
+- `debounceMs = 0`
+  Debounces hint updates after cursor movement by the given number of
+  milliseconds. The default `0` disables debouncing so hints update immediately.
 - `showBlankVirtLine = false`
   Setting this option will mean that if a Virtual Line would be blank it won't be
   rendered

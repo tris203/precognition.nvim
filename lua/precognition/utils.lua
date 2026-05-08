@@ -111,4 +111,37 @@ function M.add_multibyte_padding(cur_line, extra_padding, line_len)
     end
 end
 
+---Debounces calls to a function, and ensures it only runs once per delay
+---even if called repeatedly.
+---@param fn fun(...: any)
+---@param delay integer
+function M.debounce_trailing(fn, delay)
+    local timer = assert(vim.uv.new_timer())
+
+    -- Ugly hack to ensure timer is closed when the function is garbage collected
+    -- unfortunate but necessary to avoid creating a new timer for each call.
+    --
+    -- In LuaJIT, only userdata can have finalizers. `newproxy` creates an opaque userdata
+    -- which we can attach a finalizer to and use as a "canary."
+    local proxy = newproxy(true)
+    getmetatable(proxy).__gc = function()
+        if not timer:is_closing() then
+            timer:close()
+        end
+    end
+
+    return function(...)
+        local _ = proxy
+        local args = { ... }
+        timer:stop()
+        timer:start(
+            delay,
+            0,
+            vim.schedule_wrap(function()
+                fn(unpack(args))
+            end)
+        )
+    end
+end
+
 return M

@@ -2,6 +2,15 @@ local precognition = require("precognition")
 local tu = require("tests.precognition.utils.utils")
 ---@diagnostic disable-next-line: undefined-field
 local eq = assert.are.same
+local function neq(expected, actual)
+    ---@diagnostic disable-next-line: undefined-field
+    assert.are_not.same(expected, actual)
+end
+
+local function not_nil(value)
+    ---@diagnostic disable-next-line: undefined-field
+    assert.not_nil(value)
+end
 
 describe("e2e tests", function()
     before_each(function()
@@ -120,6 +129,160 @@ describe("e2e tests", function()
                 assert(false, "unexpected sign text")
             end
         end
+    end)
+
+    it("hides all hints in insert mode", function()
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+
+        precognition.hide()
+        precognition.show()
+
+        not_nil(precognition.extmark)
+        neq({}, tu.get_gutter_extmarks(buffer))
+
+        vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
+
+        ---@diagnostic disable-next-line: undefined-field
+        assert.is_nil(precognition.extmark)
+        eq({}, tu.get_gutter_extmarks(buffer))
+    end)
+
+    it("does not redraw pending debounced hints in insert mode", function()
+        precognition.setup({
+            debounceMs = 100,
+        })
+
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+
+        precognition.hide()
+        precognition.show()
+
+        not_nil(precognition.extmark)
+
+        vim.api.nvim_win_set_cursor(0, { 2, 1 })
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+        local get_mode = vim.api.nvim_get_mode
+        rawset(vim.api, "nvim_get_mode", function()
+            return { mode = "i" }
+        end)
+
+        local ok, err = pcall(function()
+            vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
+
+            local co = coroutine.running()
+            coroutine.yield(vim.defer_fn(function()
+                coroutine.resume(co)
+            end, 200))
+        end)
+        rawset(vim.api, "nvim_get_mode", get_mode)
+        if not ok then
+            error(err)
+        end
+
+        ---@diagnostic disable-next-line: undefined-field
+        assert.is_nil(precognition.extmark)
+        eq({}, tu.get_gutter_extmarks(buffer))
+    end)
+
+    it("shows hints immediately when debounce is configured", function()
+        precognition.setup({
+            debounceMs = 200,
+        })
+
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+
+        precognition.hide()
+        precognition.show()
+
+        not_nil(precognition.extmark)
+        neq({}, tu.get_gutter_extmarks(buffer))
+    end)
+
+    it("supports debounce", function()
+        precognition.setup({
+            debounceMs = 200,
+        })
+
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+
+        precognition.on_cursor_moved()
+
+        ---@diagnostic disable-next-line: undefined-field
+        assert.is_nil(precognition.extmark)
+
+        eq(
+            {},
+            vim.api.nvim_buf_get_extmarks(buffer, precognition.ns, 0, -1, {
+                details = true,
+            })
+        )
+
+        local co = coroutine.running()
+        coroutine.yield(vim.defer_fn(function()
+            coroutine.resume(co)
+        end, 300))
+
+        not_nil(precognition.extmark)
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+
+        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
+        eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
+    end)
+
+    it("debounces repeated calls with the latest arguments", function()
+        local result
+        local debounced = require("precognition.utils").debounce_trailing(function(value)
+            result = value
+        end, 100)
+
+        debounced("first")
+        debounced("second")
+
+        local co = coroutine.running()
+        coroutine.yield(vim.defer_fn(function()
+            coroutine.resume(co)
+        end, 200))
+
+        eq("second", result)
     end)
 
     it("virtual line text color can be customised", function()
