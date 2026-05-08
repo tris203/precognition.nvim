@@ -224,6 +224,54 @@ describe("e2e tests", function()
         eq(customMark, vim.api.nvim_get_hl(0, { name = extmarks[3].virt_lines[1][1][2] }))
     end)
 
+    it("does not display blank full-width virtual lines when blank virtual lines are disabled", function()
+        precognition.setup({
+            showBlankVirtLine = false,
+            highlightFullVirtLine = true,
+            ---@diagnostic disable-next-line: missing-fields
+            hints = {
+                Caret = { prio = 0 },
+                w = { prio = 0 },
+                b = { prio = 0 },
+                e = { prio = 0 },
+                W = { prio = 0 },
+                B = { prio = 0 },
+                E = { prio = 0 },
+                MatchingPair = { prio = 0 },
+                Zero = { prio = 0 },
+                Dollar = { prio = 0 },
+            },
+        })
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello" })
+        vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+        precognition.on_cursor_moved()
+
+        local extmarks = vim.api.nvim_buf_get_extmarks(buffer, precognition.ns, 0, -1, { details = true })
+        eq(0, #extmarks)
+    end)
+
+    it("pads full-width virtual lines to the text area", function()
+        precognition.setup({ highlightFullVirtLine = true })
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World" })
+        vim.api.nvim_win_set_width(0, 40)
+        vim.wo.number = true
+        vim.wo.signcolumn = "yes"
+        vim.api.nvim_win_set_cursor(0, { 1, 0 })
+
+        precognition.on_cursor_moved()
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+        local win_info = vim.fn.getwininfo(vim.fn.win_getid())[1]
+        eq(vim.api.nvim_win_get_width(0) - win_info.textoff, #extmarks[3].virt_lines[1][1][1])
+    end)
+
     it("preserves highlight groups through a colorscheme change", function()
         vim.cmd.colorscheme("default")
         local hl = vim.api.nvim_get_hl(0, { name = "PrecognitionHighlight" })

@@ -166,7 +166,7 @@ local function build_virt_line(marks, line_len, extra_padding, min_width)
         line = line .. string.rep(" ", min_width - vim.fn.strdisplaywidth(line))
     end
     if line:match("^%s+$") then
-        if min_width then
+        if min_width and config.showBlankVirtLine then
             return { { line, "PrecognitionHighlight" } }
         else
             return {}
@@ -311,7 +311,12 @@ local function display_marks()
 
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
-    local min_width = config.highlightFullVirtLine and vim.api.nvim_win_get_width(0) or nil
+    local min_width
+    if config.highlightFullVirtLine then
+        local win_info = vim.fn.getwininfo(vim.fn.win_getid())
+        local textoff = win_info and win_info[1] and win_info[1].textoff or 0
+        min_width = vim.api.nvim_win_get_width(0) - textoff
+    end
     local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding, min_width)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
