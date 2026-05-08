@@ -260,6 +260,10 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
 local function display_marks()
+    if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
+        return
+    end
+
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
@@ -340,6 +344,8 @@ local function on_insert_enter(ev)
         vim.api.nvim_buf_del_extmark(ev.buf, ns, extmark)
         extmark = nil
     end
+    vim.fn.sign_unplace(gutter_group)
+    gutter_signs_cache = {}
     dirty = true
 end
 
@@ -359,10 +365,6 @@ local function cursor_moved_handler(draw)
         dirty = true
         draw()
     end
-end
-
-local function on_buf_edit()
-    apply_gutter_hints(build_gutter_hints())
 end
 
 local function on_buf_leave(ev)
@@ -428,11 +430,11 @@ function M.show()
     local prev_line
     local draw = display_marks
     if config.debounceMs > 0 then
-        local debounced = require("precognition.utils").debounce_trailing(function(...)
+        local debounced = require("precognition.utils").debounce_trailing(function()
             if not visible then
                 return
             end
-            display_marks(...)
+            display_marks()
         end, config.debounceMs)
         draw = function(...)
             local line = vim.api.nvim_win_get_cursor(0)[1]
@@ -457,17 +459,17 @@ function M.show()
         callback = on_buf_leave,
     })
 
-    -- update gutter hints when the cursor moves in insert mode
+    -- hide all hints when the cursor moves in insert mode
     vim.api.nvim_create_autocmd("CursorMovedI", {
         group = au,
-        callback = on_buf_edit,
+        callback = on_insert_enter,
     })
     vim.api.nvim_create_autocmd("InsertEnter", {
         group = au,
         callback = on_insert_enter,
     })
 
-    draw()
+    display_marks()
 end
 
 --- Disable automatic showing of hints
