@@ -152,7 +152,7 @@ describe("e2e tests", function()
         local co = coroutine.running()
         coroutine.yield(vim.defer_fn(function()
             coroutine.resume(co)
-        end, 210))
+        end, 300))
 
         ---@diagnostic disable-next-line: undefined-field
         assert.not_nil(precognition.extmark)
@@ -163,6 +163,23 @@ describe("e2e tests", function()
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
         eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
+    end)
+
+    it("debounces repeated calls with the latest arguments", function()
+        local result
+        local debounced = require("precognition.utils").debounce_trailing(function(value)
+            result = value
+        end, 100)
+
+        debounced("first")
+        debounced("second")
+
+        local co = coroutine.running()
+        coroutine.yield(vim.defer_fn(function()
+            coroutine.resume(co)
+        end, 200))
+
+        eq("second", result)
     end)
 
     it("virtual line text color can be customised", function()

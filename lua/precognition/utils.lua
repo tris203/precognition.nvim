@@ -116,7 +116,6 @@ end
 ---@param fn fun(...: any)
 ---@param delay integer
 function M.debounce_trailing(fn, delay)
-    local running = false
     local timer = assert(vim.uv.new_timer())
 
     -- Ugly hack to ensure timer is closed when the function is garbage collected
@@ -133,17 +132,13 @@ function M.debounce_trailing(fn, delay)
 
     return function(...)
         local _ = proxy
-        if running then
-            return
-        end
-        running = true
         local args = { ... }
+        timer:stop()
         timer:start(
             delay,
             0,
             vim.schedule_wrap(function()
                 fn(unpack(args))
-                running = false
             end)
         )
     end
