@@ -26,6 +26,7 @@ local M = {}
 ---@class Precognition.Config
 ---@field startVisible boolean
 ---@field showBlankVirtLine boolean
+---@field highlightFullVirtLine boolean
 ---@field highlightColor vim.api.keyset.highlight
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
@@ -34,6 +35,7 @@ local M = {}
 ---@class Precognition.PartialConfig
 ---@field startVisible? boolean
 ---@field showBlankVirtLine? boolean
+---@field highlightFullVirtLine? boolean
 ---@field highlightColor? vim.api.keyset.highlight
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
@@ -78,6 +80,7 @@ local defaultHintConfig = {
 local default = {
     startVisible = true,
     showBlankVirtLine = true,
+    highlightFullVirtLine = false,
     highlightColor = { link = "Comment" },
     hints = defaultHintConfig,
     gutterHints = {
@@ -115,8 +118,9 @@ local gutter_group = "precognition_gutter"
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
+---@param min_width? integer
 ---@return table
-local function build_virt_line(marks, line_len, extra_padding)
+local function build_virt_line(marks, line_len, extra_padding, min_width)
     local utils = require("precognition.utils")
     if not marks then
         return {}
@@ -158,8 +162,15 @@ local function build_virt_line(marks, line_len, extra_padding)
     end
 
     local line = table.concat(line_table)
+    if min_width and vim.fn.strdisplaywidth(line) < min_width then
+        line = line .. string.rep(" ", min_width - vim.fn.strdisplaywidth(line))
+    end
     if line:match("^%s+$") then
-        return {}
+        if min_width then
+            return { { line, "PrecognitionHighlight" } }
+        else
+            return {}
+        end
     end
     table.insert(virt_line, { line, "PrecognitionHighlight" })
     return virt_line
@@ -300,7 +311,8 @@ local function display_marks()
 
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
-    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding)
+    local min_width = config.highlightFullVirtLine and vim.api.nvim_win_get_width(0) or nil
+    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding, min_width)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
