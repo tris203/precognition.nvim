@@ -106,10 +106,7 @@ describe("lsp based tests", function()
         precognition.setup({})
         require("tests.precognition.utils.lsp").Reset()
         buf = vim.api.nvim_create_buf(true, false)
-        local srv = vim.lsp.start_client({ cmd = server })
-        if srv then
-            vim.lsp.buf_attach_client(buf, srv)
-        end
+        vim.lsp.start({ cmd = server }, { bufnr = buf })
     end)
 
     it("initialize lsp", function()
@@ -135,10 +132,7 @@ describe("lsp based tests", function()
             local buf = vim.api.nvim_create_buf(true, false)
             vim.api.nvim_set_current_buf(buf)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "here is a string" })
-            local srv = vim.lsp.start_client({ cmd = lsp.server })
-            if srv then
-                vim.lsp.buf_attach_client(buf, srv)
-            end
+            vim.lsp.start({ cmd = lsp.server }, { bufnr = buf })
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
             vim.lsp.inlay_hint.enable(true, { bufnr = buf })
             precognition.on_cursor_moved()
@@ -152,7 +146,9 @@ describe("lsp based tests", function()
         end
         vim.lsp.inlay_hint.enable(false, { bufnr = buf })
         vim.api.nvim_buf_delete(buf, { force = true })
-        vim.lsp.stop_client(compat.get_active_lsp_clients())
+        for _, client in ipairs(compat.get_active_lsp_clients()) do
+            client:stop()
+        end
         wait(function()
             return vim.tbl_count(compat.get_active_lsp_clients()) == 0
         end, "clients must stop")
