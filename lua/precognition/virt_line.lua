@@ -139,7 +139,8 @@ end
 ---@param width integer
 ---@return string
 local function slice_by_display_cols(line, start_col, width)
-    local start_pattern = ("\\%%>%dv"):format(start_col)
+    -- \%Nv anchors the match to virtual/display columns, unlike string indexes.
+    local start_pattern = ("\\%%%dv"):format(start_col + 1)
     if vim.fn.strdisplaywidth(line) <= start_col + width then
         return vim.fn.matchstr(line, start_pattern .. ".*")
     end
