@@ -1,7 +1,6 @@
 local utils = require("precognition.utils")
 local cc = utils.char_classes
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("static classes", function()
     it("are set correctly", function()

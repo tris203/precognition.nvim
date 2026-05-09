@@ -523,7 +523,7 @@ end
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
     opts = opts or {}
-    config = vim.tbl_deep_extend("force", default, opts)
+    config = vim.tbl_deep_extend("force", vim.deepcopy(default), opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end

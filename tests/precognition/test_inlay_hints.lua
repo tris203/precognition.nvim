@@ -2,17 +2,17 @@ local server = require("tests.precognition.utils.lsp").server
 local compat = require("tests.precognition.utils.compat")
 local utils = require("precognition.utils")
 local precognition = require("precognition")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
----@diagnostic disable-next-line: undefined-field
-local neq = assert.are_not.same
+local eq = MiniTest.expect.equality
+local neq = MiniTest.expect.no_equality
+local ss = MiniTest.expect.reference_screenshot
+local child = MiniTest.new_child_neovim()
 local buf
 
 local function wait(condition, msg)
     vim.wait(100, condition)
     local result = condition()
-    neq(false, result, msg)
-    neq(nil, result, msg)
+    neq(false, result, { fail_reason = msg })
+    neq(nil, result, { fail_reason = msg })
 end
 
 describe("inlay hint utils", function()
@@ -102,12 +102,11 @@ end)
 
 describe("lsp based tests", function()
     before_each(function()
+        pcall(precognition.hide)
+        precognition.setup({})
         require("tests.precognition.utils.lsp").Reset()
         buf = vim.api.nvim_create_buf(true, false)
-        local srv = vim.lsp.start_client({ cmd = server })
-        if srv then
-            vim.lsp.buf_attach_client(buf, srv)
-        end
+        vim.lsp.start({ cmd = server }, { bufnr = buf })
     end)
 
     it("initialize lsp", function()
@@ -124,35 +123,32 @@ describe("lsp based tests", function()
     end)
 
     it("inlay hint shifts the line", function()
-        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "here is a string" })
-        vim.api.nvim_set_current_buf(buf)
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
-
-        precognition.on_cursor_moved()
-
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buf, precognition.ns, precognition.extmark, {
-            details = true,
-        })
-
-        eq("b  e w         $", extmarks[3].virt_lines[1][1][1])
-
-        vim.lsp.inlay_hint.enable(true, { bufnr = buf })
-        -- NOTE:The test LSP replies with an inlay hint, that suggest "foo" as line 1, position 4
-        --          This means that the inlay hint is shifted by 3 chars
-
-        precognition.on_cursor_moved()
-
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buf, precognition.ns, precognition.extmark, {
-            details = true,
-        })
-
-        eq("b      e w         $", extmarks[3].virt_lines[1][1][1])
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua([[
+            local precognition = require("precognition")
+            local lsp = require("tests.precognition.utils.lsp")
+            lsp.Reset()
+            precognition.setup({})
+            local buf = vim.api.nvim_create_buf(true, false)
+            vim.api.nvim_set_current_buf(buf)
+            vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "here is a string" })
+            vim.lsp.start({ cmd = lsp.server }, { bufnr = buf })
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            vim.lsp.inlay_hint.enable(true, { bufnr = buf })
+            precognition.on_cursor_moved()
+        ]])
+        ss(child.get_screenshot())
     end)
 
     after_each(function()
+        if child.is_running() then
+            child.stop()
+        end
         vim.lsp.inlay_hint.enable(false, { bufnr = buf })
         vim.api.nvim_buf_delete(buf, { force = true })
-        vim.lsp.stop_client(compat.get_active_lsp_clients())
+        for _, client in ipairs(compat.get_active_lsp_clients()) do
+            client:stop()
+        end
         wait(function()
             return vim.tbl_count(compat.get_active_lsp_clients()) == 0
         end, "clients must stop")

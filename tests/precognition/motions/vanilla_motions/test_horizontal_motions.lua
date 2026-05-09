@@ -1,6 +1,5 @@
 local hm = require("precognition.motions.vanilla_motions.horizontal_motions")
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("boundaries", function()
     it("finds the next word boundary", function()

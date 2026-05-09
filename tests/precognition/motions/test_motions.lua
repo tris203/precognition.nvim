@@ -1,9 +1,11 @@
----@diagnostic disable-next-line: undefined-field
-local eq = assert.are.same
+local eq = MiniTest.expect.equality
 
 describe("motions", function()
     local motions = require("precognition.motions")
     before_each(function()
+        motions.reset_default()
+    end)
+    after_each(function()
         motions.reset_default()
     end)
 
