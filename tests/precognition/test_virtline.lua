@@ -249,6 +249,14 @@ describe("Wrapped Virtual Line", function()
 
         eq("^   e w $", virtual_line[1][1])
     end)
+
+    it("clips by display columns when wide characters are present", function()
+        local virtual_line = { { "界界界eee$$$", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 7, 6)
+
+        eq("eee$$$", virtual_line[1][1])
+    end)
 end)
 
 describe("Priority", function()
