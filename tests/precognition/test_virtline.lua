@@ -257,6 +257,14 @@ describe("Wrapped Virtual Line", function()
 
         eq("eee$$$", virtual_line[1][1])
     end)
+
+    it("drops wide characters that overlap the wrap boundary", function()
+        local virtual_line = { { "界abc", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 2, 1)
+
+        eq("", virtual_line[1][1])
+    end)
 end)
 
 describe("Priority", function()
