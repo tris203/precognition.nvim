@@ -307,7 +307,7 @@ local function display_marks()
 
     local function count_motion(motion)
         if suppress_counted_motion_hints then
-            return nil
+            return 0
         end
         return utils.count_motion(count, motion, cur_line, cursorcol, line_len)
     end
