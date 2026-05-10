@@ -24,6 +24,11 @@ return {
     -- showBlankVirtLine = true,
     -- highlightFullVirtLine = false,
     -- highlightColor = { link = "Comment" },
+    -- textObjectHighlightColors = {
+    --     { link = "DiffText" },
+    --     { link = "DiffChange" },
+    --     { link = "Visual" },
+    -- },
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
     --      Dollar = { text = "$", prio = 1 },
@@ -69,6 +74,10 @@ return {
 
     1. As a table containing a link property pointing to an existing highlight group (see `:highlight` for valid options).
     2. As a table specifying custom highlight values, such as foreground and background colors. ([more info](<https://neovim.io/doc/user/api.html#nvim_set_hl()>))
+
+- `textObjectHighlightColors` controls the nested text object range highlight groups.
+  Each entry uses the same format as `highlightColor` and maps to
+  `PrecognitionTextObjectRange1`, `PrecognitionTextObjectRange2`, etc.
 
 - `disabled_fts` can be used to disable `precognition` on specific filetypes.
 

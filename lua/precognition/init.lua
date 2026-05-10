@@ -29,6 +29,7 @@ local M = {}
 ---@field showBlankVirtLine boolean
 ---@field highlightFullVirtLine boolean
 ---@field highlightColor vim.api.keyset.highlight
+---@field textObjectHighlightColors vim.api.keyset.highlight[]
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 ---@field disabled_fts string[]
@@ -39,6 +40,7 @@ local M = {}
 ---@field showBlankVirtLine? boolean
 ---@field highlightFullVirtLine? boolean
 ---@field highlightColor? vim.api.keyset.highlight
+---@field textObjectHighlightColors? vim.api.keyset.highlight[]
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -53,6 +55,16 @@ local M = {}
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
 ---@field MatchingPair Precognition.PlaceLoc
+
+---@class Precognition.TextObjectAnchor
+---@field label string
+---@field col integer
+---@field prio integer
+
+---@class Precognition.RangePreview
+---@field start_col integer
+---@field end_col integer
+---@field depth integer
 
 ---@class (exact) Precognition.GutterHints
 ---@field G Precognition.PlaceLoc
@@ -85,6 +97,11 @@ local default = {
     showBlankVirtLine = true,
     highlightFullVirtLine = false,
     highlightColor = { link = "Comment" },
+    textObjectHighlightColors = {
+        { link = "DiffText" },
+        { link = "DiffChange" },
+        { link = "Visual" },
+    },
     hints = defaultHintConfig,
     gutterHints = {
         G = { text = "G", prio = 10 },
@@ -115,10 +132,14 @@ local gutter_signs_cache = {} -- cache for gutter signs
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 ---@type integer
 local ns = vim.api.nvim_create_namespace("precognition")
+---@type integer
+local range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
 ---@type string
 local gutter_group = "precognition_gutter"
 ---@type string | nil
 local motion_count_prefix
+---@type string | nil
+local pending_command_prefix
 ---@type boolean
 local handling_key = false
 
@@ -132,9 +153,88 @@ local function clear_hints(bufnr)
         extmark = nil
     end
     vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+    vim.api.nvim_buf_clear_namespace(bufnr, range_ns, 0, -1)
     vim.fn.sign_unplace(gutter_group)
     gutter_signs_cache = {}
     dirty = true
+end
+
+---@param anchors Precognition.TextObjectAnchor[]
+---@param line_len integer
+---@param extra_padding Precognition.ExtraPadding[]
+---@param min_width? integer
+---@param ranges? Precognition.RangePreview[]
+---@return table
+local function build_text_object_virt_line(anchors, line_len, extra_padding, min_width, ranges)
+    local utils = require("precognition.utils")
+    if line_len == 0 then
+        return {}
+    end
+
+    local virt_line = {}
+    local line_table = utils.create_pad_array(line_len, " ")
+    local priorities = {}
+    local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
+
+    ranges = ranges or {}
+    for index = math.min(#ranges, #config.textObjectHighlightColors), 1, -1 do
+        local range = ranges[index]
+        local hl_group = "PrecognitionTextObjectRange" .. index
+        for col = range.start_col, range.end_col do
+            if col > 0 and col <= line_len then
+                highlights[col] = hl_group
+            end
+        end
+    end
+
+    for _, anchor in ipairs(anchors) do
+        if anchor.col > 0 and anchor.col <= line_len then
+            local existing_prio = priorities[anchor.col] or 0
+            if anchor.prio >= existing_prio then
+                line_table[anchor.col] = anchor.label
+                priorities[anchor.col] = anchor.prio
+            end
+        end
+    end
+
+    if #extra_padding > 0 then
+        for _, padding in ipairs(extra_padding) do
+            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
+        end
+    end
+
+    local line = table.concat(line_table)
+    if min_width and vim.fn.strdisplaywidth(line) < min_width then
+        for _ = 1, min_width - vim.fn.strdisplaywidth(line) do
+            table.insert(line_table, " ")
+            table.insert(highlights, "PrecognitionTextObjectAvailability")
+        end
+        line = table.concat(line_table)
+    end
+    if line:match("^%s+$") then
+        if min_width and config.showBlankVirtLine then
+            return { { line, "PrecognitionTextObjectAvailability" } }
+        end
+        return {}
+    end
+
+    local chunk_text = ""
+    local chunk_hl = highlights[1]
+    for col = 1, #line_table do
+        local char = line_table[col]
+        local hl = highlights[col] or "PrecognitionTextObjectAvailability"
+        if hl ~= chunk_hl then
+            table.insert(virt_line, { chunk_text, chunk_hl })
+            chunk_text = char
+            chunk_hl = hl
+        else
+            chunk_text = chunk_text .. char
+        end
+    end
+    if chunk_text ~= "" then
+        table.insert(virt_line, { chunk_text, chunk_hl })
+    end
+    return virt_line
 end
 
 ---@param marks Precognition.VirtLine
@@ -279,6 +379,44 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
     return cursorcol, sanitised_line, tab_width
 end
 
+---@param prefix string | nil
+---@return boolean
+local function is_text_object_prefix(prefix)
+    if not prefix then
+        return false
+    end
+    local without_count = prefix:gsub("^%d+", "")
+    return without_count:match("^[vdcy]?[ia]$") ~= nil or without_count == "i" or without_count == "a"
+end
+
+---@param prefix string | nil
+---@return boolean
+local function is_operator_prefix(prefix)
+    if not prefix then
+        return false
+    end
+    local without_count = prefix:gsub("^%d+", "")
+    return without_count:match("^[dcy]$") ~= nil
+end
+
+---@param mode string
+---@return boolean
+local function is_supported_prefix_mode(mode)
+    return mode == "n" or mode == "v" or mode == "V" or mode == "\22" or mode:sub(1, 2) == "no"
+end
+
+---@param mode string
+---@return boolean
+local function is_visual_mode(mode)
+    return mode == "v" or mode == "V" or mode == "\22"
+end
+
+---@param mode string
+---@return boolean
+local function is_operator_pending_mode(mode)
+    return mode:sub(1, 2) == "no"
+end
+
 local function display_marks()
     if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
         return
@@ -297,6 +435,9 @@ local function display_marks()
         return
     end
     local cursorline = vim.fn.line(".")
+    if cursorline < 1 or cursorline > vim.api.nvim_buf_line_count(bufnr) then
+        return
+    end
     local cursorcol, cur_line, tab_width =
         calculate_visual_cursorcol(vim.api.nvim_get_current_line(), vim.fn.charcol("."), vim.fn.indent(cursorline))
     if extmark and not dirty then
@@ -314,6 +455,55 @@ local function display_marks()
 
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
+
+    local function add_inlay_hint_padding()
+        if compat.inlay_hints_enabled({ bufnr = 0 }) then
+            local inlays_hints = compat.get_inlay_hints({
+                bufnr = 0,
+                range = {
+                    start = { line = cursorline - 1, character = 0 },
+                    ["end"] = { line = cursorline - 1, character = line_len - 1 },
+                },
+            })
+
+            for _, hint in ipairs(inlays_hints) do
+                local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
+                table.insert(extra_padding, { start = ws_offset, length = length })
+            end
+        end
+    end
+
+    if is_operator_prefix(pending_command_prefix) then
+        clear_hints()
+        return
+    end
+
+    if is_text_object_prefix(pending_command_prefix) then
+        add_inlay_hint_padding()
+        utils.add_multibyte_padding(cur_line, extra_padding, line_len)
+
+        local min_width
+        if config.highlightFullVirtLine then
+            local win_info = vim.fn.getwininfo(vim.fn.win_getid())
+            local textoff = win_info and win_info[1] and win_info[1].textoff or 0
+            min_width = vim.api.nvim_win_get_width(0) - textoff
+        end
+
+        local motions = require("precognition.motions").get_motions()
+        local anchors, ranges = motions.text_object_hints(pending_command_prefix, cur_line, cursorcol, line_len)
+        local virt_line = build_text_object_virt_line(anchors, line_len, extra_padding, min_width, ranges)
+
+        if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
+            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
+                id = extmark,
+                virt_lines = { virt_line },
+            })
+        end
+
+        dirty = false
+        return
+    end
+
     local motions = require("precognition.motions").get_motions()
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
@@ -345,20 +535,7 @@ local function display_marks()
         Zero = 1,
     }
 
-    if compat.inlay_hints_enabled({ bufnr = 0 }) then
-        local inlays_hints = vim.lsp.inlay_hint.get({
-            bufnr = 0,
-            range = {
-                start = { line = cursorline - 1, character = 0 },
-                ["end"] = { line = cursorline - 1, character = line_len - 1 },
-            },
-        })
-
-        for _, hint in ipairs(inlays_hints) do
-            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
-            table.insert(extra_padding, { start = ws_offset, length = length })
-        end
-    end
+    add_inlay_hint_padding()
     --multicharacter padding
 
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)
@@ -392,6 +569,7 @@ end
 ---@param draw fun()
 local function cursor_moved_handler(draw)
     return function(ev)
+        pending_command_prefix = nil
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
         if extmark then
             local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
@@ -483,7 +661,7 @@ local function on_key(key)
     end
 
     local mode = vim.api.nvim_get_mode().mode
-    if mode ~= "n" and mode ~= "v" and mode ~= "V" and mode ~= "\22" then
+    if not is_supported_prefix_mode(mode) then
         return
     end
 
@@ -491,11 +669,13 @@ local function on_key(key)
     local ok, err = xpcall(function()
         if not visible then
             motion_count_prefix = nil
+            pending_command_prefix = nil
             return
         end
 
         local prev_motion_count_prefix = motion_count_prefix
-        if key:match("^%d$") then
+        local prev_pending_command_prefix = pending_command_prefix
+        if key:match("^%d$") and not is_operator_pending_mode(mode) then
             if key == "0" and not motion_count_prefix then
                 motion_count_prefix = nil
             else
@@ -505,8 +685,29 @@ local function on_key(key)
             motion_count_prefix = nil
         end
 
-        if visible and motion_count_prefix ~= prev_motion_count_prefix then
-            get_on_cursor_moved()({ buf = vim.api.nvim_get_current_buf() })
+        if key == "\27" or key == "\3" then
+            pending_command_prefix = nil
+        elseif key:match("^%d$") and not is_operator_pending_mode(mode) then
+            if key == "0" and not pending_command_prefix then
+                pending_command_prefix = nil
+            else
+                pending_command_prefix = (pending_command_prefix or "") .. key
+            end
+        elseif is_visual_mode(mode) and (key == "i" or key == "a") then
+            pending_command_prefix = key
+        elseif key:match("^[dcy]$") and not is_text_object_prefix(pending_command_prefix) then
+            pending_command_prefix = (pending_command_prefix or "") .. key
+        elseif (key == "i" or key == "a") and pending_command_prefix then
+            pending_command_prefix = pending_command_prefix .. key
+        else
+            pending_command_prefix = nil
+        end
+
+        local prefix_changed = motion_count_prefix ~= prev_motion_count_prefix
+            or pending_command_prefix ~= prev_pending_command_prefix
+        if visible and prefix_changed then
+            dirty = true
+            display_marks()
             -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
             vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
         end
@@ -567,6 +768,7 @@ end
 function M.hide()
     visible = false
     motion_count_prefix = nil
+    pending_command_prefix = nil
     cached_on_cursor_moved = nil
     clear_hints()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -585,6 +787,11 @@ end
 
 local function setup_highlights()
     vim.api.nvim_set_hl(0, "PrecognitionHighlight", config.highlightColor)
+    vim.api.nvim_set_hl(0, "PrecognitionTextObjectHint", { link = "PrecognitionHighlight" })
+    vim.api.nvim_set_hl(0, "PrecognitionTextObjectAvailability", { link = "PrecognitionHighlight" })
+    for index, highlight in ipairs(config.textObjectHighlightColors) do
+        vim.api.nvim_set_hl(0, "PrecognitionTextObjectRange" .. index, highlight)
+    end
 end
 
 ---@param opts Precognition.PartialConfig
@@ -598,11 +805,16 @@ function M.setup(opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
     end
+    if opts.textObjectHighlightColors then
+        config.textObjectHighlightColors = opts.textObjectHighlightColors
+    end
 
     ns = vim.api.nvim_create_namespace("precognition")
+    range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     cached_on_cursor_moved = nil
     motion_count_prefix = nil
+    pending_command_prefix = nil
     handling_key = false
 
     setup_highlights()
@@ -645,6 +857,9 @@ local state = {
     ns = function()
         return ns
     end,
+    range_ns = function()
+        return range_ns
+    end,
     default_hint_config = function()
         return defaultHintConfig
     end,
@@ -658,6 +873,17 @@ local state = {
     end,
     motion_count_prefix = function()
         return motion_count_prefix
+    end,
+    set_pending_command_prefix = function()
+        return function(cmd)
+            pending_command_prefix = cmd
+        end
+    end,
+    pending_command_prefix = function()
+        return pending_command_prefix
+    end,
+    build_text_object_hints = function()
+        return require("precognition.motions").get_motions().text_object_hints
     end,
     on_key = function()
         return on_key

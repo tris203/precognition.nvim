@@ -23,6 +23,7 @@ describe("motions", function()
             file_end = function() end,
             next_paragraph_line = function() end,
             prev_paragraph_line = function() end,
+            text_object_hints = function() end,
         }
         motions.register_motions(test_adapter)
 
