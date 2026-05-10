@@ -96,9 +96,10 @@ describe("text object hints", function()
         vim.api.nvim_win_set_cursor(0, { 3, 1 })
 
         vim.api.nvim_feedkeys("vi", "nx", true)
-        vim.wait(150, function()
+        local waited = vim.wait(150, function()
             return precognition.extmark ~= nil and text_object_extmark()[3].virt_lines ~= nil
         end)
+        eq(true, waited)
 
         eq(3, vim.fn.getpos("v")[2])
         vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", true)

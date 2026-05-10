@@ -622,6 +622,14 @@ local function schedule_visual_text_object_repaint(prefix)
             return
         end
 
+        local mode = vim.api.nvim_get_mode().mode
+        if not is_visual_mode(mode) and not is_operator_pending_mode(mode) then
+            return
+        end
+        if pending_command_prefix ~= nil and pending_command_prefix ~= prefix then
+            return
+        end
+
         pending_command_prefix = prefix
         dirty = true
         redraw_marks(true)

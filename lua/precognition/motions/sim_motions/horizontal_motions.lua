@@ -157,6 +157,9 @@ local function add_simulated_text_object(anchors, ranges, prefix, line, text_obj
     end
     local around_start = around_selection.start_col
     local around_end = around_selection.end_col
+
+    -- around_start may include leading whitespace before text_object.start_label, so advance with
+    -- vim.fn.strcharpart; sim outputs allow at most one extra char after text_object.end_label.
     while around_start < around_end and vim.fn.strcharpart(line, around_start - 1, 1) ~= text_object.start_label do
         around_start = around_start + 1
     end
