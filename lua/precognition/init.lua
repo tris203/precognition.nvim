@@ -142,6 +142,10 @@ local motion_count_prefix
 local pending_command_prefix
 ---@type boolean
 local handling_key = false
+---@type boolean
+local redraw_scheduled = false
+---@type boolean
+local restoring_visual_selection = false
 
 ---@type function?
 local cached_on_cursor_moved
@@ -562,6 +566,68 @@ local function display_marks()
     dirty = false
 end
 
+local function restore_visual_selection(cursor, visual_start)
+    if not is_visual_mode(vim.api.nvim_get_mode().mode) then
+        return
+    end
+
+    local was_handling_key = handling_key
+    handling_key = true
+    restoring_visual_selection = true
+    local ok, err = pcall(function()
+        vim.cmd("normal! o")
+        vim.api.nvim_win_set_cursor(0, { visual_start[2], visual_start[3] - 1 })
+        vim.cmd("normal! o")
+        vim.api.nvim_win_set_cursor(0, cursor)
+    end)
+    restoring_visual_selection = false
+    handling_key = was_handling_key
+    if not ok then
+        error(err)
+    end
+end
+
+---@param preserve_visual boolean?
+---@param fn fun()
+local function preserving_visual_selection(preserve_visual, fn)
+    if not preserve_visual or not is_visual_mode(vim.api.nvim_get_mode().mode) then
+        fn()
+        return
+    end
+
+    local cursor = vim.api.nvim_win_get_cursor(0)
+    local visual_start = vim.fn.getpos("v")
+    fn()
+    restore_visual_selection(cursor, visual_start)
+end
+
+---@param preserve_visual boolean?
+local function redraw_marks(preserve_visual)
+    preserving_visual_selection(preserve_visual, display_marks)
+
+    -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
+    vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+end
+
+---@param prefix string
+local function schedule_visual_text_object_repaint(prefix)
+    if redraw_scheduled then
+        return
+    end
+
+    redraw_scheduled = true
+    vim.schedule(function()
+        redraw_scheduled = false
+        if not visible then
+            return
+        end
+
+        pending_command_prefix = prefix
+        dirty = true
+        redraw_marks(true)
+    end)
+end
+
 local function on_insert_enter(ev)
     clear_hints(ev.buf)
 end
@@ -569,7 +635,14 @@ end
 ---@param draw fun()
 local function cursor_moved_handler(draw)
     return function(ev)
-        pending_command_prefix = nil
+        if restoring_visual_selection then
+            return
+        end
+
+        local mode = vim.api.nvim_get_mode().mode
+        if not is_visual_mode(mode) then
+            pending_command_prefix = nil
+        end
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
         if extmark then
             local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
@@ -581,7 +654,11 @@ local function cursor_moved_handler(draw)
             end
         end
         dirty = true
-        draw()
+        if is_visual_mode(mode) then
+            preserving_visual_selection(true, draw)
+        else
+            draw()
+        end
     end
 end
 
@@ -675,6 +752,7 @@ local function on_key(key)
 
         local prev_motion_count_prefix = motion_count_prefix
         local prev_pending_command_prefix = pending_command_prefix
+        local defer_redraw = false
         if key:match("^%d$") and not is_operator_pending_mode(mode) then
             if key == "0" and not motion_count_prefix then
                 motion_count_prefix = nil
@@ -693,8 +771,9 @@ local function on_key(key)
             else
                 pending_command_prefix = (pending_command_prefix or "") .. key
             end
-        elseif is_visual_mode(mode) and (key == "i" or key == "a") then
+        elseif (is_visual_mode(mode) or is_operator_pending_mode(mode)) and (key == "i" or key == "a") then
             pending_command_prefix = key
+            defer_redraw = true
         elseif key:match("^[dcy]$") and not is_text_object_prefix(pending_command_prefix) then
             pending_command_prefix = (pending_command_prefix or "") .. key
         elseif (key == "i" or key == "a") and pending_command_prefix then
@@ -707,9 +786,12 @@ local function on_key(key)
             or pending_command_prefix ~= prev_pending_command_prefix
         if visible and prefix_changed then
             dirty = true
-            display_marks()
-            -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
-            vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+            if defer_redraw then
+                redraw_marks(true)
+                schedule_visual_text_object_repaint(pending_command_prefix)
+            else
+                redraw_marks()
+            end
         end
     end, debug.traceback)
 
@@ -769,6 +851,7 @@ function M.hide()
     visible = false
     motion_count_prefix = nil
     pending_command_prefix = nil
+    redraw_scheduled = false
     cached_on_cursor_moved = nil
     clear_hints()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
@@ -816,6 +899,8 @@ function M.setup(opts)
     motion_count_prefix = nil
     pending_command_prefix = nil
     handling_key = false
+    redraw_scheduled = false
+    restoring_visual_selection = false
 
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {

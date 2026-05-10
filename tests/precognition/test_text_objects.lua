@@ -70,7 +70,7 @@ describe("text object hints", function()
         precognition.on_key("i")
 
         local extmark = text_object_extmark()
-        eq('    ({       " wW  " })', virt_line_text(extmark))
+        eq('    ({       "    w" })', virt_line_text(extmark))
     end)
 
     it("uses visual mode i as a text object prefix", function()
@@ -79,9 +79,29 @@ describe("text object hints", function()
         end)
 
         precognition.on_key("i")
+        vim.wait(150, function()
+            if not precognition.extmark then
+                return false
+            end
+            return virt_line_text(text_object_extmark()) == '    ({       "    w" })'
+        end)
 
         local extmark = text_object_extmark()
-        eq('    ({       " wW  " })', virt_line_text(extmark))
+        eq('    ({       "    w" })', virt_line_text(extmark))
+    end)
+
+    it("does not move the visual anchor when pressing v then i from normal mode", function()
+        rawset(vim.api, "nvim_get_mode", original_get_mode)
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, { "one", "two", "three" })
+        vim.api.nvim_win_set_cursor(0, { 3, 1 })
+
+        vim.api.nvim_feedkeys("vi", "nx", true)
+        vim.wait(150, function()
+            return precognition.extmark ~= nil and text_object_extmark()[3].virt_lines ~= nil
+        end)
+
+        eq(3, vim.fn.getpos("v")[2])
+        vim.api.nvim_feedkeys(vim.api.nvim_replace_termcodes("<Esc>", true, false, true), "nx", true)
     end)
 
     it("does not clear motion hints when entering visual mode", function()
@@ -115,7 +135,7 @@ describe("text object hints", function()
         precognition.on_key("i")
 
         local extmark = text_object_extmark()
-        eq('    ({       " wW  " })', virt_line_text(extmark))
+        eq('    ({       "    w" })', virt_line_text(extmark))
     end)
 
     it("shows forward spatial hints when the cursor is outside nesting", function()
@@ -125,7 +145,7 @@ describe("text object hints", function()
         precognition.on_key("i")
 
         local extmark = text_object_extmark()
-        eq(' wW ({       "     " })', virt_line_text(extmark))
+        eq('   w({       "     " })', virt_line_text(extmark))
 
         local groups = {}
         for _, chunk in ipairs(extmark[3].virt_lines[1]) do
@@ -211,7 +231,7 @@ describe("text object hints", function()
             precognition.on_key("d")
             precognition.on_key("i")
 
-            eq('      ({       " wW  " })', virt_line_text(text_object_extmark()))
+            eq('      ({       "    w" })', virt_line_text(text_object_extmark()))
         end)
         vim.lsp.inlay_hint.is_enabled = original_is_enabled
         vim.lsp.inlay_hint.get = original_get
