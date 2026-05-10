@@ -117,9 +117,25 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local ns = vim.api.nvim_create_namespace("precognition")
 ---@type string
 local gutter_group = "precognition_gutter"
+---@type string | nil
+local motion_count_prefix
+---@type boolean
+local handling_key = false
 
 ---@type function?
 local cached_on_cursor_moved
+
+local function clear_hints(bufnr)
+    bufnr = bufnr or vim.api.nvim_get_current_buf()
+    if extmark then
+        vim.api.nvim_buf_del_extmark(bufnr, ns, extmark)
+        extmark = nil
+    end
+    vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
+    vim.fn.sign_unplace(gutter_group)
+    gutter_signs_cache = {}
+    dirty = true
+end
 
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
@@ -269,6 +285,13 @@ local function display_marks()
     end
 
     local utils = require("precognition.utils")
+    local count = utils.motion_count_from_motionstring(motion_count_prefix)
+    if count > 100 then
+        clear_hints()
+        vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
+        return
+    end
+
     local bufnr = vim.api.nvim_get_current_buf()
     if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
         return
@@ -292,12 +315,24 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
-        e = motions.end_of_word(cur_line, cursorcol, line_len, false),
-        b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
-        W = motions.next_word_boundary(cur_line, cursorcol, line_len, true),
-        E = motions.end_of_word(cur_line, cursorcol, line_len, true),
-        B = motions.prev_word_boundary(cur_line, cursorcol, line_len, true),
+        w = utils.count_motion(count, function(str, col, len)
+            return motions.next_word_boundary(str, col, len, false)
+        end, cur_line, cursorcol, line_len),
+        e = utils.count_motion(count, function(str, col, len)
+            return motions.end_of_word(str, col, len, false)
+        end, cur_line, cursorcol, line_len),
+        b = utils.count_motion(count, function(str, col, len)
+            return motions.prev_word_boundary(str, col, len, false)
+        end, cur_line, cursorcol, line_len),
+        W = utils.count_motion(count, function(str, col, len)
+            return motions.next_word_boundary(str, col, len, true)
+        end, cur_line, cursorcol, line_len),
+        E = utils.count_motion(count, function(str, col, len)
+            return motions.end_of_word(str, col, len, true)
+        end, cur_line, cursorcol, line_len),
+        B = utils.count_motion(count, function(str, col, len)
+            return motions.prev_word_boundary(str, col, len, true)
+        end, cur_line, cursorcol, line_len),
         MatchingPair = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = motions.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
@@ -344,13 +379,7 @@ local function display_marks()
 end
 
 local function on_insert_enter(ev)
-    if extmark then
-        vim.api.nvim_buf_del_extmark(ev.buf, ns, extmark)
-        extmark = nil
-    end
-    vim.fn.sign_unplace(gutter_group)
-    gutter_signs_cache = {}
-    dirty = true
+    clear_hints(ev.buf)
 end
 
 ---@param draw fun()
@@ -372,11 +401,7 @@ local function cursor_moved_handler(draw)
 end
 
 local function on_buf_leave(ev)
-    vim.api.nvim_buf_clear_namespace(ev.buf, ns, 0, -1)
-    extmark = nil
-    gutter_signs_cache = {}
-    vim.fn.sign_unplace(gutter_group)
-    dirty = true
+    clear_hints(ev.buf)
 end
 
 local function create_command()
@@ -444,6 +469,36 @@ local function get_on_cursor_moved()
     return cached_on_cursor_moved
 end
 
+---@param key string
+local function on_key(key)
+    if handling_key then
+        return
+    end
+
+    local mode = vim.api.nvim_get_mode().mode
+    if mode ~= "n" and mode ~= "v" and mode ~= "V" then
+        return
+    end
+
+    handling_key = true
+    local prev_motion_count_prefix = motion_count_prefix
+    if key:match("^%d$") then
+        if key == "0" and not motion_count_prefix then
+            motion_count_prefix = nil
+        else
+            motion_count_prefix = (motion_count_prefix or "") .. key
+        end
+    else
+        motion_count_prefix = nil
+    end
+
+    if visible and motion_count_prefix ~= prev_motion_count_prefix then
+        get_on_cursor_moved()({ buf = vim.api.nvim_get_current_buf() })
+        vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+    end
+    handling_key = false
+end
+
 --- Show the hints until the next keypress or CursorMoved event
 function M.peek()
     display_marks()
@@ -496,13 +551,8 @@ function M.hide()
     end
     visible = false
     cached_on_cursor_moved = nil
-    if extmark then
-        vim.api.nvim_buf_del_extmark(0, ns, extmark)
-        extmark = nil
-    end
+    clear_hints()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
-    vim.fn.sign_unplace(gutter_group)
-    gutter_signs_cache = {}
 end
 
 --- Toggle automatic showing of hints
@@ -531,6 +581,8 @@ function M.setup(opts)
     ns = vim.api.nvim_create_namespace("precognition")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     cached_on_cursor_moved = nil
+    motion_count_prefix = nil
+    handling_key = false
 
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {
@@ -541,6 +593,7 @@ function M.setup(opts)
 
     create_command()
 
+    vim.on_key(on_key, ns)
     if config.startVisible then
         M.show()
     end
@@ -576,6 +629,17 @@ local state = {
     end,
     is_visible = function()
         return visible
+    end,
+    set_motion_count_prefix = function()
+        return function(cmd)
+            motion_count_prefix = cmd
+        end
+    end,
+    motion_count_prefix = function()
+        return motion_count_prefix
+    end,
+    on_key = function()
+        return on_key
     end,
 }
 
