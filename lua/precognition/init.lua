@@ -566,8 +566,11 @@ local function display_marks()
     dirty = false
 end
 
-local function restore_visual_selection(cursor, visual_start)
-    if not is_visual_mode(vim.api.nvim_get_mode().mode) then
+local function restore_visual_selection(win, bufnr, cursor, visual_start)
+    if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
+        return
+    end
+    if vim.api.nvim_get_current_win() ~= win or not is_visual_mode(vim.api.nvim_get_mode().mode) then
         return
     end
 
@@ -595,10 +598,12 @@ local function preserving_visual_selection(preserve_visual, fn)
         return
     end
 
-    local cursor = vim.api.nvim_win_get_cursor(0)
+    local win = vim.api.nvim_get_current_win()
+    local bufnr = vim.api.nvim_get_current_buf()
+    local cursor = vim.api.nvim_win_get_cursor(win)
     local visual_start = vim.fn.getpos("v")
     fn()
-    restore_visual_selection(cursor, visual_start)
+    restore_visual_selection(win, bufnr, cursor, visual_start)
 end
 
 ---@param preserve_visual boolean?
@@ -626,11 +631,10 @@ local function schedule_visual_text_object_repaint(prefix)
         if not is_visual_mode(mode) and not is_operator_pending_mode(mode) then
             return
         end
-        if pending_command_prefix ~= nil and pending_command_prefix ~= prefix then
+        if pending_command_prefix ~= prefix then
             return
         end
 
-        pending_command_prefix = prefix
         dirty = true
         redraw_marks(true)
     end)
@@ -648,7 +652,8 @@ local function cursor_moved_handler(draw)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        if not is_visual_mode(mode) then
+        local text_object_selection_finished = is_visual_mode(mode) and is_text_object_prefix(pending_command_prefix)
+        if not is_visual_mode(mode) or text_object_selection_finished then
             pending_command_prefix = nil
         end
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
@@ -662,7 +667,7 @@ local function cursor_moved_handler(draw)
             end
         end
         dirty = true
-        if is_visual_mode(mode) then
+        if is_visual_mode(mode) and not text_object_selection_finished then
             preserving_visual_selection(true, draw)
         else
             draw()

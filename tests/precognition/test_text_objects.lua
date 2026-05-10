@@ -250,4 +250,20 @@ describe("text object hints", function()
 
         eq(nil, precognition.pending_command_prefix)
     end)
+
+    it("clears visual text object hints after the selection moves the cursor", function()
+        rawset(vim.api, "nvim_get_mode", function()
+            return { mode = "v" }
+        end)
+
+        precognition.on_key("i")
+        eq("i", precognition.pending_command_prefix)
+
+        vim.api.nvim_win_set_cursor(0, { 1, 10 })
+        precognition.on_cursor_moved()
+        vim.wait(150)
+
+        eq(nil, precognition.pending_command_prefix)
+        eq('^    % b   w          $', virt_line_text(text_object_extmark()))
+    end)
 end)
