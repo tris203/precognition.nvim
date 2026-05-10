@@ -43,12 +43,12 @@ local M = {}
 ---@field gutterHints? Precognition.GutterHintConfig
 
 ---@class (exact) Precognition.VirtLine
----@field w Precognition.PlaceLoc
----@field e Precognition.PlaceLoc
----@field b Precognition.PlaceLoc
----@field W Precognition.PlaceLoc
----@field E Precognition.PlaceLoc
----@field B Precognition.PlaceLoc
+---@field w? Precognition.PlaceLoc
+---@field e? Precognition.PlaceLoc
+---@field b? Precognition.PlaceLoc
+---@field W? Precognition.PlaceLoc
+---@field E? Precognition.PlaceLoc
+---@field B? Precognition.PlaceLoc
 ---@field Zero Precognition.PlaceLoc
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
@@ -558,9 +558,6 @@ end
 
 --- Disable automatic showing of hints
 function M.hide()
-    if not visible then
-        return
-    end
     visible = false
     motion_count_prefix = nil
     cached_on_cursor_moved = nil
@@ -586,6 +583,10 @@ end
 ---@param opts Precognition.PartialConfig
 function M.setup(opts)
     opts = opts or {}
+    if opts.startVisible == false then
+        M.hide()
+    end
+
     config = vim.tbl_deep_extend("force", vim.deepcopy(default), opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor

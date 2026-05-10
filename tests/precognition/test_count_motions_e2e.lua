@@ -22,6 +22,27 @@ local function get_gutter_extmarks(buffer)
     return gutter_extmarks
 end
 
+local function has_autocmd(autocmds, event, buffer)
+    for _, autocmd in ipairs(autocmds) do
+        if autocmd.event == event and autocmd.buffer == buffer then
+            return true
+        end
+    end
+
+    return false
+end
+
+local function count_autocmds(autocmds, event, buffer)
+    local count = 0
+    for _, autocmd in ipairs(autocmds) do
+        if autocmd.event == event and autocmd.buffer == buffer then
+            count = count + 1
+        end
+    end
+
+    return count
+end
+
 describe("e2e tests", function()
     before_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
@@ -37,10 +58,22 @@ describe("e2e tests", function()
 
     it("auto commands are set", function()
         local autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-        eq(5, vim.tbl_count(autocmds))
+        eq(true, has_autocmd(autocmds, "ColorScheme"))
+        eq(true, has_autocmd(autocmds, "CursorMoved"))
+        eq(true, has_autocmd(autocmds, "BufLeave"))
+        eq(true, has_autocmd(autocmds, "CursorMovedI"))
+        eq(true, has_autocmd(autocmds, "InsertEnter"))
+
+        local buffer = vim.api.nvim_get_current_buf()
+        local cursor_moved_count = count_autocmds(autocmds, "CursorMoved", buffer)
+        local insert_enter_count = count_autocmds(autocmds, "InsertEnter", buffer)
+        local buf_leave_count = count_autocmds(autocmds, "BufLeave", buffer)
+
         precognition.peek()
         autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-        eq(8, vim.tbl_count(autocmds))
+        eq(cursor_moved_count + 1, count_autocmds(autocmds, "CursorMoved", buffer))
+        eq(insert_enter_count + 1, count_autocmds(autocmds, "InsertEnter", buffer))
+        eq(buf_leave_count + 1, count_autocmds(autocmds, "BufLeave", buffer))
     end)
 
     -- 0.1 onlu?
