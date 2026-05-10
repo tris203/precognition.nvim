@@ -31,8 +31,8 @@ local text_objects = {
 }
 
 local availability_text_objects = {
-    { label = "w", prio = 10 },
-    { label = "W", prio = 9 },
+    { key = "w", label = "w", prio = 10 },
+    { key = "W", label = "W", prio = 9 },
 }
 
 ---@param str string
@@ -157,6 +157,12 @@ local function add_simulated_text_object(anchors, ranges, prefix, line, text_obj
     end
     local around_start = around_selection.start_col
     local around_end = around_selection.end_col
+
+    -- around_start may include leading whitespace before text_object.start_label, so advance with
+    -- vim.fn.strcharpart; sim outputs allow at most one extra char after text_object.end_label.
+    while around_start < around_end and vim.fn.strcharpart(line, around_start - 1, 1) ~= text_object.start_label do
+        around_start = around_start + 1
+    end
     if vim.fn.strcharpart(line, around_end - 1, 1) ~= text_object.end_label then
         around_end = around_end - 1
     end
@@ -209,6 +215,10 @@ function M.text_object_hints(prefix, line, cursorcol, line_len)
         keys_by_name["range_" .. text_object.key] = prefix:sub(-1) .. text_object.key
     end
 
+    for _, text_object in ipairs(availability_text_objects) do
+        keys_by_name["availability_" .. text_object.key] = prefix:sub(-1) .. text_object.key
+    end
+
     local selections = sim.select_text_objects(line, cursorcol, keys_by_name)
 
     for _, text_object in ipairs(text_objects) do
@@ -223,11 +233,13 @@ function M.text_object_hints(prefix, line, cursorcol, line_len)
         )
     end
 
-    local availability_col = math.min(cursorcol, line_len)
-    for index, text_object in ipairs(availability_text_objects) do
-        local col = availability_col + index - 1
-        if col <= line_len then
+    local availability_cols = {}
+    for _, text_object in ipairs(availability_text_objects) do
+        local selection = selections["availability_" .. text_object.key]
+        local col = selection and selection.end_col
+        if col and col <= line_len and not availability_cols[col] then
             table.insert(anchors, { label = text_object.label, col = col, prio = text_object.prio })
+            availability_cols[col] = true
         end
     end
 
