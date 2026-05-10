@@ -458,7 +458,7 @@ local function display_marks()
 
     local function add_inlay_hint_padding()
         if compat.inlay_hints_enabled({ bufnr = 0 }) then
-            local inlays_hints = vim.lsp.inlay_hint.get({
+            local inlays_hints = compat.get_inlay_hints({
                 bufnr = 0,
                 range = {
                     start = { line = cursorline - 1, character = 0 },
