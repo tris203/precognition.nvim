@@ -214,9 +214,30 @@ describe("e2e tests", function()
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
     end)
 
-    it("builds multi-digit motion counts", function()
+    it("does not build motion counts while hidden", function()
         precognition.hide()
         precognition.setup({ startVisible = false })
+        rawset(vim.api, "nvim_get_mode", function()
+            return { mode = "n" }
+        end)
+
+        precognition.on_key("2")
+        precognition.on_key("0")
+        eq(nil, precognition.motion_count_prefix)
+
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
+        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+        precognition.show()
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+        eq("b w                                       $", extmarks[3].virt_lines[1][1][1])
+    end)
+
+    it("builds multi-digit motion counts while visible", function()
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "n" }
         end)
@@ -229,7 +250,7 @@ describe("e2e tests", function()
         vim.api.nvim_set_current_buf(buffer)
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
-        precognition.show()
+        precognition.on_cursor_moved()
 
         local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
             details = true,
@@ -255,27 +276,49 @@ describe("e2e tests", function()
         eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
     end)
 
-    it("clears hints for counts above 100", function()
-        restart_child()
-        child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup({})
-            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test", "line 2" })
-            vim.api.nvim_win_set_cursor(0, { 1, 6 })
-            precognition.on_cursor_moved()
+    it("uses typed motion counts in blockwise visual mode", function()
+        rawset(vim.api, "nvim_get_mode", function()
+            return { mode = "\22" }
         end)
 
-        child.lua_func(function()
-            local precognition = require("precognition")
-            rawset(vim.api, "nvim_get_mode", function()
-                return { mode = "n" }
-            end)
-            precognition.on_key("1")
-            precognition.on_key("0")
-            precognition.on_key("1")
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
+        vim.api.nvim_win_set_cursor(0, { 1, 6 })
+
+        precognition.on_key("2")
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
+    end)
+
+    it("suppresses only counted hints for counts above 100", function()
+        rawset(vim.api, "nvim_get_mode", function()
+            return { mode = "n" }
         end)
 
-        ss(child.get_screenshot())
+        local buffer = vim.api.nvim_create_buf(true, false)
+        vim.api.nvim_set_current_buf(buffer)
+        vim.api.nvim_buf_set_lines(
+            buffer,
+            0,
+            -1,
+            false,
+            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+        )
+        vim.api.nvim_win_set_cursor(0, { 1, 6 })
+
+        precognition.on_key("1")
+        precognition.on_key("0")
+        precognition.on_key("1")
+
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+            details = true,
+        })
+        eq("^                        $", extmarks[3].virt_lines[1][1][1])
+        eq(3, #get_gutter_extmarks(buffer))
     end)
 
     it("ignores operator-pending counts", function()

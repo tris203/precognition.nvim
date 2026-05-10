@@ -286,10 +286,10 @@ local function display_marks()
 
     local utils = require("precognition.utils")
     local count = utils.motion_count_from_motionstring(motion_count_prefix)
-    if count > 100 then
-        clear_hints()
+    local suppress_counted_motion_hints = count > 100
+    if suppress_counted_motion_hints then
         vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
-        return
+        count = 1
     end
 
     local bufnr = vim.api.nvim_get_current_buf()
@@ -305,6 +305,13 @@ local function display_marks()
 
     local line_len = vim.fn.strcharlen(cur_line)
 
+    local function count_motion(motion)
+        if suppress_counted_motion_hints then
+            return nil
+        end
+        return utils.count_motion(count, motion, cur_line, cursorcol, line_len)
+    end
+
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
     local motions = require("precognition.motions").get_motions()
@@ -315,24 +322,24 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = utils.count_motion(count, function(str, col, len)
+        w = count_motion(function(str, col, len)
             return motions.next_word_boundary(str, col, len, false)
-        end, cur_line, cursorcol, line_len),
-        e = utils.count_motion(count, function(str, col, len)
+        end),
+        e = count_motion(function(str, col, len)
             return motions.end_of_word(str, col, len, false)
-        end, cur_line, cursorcol, line_len),
-        b = utils.count_motion(count, function(str, col, len)
+        end),
+        b = count_motion(function(str, col, len)
             return motions.prev_word_boundary(str, col, len, false)
-        end, cur_line, cursorcol, line_len),
-        W = utils.count_motion(count, function(str, col, len)
+        end),
+        W = count_motion(function(str, col, len)
             return motions.next_word_boundary(str, col, len, true)
-        end, cur_line, cursorcol, line_len),
-        E = utils.count_motion(count, function(str, col, len)
+        end),
+        E = count_motion(function(str, col, len)
             return motions.end_of_word(str, col, len, true)
-        end, cur_line, cursorcol, line_len),
-        B = utils.count_motion(count, function(str, col, len)
+        end),
+        B = count_motion(function(str, col, len)
             return motions.prev_word_boundary(str, col, len, true)
-        end, cur_line, cursorcol, line_len),
+        end),
         MatchingPair = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = motions.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
@@ -476,7 +483,12 @@ local function on_key(key)
     end
 
     local mode = vim.api.nvim_get_mode().mode
-    if mode ~= "n" and mode ~= "v" and mode ~= "V" then
+    if mode ~= "n" and mode ~= "v" and mode ~= "V" and mode ~= "\22" then
+        return
+    end
+
+    if not visible then
+        motion_count_prefix = nil
         return
     end
 
@@ -550,6 +562,7 @@ function M.hide()
         return
     end
     visible = false
+    motion_count_prefix = nil
     cached_on_cursor_moved = nil
     clear_hints()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
