@@ -487,28 +487,35 @@ local function on_key(key)
         return
     end
 
-    if not visible then
-        motion_count_prefix = nil
-        return
-    end
-
     handling_key = true
-    local prev_motion_count_prefix = motion_count_prefix
-    if key:match("^%d$") then
-        if key == "0" and not motion_count_prefix then
+    local ok, err = xpcall(function()
+        if not visible then
             motion_count_prefix = nil
-        else
-            motion_count_prefix = (motion_count_prefix or "") .. key
+            return
         end
-    else
-        motion_count_prefix = nil
-    end
 
-    if visible and motion_count_prefix ~= prev_motion_count_prefix then
-        get_on_cursor_moved()({ buf = vim.api.nvim_get_current_buf() })
-        vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
-    end
+        local prev_motion_count_prefix = motion_count_prefix
+        if key:match("^%d$") then
+            if key == "0" and not motion_count_prefix then
+                motion_count_prefix = nil
+            else
+                motion_count_prefix = (motion_count_prefix or "") .. key
+            end
+        else
+            motion_count_prefix = nil
+        end
+
+        if visible and motion_count_prefix ~= prev_motion_count_prefix then
+            get_on_cursor_moved()({ buf = vim.api.nvim_get_current_buf() })
+            -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
+            vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+        end
+    end, debug.traceback)
+
     handling_key = false
+    if not ok then
+        error(err)
+    end
 end
 
 --- Show the hints until the next keypress or CursorMoved event
