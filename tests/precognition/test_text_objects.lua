@@ -264,6 +264,6 @@ describe("text object hints", function()
         vim.wait(150)
 
         eq(nil, precognition.pending_command_prefix)
-        eq('^    % b   w          $', virt_line_text(text_object_extmark()))
+        eq("^    % b   w          $", virt_line_text(text_object_extmark()))
     end)
 end)
