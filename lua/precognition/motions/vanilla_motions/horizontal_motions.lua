@@ -11,6 +11,24 @@ local supportedBrackets = {
     close = {},
 }
 
+local paired_text_objects = {
+    { open = "(", close = ")", prio = 50 },
+    { open = "{", close = "}", prio = 40 },
+    { open = "[", close = "]", prio = 30 },
+    { open = "<", close = ">", prio = 20 },
+}
+
+local quote_text_objects = {
+    { quote = '"', prio = 60 },
+    { quote = "'", prio = 59 },
+    { quote = "`", prio = 58 },
+}
+
+local availability_text_objects = {
+    { label = "w", prio = 10 },
+    { label = "W", prio = 9 },
+}
+
 for _, pair in ipairs(pairs) do
     local open, close = pair:match("(.):(.)")
     if open and close then
@@ -316,6 +334,222 @@ function M.matching_pair(str, cursorcol, _linelen)
     return function()
         return 0
     end
+end
+
+---@param str string
+---@param col integer
+---@return string
+local function char_at(str, col)
+    return vim.fn.strcharpart(str, col - 1, 1)
+end
+
+---@param str string
+---@param cursorcol integer
+---@param open string
+---@param close string
+---@return integer?
+---@return integer?
+local function find_enclosing_pair(str, cursorcol, open, close)
+    local depth = 0
+    local open_col
+    for col = cursorcol, 1, -1 do
+        local char = char_at(str, col)
+        if char == close then
+            depth = depth + 1
+        elseif char == open then
+            if depth == 0 then
+                open_col = col
+                break
+            end
+            depth = depth - 1
+        end
+    end
+    if not open_col then
+        return nil, nil
+    end
+
+    depth = 0
+    for col = open_col + 1, vim.fn.strcharlen(str) do
+        local char = char_at(str, col)
+        if char == open then
+            depth = depth + 1
+        elseif char == close then
+            if depth == 0 then
+                if open_col < cursorcol and col > cursorcol then
+                    return open_col, col
+                end
+                return nil, nil
+            end
+            depth = depth - 1
+        end
+    end
+
+    return nil, nil
+end
+
+---@param str string
+---@param cursorcol integer
+---@param open string
+---@param close string
+---@return integer?
+---@return integer?
+local function find_next_pair(str, cursorcol, open, close)
+    local line_len = vim.fn.strcharlen(str)
+    for col = cursorcol, line_len do
+        if char_at(str, col) == open then
+            local depth = 0
+            for end_col = col + 1, line_len do
+                local char = char_at(str, end_col)
+                if char == open then
+                    depth = depth + 1
+                elseif char == close then
+                    if depth == 0 then
+                        return col, end_col
+                    end
+                    depth = depth - 1
+                end
+            end
+        end
+    end
+
+    return nil, nil
+end
+
+---@param str string
+---@param cursorcol integer
+---@param quote string
+---@return integer?
+---@return integer?
+local function find_enclosing_quote(str, cursorcol, quote)
+    local before
+    for col = cursorcol, 1, -1 do
+        if char_at(str, col) == quote then
+            before = col
+            break
+        end
+    end
+    if not before then
+        return nil, nil
+    end
+
+    for col = cursorcol + 1, vim.fn.strcharlen(str) do
+        if char_at(str, col) == quote then
+            return before, col
+        end
+    end
+
+    return nil, nil
+end
+
+---@param str string
+---@param cursorcol integer
+---@param quote string
+---@return integer?
+---@return integer?
+local function find_next_quote(str, cursorcol, quote)
+    local start_col
+    for col = cursorcol, vim.fn.strcharlen(str) do
+        if char_at(str, col) == quote then
+            if start_col then
+                return start_col, col
+            end
+            start_col = col
+        end
+    end
+
+    return nil, nil
+end
+
+---@param prefix string
+---@param start_col integer
+---@param end_col integer
+---@return integer
+---@return integer
+local function range_for_prefix(prefix, start_col, end_col)
+    if prefix:sub(-1) == "i" then
+        return start_col + 1, end_col - 1
+    end
+    return start_col, end_col
+end
+
+---@param anchors Precognition.TextObjectAnchor[]
+---@param ranges Precognition.RangePreview[]
+---@param prefix string
+---@param start_col integer
+---@param end_col integer
+---@param start_label string
+---@param end_label string
+---@param prio integer
+local function add_text_object_hint(anchors, ranges, prefix, start_col, end_col, start_label, end_label, prio)
+    table.insert(anchors, { label = start_label, col = start_col, prio = prio })
+    table.insert(anchors, { label = end_label, col = end_col, prio = prio })
+    local range_start, range_end = range_for_prefix(prefix, start_col, end_col)
+    if range_start <= range_end then
+        table.insert(ranges, { start_col = range_start, end_col = range_end, depth = end_col - start_col })
+    end
+end
+
+---@param prefix string
+---@param cur_line string
+---@param cursorcol integer
+---@param line_len integer
+---@return Precognition.TextObjectAnchor[]
+---@return Precognition.RangePreview[]
+function M.text_object_hints(prefix, cur_line, cursorcol, line_len)
+    local anchors = {}
+    local ranges = {}
+
+    for _, text_object in ipairs(quote_text_objects) do
+        local start_col, end_col = find_enclosing_quote(cur_line, cursorcol, text_object.quote)
+        if not start_col then
+            start_col, end_col = find_next_quote(cur_line, cursorcol, text_object.quote)
+        end
+        if start_col and end_col then
+            add_text_object_hint(
+                anchors,
+                ranges,
+                prefix,
+                start_col,
+                end_col,
+                text_object.quote,
+                text_object.quote,
+                text_object.prio
+            )
+        end
+    end
+
+    for _, text_object in ipairs(paired_text_objects) do
+        local start_col, end_col = find_enclosing_pair(cur_line, cursorcol, text_object.open, text_object.close)
+        if not start_col then
+            start_col, end_col = find_next_pair(cur_line, cursorcol, text_object.open, text_object.close)
+        end
+        if start_col and end_col then
+            add_text_object_hint(
+                anchors,
+                ranges,
+                prefix,
+                start_col,
+                end_col,
+                text_object.open,
+                text_object.close,
+                text_object.prio
+            )
+        end
+    end
+
+    local availability_col = math.min(cursorcol, line_len)
+    for index, text_object in ipairs(availability_text_objects) do
+        local col = availability_col + index - 1
+        if col <= line_len then
+            table.insert(anchors, { label = text_object.label, col = col, prio = text_object.prio })
+        end
+    end
+
+    table.sort(ranges, function(a, b)
+        return a.depth < b.depth
+    end)
+
+    return anchors, ranges
 end
 
 return M

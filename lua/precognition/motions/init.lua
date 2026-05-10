@@ -24,6 +24,7 @@ local FUNCTION_NAMES = {
     "matching_pair",
     "matching_comment",
     "matching_bracket",
+    "text_object_hints",
 }
 
 --- Reset to vanilla motion adapters.

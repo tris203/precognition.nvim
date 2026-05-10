@@ -66,4 +66,67 @@ M.check = function(line, col)
     return check_pos(line, col, require("precognition").default_hint_config)
 end
 
+---@param line string
+---@param col integer
+---@param keys string
+---@return integer?
+---@return integer?
+local function select_text_object(line, col, keys)
+    local buf = ensure_sim_buf()
+    local start_col
+    local end_col
+
+    vim.api.nvim_buf_call(buf, function()
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", line, "" })
+        vim.fn.setcursorcharpos(2, col)
+        vim.cmd({ cmd = "normal", bang = true, args = { "v" .. keys } })
+
+        local visual_start = vim.fn.getpos("v")
+        local visual_end = vim.fn.getcursorcharpos(0)
+        if visual_start[2] == 2 and visual_end[2] == 2 then
+            start_col = math.min(visual_start[3], visual_end[3])
+            end_col = math.max(visual_start[3], visual_end[3])
+        end
+
+        vim.cmd({ cmd = "normal", bang = true, args = { "\27" } })
+    end)
+
+    return start_col, end_col
+end
+
+M.select_text_object = select_text_object
+
+---@param line string
+---@param col integer
+---@param keys_by_name table<string, string>
+---@return table<string, { start_col: integer, end_col: integer }>
+local function select_text_objects(line, col, keys_by_name)
+    local buf = ensure_sim_buf()
+    local selections = {}
+
+    vim.api.nvim_buf_call(buf, function()
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", line, "" })
+
+        for name, keys in pairs(keys_by_name) do
+            vim.fn.setcursorcharpos(2, col)
+            vim.cmd({ cmd = "normal", bang = true, args = { "v" .. keys } })
+
+            local visual_start = vim.fn.getpos("v")
+            local visual_end = vim.fn.getcursorcharpos(0)
+            if visual_start[2] == 2 and visual_end[2] == 2 then
+                selections[name] = {
+                    start_col = math.min(visual_start[3], visual_end[3]),
+                    end_col = math.max(visual_start[3], visual_end[3]),
+                }
+            end
+
+            vim.cmd({ cmd = "normal", bang = true, args = { "\27" } })
+        end
+    end)
+
+    return selections
+end
+
+M.select_text_objects = select_text_objects
+
 return M
