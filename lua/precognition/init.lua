@@ -787,8 +787,12 @@ local function on_key(key)
         if visible and prefix_changed then
             dirty = true
             if defer_redraw then
+                local prefix = pending_command_prefix
+                if not prefix then
+                    return
+                end
                 redraw_marks(true)
-                schedule_visual_text_object_repaint(pending_command_prefix)
+                schedule_visual_text_object_repaint(prefix)
             else
                 redraw_marks()
             end
