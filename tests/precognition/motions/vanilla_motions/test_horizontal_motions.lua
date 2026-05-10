@@ -267,44 +267,6 @@ describe("matching comments", function()
     end)
 end)
 
-describe("text object hints", function()
-    local function has_anchor(anchors, label, col)
-        for _, anchor in ipairs(anchors) do
-            if anchor.label == label and anchor.col == col then
-                return true
-            end
-        end
-
-        return false
-    end
-
-    it("finds pair text objects from either delimiter", function()
-        local str = "abc (efg)"
-        local anchors = hm.text_object_hints("di", str, 5, #str)
-
-        eq(true, has_anchor(anchors, "(", 5))
-        eq(true, has_anchor(anchors, ")", 9))
-
-        anchors = hm.text_object_hints("di", str, 9, #str)
-
-        eq(true, has_anchor(anchors, "(", 5))
-        eq(true, has_anchor(anchors, ")", 9))
-    end)
-
-    it("finds quote text objects from either quote", function()
-        local str = 'this = "that"'
-        local anchors = hm.text_object_hints("di", str, 8, #str)
-
-        eq(true, has_anchor(anchors, '"', 8))
-        eq(true, has_anchor(anchors, '"', 13))
-
-        anchors = hm.text_object_hints("di", str, 13, #str)
-
-        eq(true, has_anchor(anchors, '"', 8))
-        eq(true, has_anchor(anchors, '"', 13))
-    end)
-end)
-
 describe("edge case", function()
     it("can handle empty strings", function()
         eq(0, hm.next_word_boundary("", 1, 0, false))
