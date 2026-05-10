@@ -79,12 +79,13 @@ describe("text object hints", function()
         end)
 
         precognition.on_key("i")
-        vim.wait(150, function()
+        local ok = vim.wait(150, function()
             if not precognition.extmark then
                 return false
             end
             return virt_line_text(text_object_extmark()) == '    ({       "    w" })'
         end)
+        eq(true, ok)
 
         local extmark = text_object_extmark()
         eq('    ({       "    w" })', virt_line_text(extmark))
@@ -261,7 +262,11 @@ describe("text object hints", function()
 
         vim.api.nvim_win_set_cursor(0, { 1, 10 })
         precognition.on_cursor_moved()
-        vim.wait(150)
+        local ok = vim.wait(150, function()
+            return precognition.pending_command_prefix == nil
+                and virt_line_text(text_object_extmark()) == "^    % b   w          $"
+        end)
+        eq(true, ok)
 
         eq(nil, precognition.pending_command_prefix)
         eq("^    % b   w          $", virt_line_text(text_object_extmark()))
