@@ -96,7 +96,8 @@
 --- Otherwise, it uses the current buffer.
 ---@field prev_paragraph_line? fun(bufnr?: integer): Precognition.PlaceLoc
 ---
----@field text_object_hints? fun(prefix: string, line_content: string, cursorcol: integer, linelen: integer): Precognition.TextObjectAnchor[], Precognition.RangePreview[]
+---@field text_object_hints? fun(prefix: string, line_content: string, cursorcol: integer, linelen: integer):
+---    Precognition.TextObjectAnchor[], Precognition.RangePreview[]
 ---
 local M = {}
 

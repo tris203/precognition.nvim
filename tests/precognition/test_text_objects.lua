@@ -168,6 +168,58 @@ describe("text object hints", function()
         eq(0x00ff00, range3.bg)
     end)
 
+    it("only uses configured text object range highlights", function()
+        precognition.setup({
+            textObjectHighlightColors = {
+                { link = "Search" },
+            },
+        })
+
+        precognition.on_key("d")
+        precognition.on_key("i")
+
+        local groups = {}
+        for _, chunk in ipairs(text_object_extmark()[3].virt_lines[1]) do
+            groups[chunk[2]] = true
+        end
+
+        eq(true, groups.PrecognitionTextObjectRange1)
+        eq(nil, groups.PrecognitionTextObjectRange2)
+        eq(nil, groups.PrecognitionTextObjectRange3)
+    end)
+
+    it("accounts for inlay hint padding in text object hints", function()
+        local original_is_enabled = vim.lsp.inlay_hint.is_enabled
+        local original_get = vim.lsp.inlay_hint.get
+        vim.lsp.inlay_hint.is_enabled = function()
+            return true
+        end
+        vim.lsp.inlay_hint.get = function()
+            return {
+                {
+                    inlay_hint = {
+                        label = "xx",
+                        paddingLeft = false,
+                        paddingRight = false,
+                        position = { character = 4 },
+                    },
+                },
+            }
+        end
+
+        local ok, err = pcall(function()
+            precognition.on_key("d")
+            precognition.on_key("i")
+
+            eq('      ({       " wW  " })', virt_line_text(text_object_extmark()))
+        end)
+        vim.lsp.inlay_hint.is_enabled = original_is_enabled
+        vim.lsp.inlay_hint.get = original_get
+        if not ok then
+            error(err)
+        end
+    end)
+
     it("clears the text object prefix after cursor movement", function()
         precognition.on_key("d")
         precognition.on_key("i")

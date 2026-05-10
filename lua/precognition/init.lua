@@ -177,7 +177,7 @@ local function build_text_object_virt_line(anchors, line_len, extra_padding, min
     local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
 
     ranges = ranges or {}
-    for index = math.min(#ranges, 3), 1, -1 do
+    for index = math.min(#ranges, #config.textObjectHighlightColors), 1, -1 do
         local range = ranges[index]
         local hl_group = "PrecognitionTextObjectRange" .. index
         for col = range.start_col, range.end_col do
@@ -456,12 +456,30 @@ local function display_marks()
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
 
+    local function add_inlay_hint_padding()
+        if compat.inlay_hints_enabled({ bufnr = 0 }) then
+            local inlays_hints = vim.lsp.inlay_hint.get({
+                bufnr = 0,
+                range = {
+                    start = { line = cursorline - 1, character = 0 },
+                    ["end"] = { line = cursorline - 1, character = line_len - 1 },
+                },
+            })
+
+            for _, hint in ipairs(inlays_hints) do
+                local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
+                table.insert(extra_padding, { start = ws_offset, length = length })
+            end
+        end
+    end
+
     if is_operator_prefix(pending_command_prefix) then
         clear_hints()
         return
     end
 
     if is_text_object_prefix(pending_command_prefix) then
+        add_inlay_hint_padding()
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
         local min_width
@@ -517,20 +535,7 @@ local function display_marks()
         Zero = 1,
     }
 
-    if compat.inlay_hints_enabled({ bufnr = 0 }) then
-        local inlays_hints = vim.lsp.inlay_hint.get({
-            bufnr = 0,
-            range = {
-                start = { line = cursorline - 1, character = 0 },
-                ["end"] = { line = cursorline - 1, character = line_len - 1 },
-            },
-        })
-
-        for _, hint in ipairs(inlays_hints) do
-            local length, ws_offset = utils.calc_ws_offset(hint, tab_width, vim.api.nvim_get_current_line())
-            table.insert(extra_padding, { start = ws_offset, length = length })
-        end
-    end
+    add_inlay_hint_padding()
     --multicharacter padding
 
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)

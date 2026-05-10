@@ -352,12 +352,13 @@ end
 local function find_enclosing_pair(str, cursorcol, open, close)
     local depth = 0
     local open_col
+    local cursor_on_close = char_at(str, cursorcol) == close
     for col = cursorcol, 1, -1 do
         local char = char_at(str, col)
         if char == close then
             depth = depth + 1
         elseif char == open then
-            if depth == 0 then
+            if depth == 0 or (cursor_on_close and depth == 1) then
                 open_col = col
                 break
             end
@@ -375,7 +376,7 @@ local function find_enclosing_pair(str, cursorcol, open, close)
             depth = depth + 1
         elseif char == close then
             if depth == 0 then
-                if open_col < cursorcol and col > cursorcol then
+                if open_col <= cursorcol and col >= cursorcol then
                     return open_col, col
                 end
                 return nil, nil
@@ -422,17 +423,22 @@ end
 ---@return integer?
 local function find_enclosing_quote(str, cursorcol, quote)
     local before
-    for col = cursorcol, 1, -1 do
+    local cursor_on_quote = char_at(str, cursorcol) == quote
+    local search_start = cursor_on_quote and cursorcol - 1 or cursorcol
+    for col = search_start, 1, -1 do
         if char_at(str, col) == quote then
             before = col
             break
         end
     end
     if not before then
+        before = cursor_on_quote and cursorcol or nil
+    end
+    if not before then
         return nil, nil
     end
 
-    for col = cursorcol + 1, vim.fn.strcharlen(str) do
+    for col = before + 1, vim.fn.strcharlen(str) do
         if char_at(str, col) == quote then
             return before, col
         end
