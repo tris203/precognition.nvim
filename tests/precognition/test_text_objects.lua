@@ -3,10 +3,6 @@ local eq = MiniTest.expect.equality
 local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
 
-local function restart_child()
-    child.restart({ "-u", "scripts/minimal_init.lua" })
-end
-
 local function text_object_extmark()
     local ns = vim.api.nvim_create_namespace("precognition")
     local first = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})[1]
@@ -55,7 +51,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
 
         local extmark = text_object_extmark()
@@ -71,7 +67,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
         eq(true, ok)
 
@@ -90,7 +86,7 @@ describe("text object hints", function()
             local has_extmark = (extmarks[1] or {})[1] ~= nil
             local extmark = text_object_extmark()
             local has_virt_lines = extmark and extmark[3].virt_lines ~= nil
-            return has_extmark and has_virt_lines
+            return has_extmark and has_virt_lines or false
         end)
         eq(true, waited)
 
@@ -104,7 +100,7 @@ describe("text object hints", function()
         vim.api.nvim_input("v")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == before
+            return extmark and virt_line_text(extmark) == before or false
         end)
 
         eq(true, ok)
@@ -117,7 +113,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and extmark[3].virt_lines ~= nil
+            return extmark and extmark[3].virt_lines ~= nil or false
         end)
         eq(true, ok)
 
@@ -138,7 +134,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
 
         local extmark = text_object_extmark()
@@ -153,7 +149,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '   w({       "     " })'
+            return extmark and virt_line_text(extmark) == '   w({       "     " })' or false
         end)
 
         local extmark = text_object_extmark()
@@ -175,7 +171,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
         eq(true, ok)
 
@@ -219,7 +215,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
         eq(true, ok)
 
@@ -259,7 +255,7 @@ describe("text object hints", function()
             vim.api.nvim_input("i")
             local waited = vim.wait(150, function()
                 local extmark = text_object_extmark()
-                return extmark and virt_line_text(extmark) == '      ({       "    w" })'
+                return extmark and virt_line_text(extmark) == '      ({       "    w" })' or false
             end)
 
             eq(true, waited)
@@ -277,13 +273,13 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local entered = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
         eq(true, entered)
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == "^    % b   w          $"
+            return extmark and virt_line_text(extmark) == "^    % b   w          $" or false
         end)
 
         eq(true, ok)
@@ -298,7 +294,7 @@ describe("text object hints", function()
         vim.api.nvim_input("i")
         local entered = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })' or false
         end)
         eq(true, entered)
 
@@ -306,7 +302,7 @@ describe("text object hints", function()
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
         local ok = vim.wait(150, function()
             local extmark = text_object_extmark()
-            return extmark and virt_line_text(extmark) == "^    % b   w          $"
+            return extmark and virt_line_text(extmark) == "^    % b   w          $" or false
         end)
         eq(true, ok)
 
