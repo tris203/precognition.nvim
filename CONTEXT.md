@@ -28,6 +28,34 @@ _Avoid_: Count hint, repeated hint
 The leading numeric prefix used to calculate a Counted Motion Destination.
 _Avoid_: Operator count, command count
 
+**Pending Command Prefix**:
+The typed input that has begun a Vim command but has not yet completed it, such as a count prefix or a text-object prefix.
+_Avoid_: Partial command, key buffer
+
+**Text Object Hint**:
+A Hint shown for a Vim text object after the user enters a text-object prefix, such as `vi`, `di`, `ci`, `yi`, `va`, `da`, `ca`, or `ya`.
+_Avoid_: Inside jump hint, inside command hint
+
+**Spatial Text Object Hint**:
+A Text Object Hint anchored to one or more visible buffer characters to preview a text object's visible boundaries.
+_Avoid_: Positional text-object hint
+
+**Range Preview**:
+A highlighted buffer range showing what a text object command would affect if completed with the hinted key.
+_Avoid_: Selection preview, background hint
+
+**Availability Text Object Hint**:
+A Text Object Hint that indicates a text object is valid from the current cursor context without claiming a precise buffer position.
+_Avoid_: Non-positional text-object hint, text-object menu item
+
+**Text Object Source**:
+A source of text-object candidates that can be shown as Text Object Hints.
+_Avoid_: Text object motion
+
+**Precognition Adapter**:
+An extension point that may provide Motion behavior and Text Object Hint behavior.
+_Avoid_: Treating text objects as cursor destinations
+
 **Destination**:
 The buffer position where Vim would land after a Motion, even when that is the current position.
 _Avoid_: Location, place, mark
@@ -59,6 +87,45 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - Count prefixes above `100` suppress **Counted Motion** Hints.
 - Count parsing for **Counted Motion** Hints uses the leading numeric count prefix only.
 - A **Motion Count** is the leading numeric prefix used to calculate a **Counted Motion** **Destination**.
+- A **Pending Command Prefix** is broader than a **Motion Count**; **Motion Count** was the first supported prefix behavior, and **Text Object Hints** add text-object prefix behavior.
+- A **Text Object Hint** is different from a **Motion** Hint because it previews an available text object after a pending text-object prefix rather than a cursor **Destination**.
+- While a text-object **Pending Command Prefix** is active, **Text Object Hints** replace normal **Motion** Hints rather than appearing alongside them.
+- Once an operator or text-object **Pending Command Prefix** is active, normal **Motion** Hints remain suppressed until that prefix is completed or cancelled.
+- **Text Object Hints** should support both inside text-object prefixes, such as `vi`, and around text-object prefixes, such as `va`.
+- Inside and around prefixes use the same **Text Object Hint** candidates, but each candidate's meaning follows the active prefix.
+- Built-in Vim text objects are the default **Text Object Hint** candidates; additional text objects may be exposed by a **Text Object Source**.
+- **Text Object Sources** are conceptually separate from Motion sources because text objects are not **Motions** and do not have cursor **Destinations**.
+- A **Precognition Adapter** may provide both Motion behavior and **Text Object Hint** behavior.
+- Existing Motion registration is the current integration path for both Motion behavior and **Text Object Hint** behavior.
+- The inline renderer chooses between normal horizontal **Motion** Hints and **Text Object Hints** based on the active **Pending Command Prefix**.
+- **Text Object Hints** have configuration separate from normal **Motion** Hints and **Gutter Hints**.
+- **Text Object Hints** are part of default Hint behavior and do not have a separate disable option.
+- Initial **Text Object Hints** include positional delimiters and quotes, plus word and big-word **Availability Text Object Hints**.
+- A **Spatial Text Object Hint** anchors a **Text Object Hint** to one or more visible buffer characters to help the user understand the range affected by the next key.
+- A **Range Preview** shows what a text object command would affect if completed with the hinted key.
+- An **Availability Text Object Hint** indicates that a text object is available without claiming a precise buffer position.
+- **Availability Text Object Hints** represent valid next keys for the active text-object prefix, not a guarantee that the resulting selection will be semantically useful.
+- A **Spatial Text Object Hint** should show the nearest valid text object for each candidate key, matching what the next key would choose.
+- A **Spatial Text Object Hint** may render multiple anchors when a single text object has multiple visible boundaries.
+- Paired delimiter **Spatial Text Object Hints** should render each delimiter's literal key at its boundary, such as `(` on the opening parenthesis and `)` on the closing parenthesis.
+- Quote **Spatial Text Object Hints** should render the quote key on both quote boundaries.
+- A **Spatial Text Object Hint** may include a **Range Preview** in addition to boundary key labels.
+- **Range Previews** are shown for **Spatial Text Object Hints**, not **Availability Text Object Hints**.
+- A **Range Preview** should only appear when Precognition can model the affected range faithfully; otherwise the **Spatial Text Object Hint** should show boundary labels without a range preview.
+- Initial **Range Preview** support is limited to current-line ranges; multiline range previews are deferred until designed separately.
+- Initial **Spatial Text Object Hint** support is limited to text objects whose visible boundaries are both on the current line.
+- Inside and around text-object prefixes may share boundary anchors while using different **Range Previews**.
+- Overlapping **Range Previews** should stack to show nesting, with a small deterministic cap on visible range layers.
+- Stacked **Range Preview** layers are ordered by text-object nesting first and **Hint Priority** breaks ties for equivalent or ambiguous ranges.
+- Positional **Text Object Hints** may reuse existing Motion-source calculations internally, but they remain text-object concepts in the domain language.
+- The same **Text Object Hints** should appear for selection, deletion, and change prefixes because the operator does not change which text objects are available.
+- Initial text-object **Pending Command Prefix** support includes selection, delete, change, and yank prefixes.
+- In visual mode, `i` and `a` are text-object **Pending Command Prefixes** even without a leading `v`.
+- Rendering **Text Object Hints** in visual mode must preserve the active visual selection and its anchor.
+- Raw typed keys identify candidate **Pending Command Prefixes**, while the current Vim mode determines whether a candidate prefix is active.
+- Initial text-object **Pending Command Prefix** support targets directly typed prefixes; mapping-expanded prefixes are out of scope until designed separately.
+- Counted text-object range previews are out of scope initially; counts may still allow **Text Object Hints** to show available candidate keys.
+- A text-object **Pending Command Prefix** ends when a key completes or invalidates it, the cursor moves, the user enters insert or command-line mode, the buffer is left, or the user cancels with `Esc` or `Ctrl-C`.
 - **Counted Motion** Hints are part of default Hint behavior and do not have a separate disable option.
 - Operator-pending counts, such as `2d3w`, are intentionally out of scope until operator-pending behavior is designed separately.
 - The current count prefix should be treated as input to **Counted Motion** Hint calculation, not as a rendering concern.
