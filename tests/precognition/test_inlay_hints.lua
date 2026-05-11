@@ -1,19 +1,7 @@
-local server = require("tests.precognition.utils.lsp").server
-local compat = require("tests.precognition.utils.compat")
 local utils = require("precognition.utils")
-local precognition = require("precognition")
 local eq = MiniTest.expect.equality
-local neq = MiniTest.expect.no_equality
 local ss = MiniTest.expect.reference_screenshot
 local child = MiniTest.new_child_neovim()
-local buf
-
-local function wait(condition, msg)
-    vim.wait(100, condition)
-    local result = condition()
-    neq(false, result, { fail_reason = msg })
-    neq(nil, result, { fail_reason = msg })
-end
 
 describe("inlay hint utils", function()
     it("calculates lua style inlay hints", function()
@@ -102,33 +90,44 @@ end)
 
 describe("lsp based tests", function()
     before_each(function()
-        pcall(precognition.hide)
-        precognition.setup({})
-        require("tests.precognition.utils.lsp").Reset()
-        buf = vim.api.nvim_create_buf(true, false)
-        vim.lsp.start({ cmd = server }, { bufnr = buf })
+        child.restart({ "-u", "scripts/minimal_init.lua" })
     end)
 
     it("initialize lsp", function()
-        eq(2, #require("tests.precognition.utils.lsp").messages)
-        eq("initialize", require("tests.precognition.utils.lsp").messages[1].method)
-        eq("initialized", require("tests.precognition.utils.lsp").messages[2].method)
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            local lsp = require("tests.precognition.utils.lsp")
+            local buf = vim.api.nvim_create_buf(true, false)
+
+            lsp.Reset()
+            vim.lsp.start({ cmd = lsp.server }, { bufnr = buf })
+
+            eq(2, #lsp.messages)
+            eq("initialize", lsp.messages[1].method)
+            eq("initialized", lsp.messages[2].method)
+        end)
     end)
 
     it("can enable inlay hints", function()
-        vim.lsp.inlay_hint.enable(true, { bufnr = buf })
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            local lsp = require("tests.precognition.utils.lsp")
+            local buf = vim.api.nvim_create_buf(true, false)
 
-        eq(3, #require("tests.precognition.utils.lsp").messages)
-        eq("textDocument/inlayHint", require("tests.precognition.utils.lsp").messages[3].method)
+            lsp.Reset()
+            vim.lsp.start({ cmd = lsp.server }, { bufnr = buf })
+            vim.lsp.inlay_hint.enable(true, { bufnr = buf })
+
+            eq(3, #lsp.messages)
+            eq("textDocument/inlayHint", lsp.messages[3].method)
+        end)
     end)
 
     it("inlay hint shifts the line", function()
-        child.restart({ "-u", "scripts/minimal_init.lua" })
-        child.lua([[
-            local precognition = require("precognition")
+        child.lua_func(function()
             local lsp = require("tests.precognition.utils.lsp")
             lsp.Reset()
-            precognition.setup({})
+            require("precognition").setup({})
             local buf = vim.api.nvim_create_buf(true, false)
             vim.api.nvim_set_current_buf(buf)
             vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "here is a string" })
@@ -136,7 +135,7 @@ describe("lsp based tests", function()
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
             vim.lsp.inlay_hint.enable(true, { bufnr = buf })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
         ss(child.get_screenshot())
     end)
 
@@ -144,13 +143,5 @@ describe("lsp based tests", function()
         if child.is_running() then
             child.stop()
         end
-        vim.lsp.inlay_hint.enable(false, { bufnr = buf })
-        vim.api.nvim_buf_delete(buf, { force = true })
-        for _, client in ipairs(compat.get_active_lsp_clients()) do
-            client:stop()
-        end
-        wait(function()
-            return vim.tbl_count(compat.get_active_lsp_clients()) == 0
-        end, "clients must stop")
     end)
 end)
