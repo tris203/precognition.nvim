@@ -1,11 +1,6 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
-local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
-
-local function restart_child()
-    child.restart({ "-u", "scripts/minimal_init.lua" })
-end
 
 local function get_gutter_extmarks(buffer)
     local gutter_extmarks = {}
@@ -56,9 +51,6 @@ describe("e2e tests", function()
 
     after_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
-        if child.is_running() then
-            child.stop()
-        end
     end)
 
     it("auto commands are set", function()

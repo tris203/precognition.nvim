@@ -1,6 +1,5 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
-local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
 
 local function text_object_extmark()
@@ -38,9 +37,6 @@ describe("text object hints", function()
     after_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
         pcall(precognition.hide)
-        if child.is_running() then
-            child.stop()
-        end
     end)
 
     it("switches from motion hints to inside text object hints", function()

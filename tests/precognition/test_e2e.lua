@@ -25,21 +25,12 @@ local function get_gutter_extmarks(buffer)
     return gutter_extmarks
 end
 
-local function restart_child()
-    child.restart({ "-u", "scripts/minimal_init.lua" })
-end
-
-local function screenshot_child(lua)
-    restart_child()
-    child.lua(lua)
-    ss(child.get_screenshot())
-end
-
 describe("e2e tests", function()
     before_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
         pcall(precognition.hide)
         precognition.setup({})
+        child.restart({ "-u", "scripts/minimal_init.lua" })
     end)
     after_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
@@ -58,13 +49,19 @@ describe("e2e tests", function()
     end)
 
     it("virtual line is displayed and updated", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({})
-            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" })
+        child.lua_func(function()
+            require("precognition").setup({})
+            vim.api.nvim_buf_set_lines(
+                0,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("hides all hints in insert mode", function()
@@ -214,53 +211,64 @@ describe("e2e tests", function()
     end)
 
     it("keeps full virtual lines when wrapping is disabled", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({})
+        child.lua_func(function()
+            require("precognition").setup({})
             vim.o.columns = 20
             vim.wo.wrap = false
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
             vim.api.nvim_win_set_cursor(0, { 1, 12 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("clips wrapped virtual lines to the cursor's visual row", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({})
+        child.lua_func(function()
+            require("precognition").setup({})
             vim.o.columns = 20
             vim.wo.wrap = true
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
             vim.api.nvim_win_set_cursor(0, { 1, 22 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("virtual line text color can be customised", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({ highlightColor = { link = "Function" } })
-            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" })
+        child.lua_func(function()
+            require("precognition").setup({ highlightColor = { link = "Function" } })
+            vim.api.nvim_buf_set_lines(
+                0,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("virtual line can be customised without a link", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({ highlightColor = { foreground = "#ff0000", background = "#00ff00" } })
-            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" })
+        child.lua_func(function()
+            require("precognition").setup({ highlightColor = { foreground = "#ff0000", background = "#00ff00" } })
+            vim.api.nvim_buf_set_lines(
+                0,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("does not display blank full-width virtual lines when blank virtual lines are disabled", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({
+        child.lua_func(function()
+            require("precognition").setup({
                 showBlankVirtLine = false,
                 highlightFullVirtLine = true,
                 hints = {
@@ -279,11 +287,12 @@ describe("e2e tests", function()
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello" })
             vim.api.nvim_win_set_cursor(0, { 1, 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("pads full-width virtual lines to the text area", function()
-        screenshot_child([[
+        child.lua_func(function()
             local precognition = require("precognition")
             precognition.setup({ highlightFullVirtLine = true })
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World" })
@@ -291,7 +300,8 @@ describe("e2e tests", function()
             vim.wo.signcolumn = "yes"
             vim.api.nvim_win_set_cursor(0, { 1, 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("preserves highlight groups through a colorscheme change", function()
@@ -305,6 +315,7 @@ describe("Gutter Priority", function()
     before_each(function()
         pcall(precognition.hide)
         precognition.setup({})
+        child.restart({ "-u", "scripts/minimal_init.lua" })
     end)
     after_each(function()
         pcall(precognition.hide)
@@ -314,19 +325,18 @@ describe("Gutter Priority", function()
     end)
 
     it("0 priority item is not added", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({ gutterHints = { G = { text = "G", prio = 0 } } })
+        child.lua_func(function()
+            require("precognition").setup({ gutterHints = { G = { text = "G", prio = 0 } } })
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ABC", "DEF", "", "GHI", "", "JKL", "", "MNO" })
             vim.api.nvim_win_set_cursor(0, { 4, 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 
     it("higher priority item replaces", function()
-        screenshot_child([[
-            local precognition = require("precognition")
-            precognition.setup({
+        child.lua_func(function()
+            require("precognition").setup({
                 gutterHints = {
                     G = { text = "G", prio = 3 },
                     gg = { text = "gg", prio = 100 },
@@ -337,6 +347,7 @@ describe("Gutter Priority", function()
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ABC" })
             vim.api.nvim_win_set_cursor(0, { 1, 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        ]])
+        end)
+        ss(child.get_screenshot())
     end)
 end)
