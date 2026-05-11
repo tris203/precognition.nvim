@@ -2,7 +2,7 @@ local M = {}
 
 ---@class Precognition.PrioritizedHint
 ---@field priority integer
----@field hint any
+---@field hint string
 
 ---@class Precognition.HintPriority
 ---@field private _hints_by_destination table<integer, Precognition.PrioritizedHint>
@@ -17,9 +17,9 @@ end
 ---Add a candidate Hint. Priority zero suppresses a Hint;
 ---equal priority keeps the first Hint so rendering stays stable.
 ---@param destination integer | nil
----@param priority integer
----@param hint any
----@return any updated_hint
+---@param priority integer?
+---@param hint string
+---@return string|nil updated_hint
 function HintPriority:add(destination, priority, hint)
     priority = priority or 1
     if not destination or destination == 0 or priority <= 0 then
