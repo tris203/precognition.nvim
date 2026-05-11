@@ -1,19 +1,12 @@
-local precognition = require("precognition")
 local eq = MiniTest.expect.equality
 local ss = MiniTest.expect.reference_screenshot
 local child = MiniTest.new_child_neovim()
-local original_get_mode = vim.api.nvim_get_mode
 
 describe("e2e tests", function()
     before_each(function()
-        rawset(vim.api, "nvim_get_mode", original_get_mode)
-        pcall(precognition.hide)
-        precognition.setup({})
         child.restart({ "-u", "scripts/minimal_init.lua" })
     end)
     after_each(function()
-        rawset(vim.api, "nvim_get_mode", original_get_mode)
-        pcall(precognition.hide)
         if child.is_running() then
             child.stop()
         end
@@ -379,12 +372,9 @@ end)
 
 describe("Gutter Priority", function()
     before_each(function()
-        pcall(precognition.hide)
-        precognition.setup({})
         child.restart({ "-u", "scripts/minimal_init.lua" })
     end)
     after_each(function()
-        pcall(precognition.hide)
         if child.is_running() then
             child.stop()
         end
