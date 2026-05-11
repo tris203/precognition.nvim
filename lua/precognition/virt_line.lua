@@ -163,7 +163,7 @@ function M.fit_to_wrap(virt_line, cursorcol, width)
         return virt_line
     end
 
-    local start_col = math.floor((cursorcol - 1) / width) * width
+    local start_col = math.floor((math.max(cursorcol, 1) - 1) / width) * width
     virt_line[1][1] = slice_by_display_cols(line, start_col, width)
     return virt_line
 end
