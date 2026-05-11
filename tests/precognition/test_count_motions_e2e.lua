@@ -222,6 +222,20 @@ describe("e2e tests", function()
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
     end)
 
+    it("screenshots counted hints from typed input", function()
+        restart_child()
+        child.lua_func(function()
+            local precognition = require("precognition")
+            precognition.setup({})
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test" })
+            vim.api.nvim_win_set_cursor(0, { 1, 6 })
+            precognition.on_cursor_moved()
+            precognition.on_key("2")
+        end)
+
+        ss(child.get_screenshot())
+    end)
+
     it("does not treat leading zero as a motion count", function()
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "n" }

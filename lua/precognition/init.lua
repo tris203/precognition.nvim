@@ -1,4 +1,5 @@
 local compat = require("precognition.compat")
+local MotionCount = require("precognition.motion_count")
 
 local M = {}
 
@@ -136,8 +137,8 @@ local ns = vim.api.nvim_create_namespace("precognition")
 local range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
 ---@type string
 local gutter_group = "precognition_gutter"
----@type string | nil
-local motion_count_prefix
+---@type Precognition.MotionCount
+local motion_count = MotionCount.new()
 ---@type string | nil
 local pending_command_prefix
 ---@type boolean
@@ -427,11 +428,8 @@ local function display_marks()
     end
 
     local utils = require("precognition.utils")
-    local count = utils.motion_count_from_motionstring(motion_count_prefix)
-    local suppress_counted_motion_hints = count > 100
-    if suppress_counted_motion_hints then
+    if motion_count:is_suppressed() then
         vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
-        count = 1
     end
 
     local bufnr = vim.api.nvim_get_current_buf()
@@ -449,13 +447,6 @@ local function display_marks()
     end
 
     local line_len = vim.fn.strcharlen(cur_line)
-
-    local function count_motion(motion)
-        if suppress_counted_motion_hints then
-            return 0
-        end
-        return utils.count_motion(count, motion, cur_line, cursorcol, line_len)
-    end
 
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
@@ -509,6 +500,7 @@ local function display_marks()
     end
 
     local motions = require("precognition.motions").get_motions()
+    local counted_destinations = motion_count:destinations(motions, cur_line, cursorcol, line_len)
 
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
@@ -516,24 +508,12 @@ local function display_marks()
     ---@type Precognition.VirtLine
     local virtual_line_marks = {
         Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = count_motion(function(str, col, len)
-            return motions.next_word_boundary(str, col, len, false)
-        end),
-        e = count_motion(function(str, col, len)
-            return motions.end_of_word(str, col, len, false)
-        end),
-        b = count_motion(function(str, col, len)
-            return motions.prev_word_boundary(str, col, len, false)
-        end),
-        W = count_motion(function(str, col, len)
-            return motions.next_word_boundary(str, col, len, true)
-        end),
-        E = count_motion(function(str, col, len)
-            return motions.end_of_word(str, col, len, true)
-        end),
-        B = count_motion(function(str, col, len)
-            return motions.prev_word_boundary(str, col, len, true)
-        end),
+        w = counted_destinations.w,
+        e = counted_destinations.e,
+        b = counted_destinations.b,
+        W = counted_destinations.W,
+        E = counted_destinations.E,
+        B = counted_destinations.B,
         MatchingPair = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
         Dollar = motions.line_end(cur_line, cursorcol, line_len),
         Zero = 1,
@@ -758,23 +738,14 @@ local function on_key(key)
     handling_key = true
     local ok, err = xpcall(function()
         if not visible then
-            motion_count_prefix = nil
+            motion_count:reset()
             pending_command_prefix = nil
             return
         end
 
-        local prev_motion_count_prefix = motion_count_prefix
         local prev_pending_command_prefix = pending_command_prefix
         local defer_redraw = false
-        if key:match("^%d$") and not is_operator_pending_mode(mode) then
-            if key == "0" and not motion_count_prefix then
-                motion_count_prefix = nil
-            else
-                motion_count_prefix = (motion_count_prefix or "") .. key
-            end
-        else
-            motion_count_prefix = nil
-        end
+        local count_changed = motion_count:handle_key(key, mode)
 
         if key == "\27" or key == "\3" then
             pending_command_prefix = nil
@@ -795,8 +766,7 @@ local function on_key(key)
             pending_command_prefix = nil
         end
 
-        local prefix_changed = motion_count_prefix ~= prev_motion_count_prefix
-            or pending_command_prefix ~= prev_pending_command_prefix
+        local prefix_changed = count_changed or pending_command_prefix ~= prev_pending_command_prefix
         if visible and prefix_changed then
             dirty = true
             if defer_redraw then
@@ -866,7 +836,7 @@ end
 --- Disable automatic showing of hints
 function M.hide()
     visible = false
-    motion_count_prefix = nil
+    motion_count:reset()
     pending_command_prefix = nil
     redraw_scheduled = false
     cached_on_cursor_moved = nil
@@ -913,7 +883,7 @@ function M.setup(opts)
     range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     cached_on_cursor_moved = nil
-    motion_count_prefix = nil
+    motion_count:reset()
     pending_command_prefix = nil
     handling_key = false
     redraw_scheduled = false
@@ -970,11 +940,11 @@ local state = {
     end,
     set_motion_count_prefix = function()
         return function(cmd)
-            motion_count_prefix = cmd
+            motion_count:set_prefix(cmd)
         end
     end,
     motion_count_prefix = function()
-        return motion_count_prefix
+        return motion_count:prefix()
     end,
     set_pending_command_prefix = function()
         return function(cmd)
