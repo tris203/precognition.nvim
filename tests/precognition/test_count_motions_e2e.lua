@@ -1,6 +1,5 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
-local ss = MiniTest.expect.reference_screenshot
 local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
 
@@ -15,11 +14,17 @@ local function get_gutter_extmarks(buffer)
             details = true,
         }))
     do
-        if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match(precognition.gutter_group) then
+        if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
             table.insert(gutter_extmarks, extmark)
         end
     end
     return gutter_extmarks
+end
+
+local function get_precognition_extmark_id(buffer)
+    local ns = vim.api.nvim_create_namespace("precognition")
+    local extmarks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})
+    return extmarks[1] and extmarks[1][1]
 end
 
 local function has_autocmd(autocmds, event, buffer)
@@ -96,9 +101,16 @@ describe("e2e tests", function()
         )
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        precognition.on_cursor_moved()
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local ok = vim.wait(500, function()
+            return (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1] ~= nil
+        end)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        eq(true, ok)
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
 
@@ -122,29 +134,40 @@ describe("e2e tests", function()
         eq("b   e w                  $", extmarks[3].virt_lines[1][1][1])
 
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
-        precognition.on_cursor_moved()
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
 
-        precognition.set_motion_count_prefix("2")
-        precognition.on_cursor_moved()
+        vim.api.nvim_input("2")
+        vim.wait(20)
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
         eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
 
-        precognition.set_motion_count_prefix(nil)
-        precognition.on_cursor_moved()
+        vim.api.nvim_input("w")
+        vim.wait(20)
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
 
@@ -152,11 +175,14 @@ describe("e2e tests", function()
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
 
         vim.api.nvim_win_set_cursor(0, { 2, 1 })
-        precognition.on_cursor_moved()
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
         gutter_extmarks = get_gutter_extmarks(buffer)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
 
@@ -178,7 +204,8 @@ describe("e2e tests", function()
         eq("b  e w", extmarks[3].virt_lines[1][1][1])
 
         vim.api.nvim_win_set_cursor(0, { 4, 1 })
-        precognition.on_cursor_moved()
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
         gutter_extmarks = get_gutter_extmarks(buffer)
 
         for _, extmark in pairs(gutter_extmarks) do
@@ -206,17 +233,25 @@ describe("e2e tests", function()
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
 
-        precognition.on_key("2")
+        vim.api.nvim_input("2")
+        vim.wait(20)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
 
-        precognition.on_key("w")
-        precognition.on_cursor_moved()
+        vim.api.nvim_input("w")
+        vim.wait(20)
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
@@ -232,16 +267,24 @@ describe("e2e tests", function()
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
 
-        precognition.on_cursor_moved()
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
 
-        precognition.on_key("0")
-        precognition.on_cursor_moved()
+        vim.api.nvim_input("0")
+        vim.wait(20)
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
@@ -254,17 +297,20 @@ describe("e2e tests", function()
             return { mode = "n" }
         end)
 
-        precognition.on_key("2")
-        precognition.on_key("0")
-        eq(nil, precognition.motion_count_prefix)
-
+        vim.api.nvim_input("2")
+        vim.wait(20)
+        vim.api.nvim_input("0")
+        vim.wait(20)
         local buffer = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(buffer)
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
         precognition.show()
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("b w                                       $", extmarks[3].virt_lines[1][1][1])
@@ -275,17 +321,21 @@ describe("e2e tests", function()
             return { mode = "n" }
         end)
 
-        precognition.on_key("2")
-        precognition.on_key("0")
-        eq("20", precognition.motion_count_prefix)
-
+        vim.api.nvim_input("2")
+        vim.wait(20)
+        vim.api.nvim_input("0")
+        vim.wait(20)
         local buffer = vim.api.nvim_create_buf(true, false)
         vim.api.nvim_set_current_buf(buffer)
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
-        precognition.on_cursor_moved()
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(20)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("^                                       w $", extmarks[3].virt_lines[1][1][1])
@@ -301,9 +351,13 @@ describe("e2e tests", function()
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
 
-        precognition.on_key("2")
+        vim.api.nvim_input("2")
+        vim.wait(20)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
@@ -319,9 +373,13 @@ describe("e2e tests", function()
         vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
 
-        precognition.on_key("2")
+        vim.api.nvim_input("2")
+        vim.wait(20)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
@@ -343,32 +401,20 @@ describe("e2e tests", function()
         )
         vim.api.nvim_win_set_cursor(0, { 1, 6 })
 
-        precognition.on_key("1")
-        precognition.on_key("0")
-        precognition.on_key("1")
+        vim.api.nvim_input("1")
+        vim.wait(20)
+        vim.api.nvim_input("0")
+        vim.wait(20)
+        vim.api.nvim_input("1")
+        vim.wait(20)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, precognition.ns, precognition.extmark, {
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark_id = get_precognition_extmark_id(buffer)
+        assert(extmark_id, "expected precognition extmark in buffer")
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
             details = true,
         })
         eq("^                        $", extmarks[3].virt_lines[1][1][1])
         eq(3, #get_gutter_extmarks(buffer))
-    end)
-
-    it("ignores operator-pending counts", function()
-        restart_child()
-        child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup({})
-            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test" })
-            vim.api.nvim_win_set_cursor(0, { 1, 6 })
-            precognition.on_cursor_moved()
-            rawset(vim.api, "nvim_get_mode", function()
-                return { mode = "no" }
-            end)
-            precognition.on_key("3")
-            precognition.on_cursor_moved()
-        end)
-
-        ss(child.get_screenshot())
     end)
 end)

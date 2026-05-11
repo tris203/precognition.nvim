@@ -144,39 +144,4 @@ function M.debounce_trailing(fn, delay)
     end
 end
 
----@param motionstring string | nil
----@return integer
-function M.motion_count_from_motionstring(motionstring)
-    if motionstring == nil then
-        return 1
-    end
-
-    motionstring = motionstring:gsub("<%d+>", "")
-
-    local count = motionstring:match("^%d+")
-    return tonumber(count) or 1
-end
-
----@param count integer
----@param motion function
----@param str string
----@param cursorcol integer
----@param linelen integer
----@return integer
-function M.count_motion(count, motion, str, cursorcol, linelen)
-    local ret = cursorcol
-    local out_of_bounds = false
-    for _ = 1, count do
-        if ret <= 0 or ret > linelen then
-            out_of_bounds = true
-            break
-        end
-        ret = motion(str, ret, linelen)
-    end
-    if out_of_bounds then
-        return 0
-    end
-    return ret
-end
-
 return M
