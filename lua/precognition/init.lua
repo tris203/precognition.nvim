@@ -115,7 +115,7 @@ local function clear_hints(bufnr)
     dirty = true
 end
 
----@param marks Precognition.VirtLine
+---@param marks Precognition.VirtLine?
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
@@ -253,7 +253,7 @@ local function display_marks()
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
         min_width = vim.api.nvim_win_get_width(0) - textoff
     end
-    local virt_line = build_virt_line(plan.inline_hints or {}, line_len, extra_padding, min_width)
+    local virt_line = build_virt_line(plan.inline_hints, line_len, extra_padding, min_width)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 

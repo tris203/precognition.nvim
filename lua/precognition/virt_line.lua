@@ -17,7 +17,7 @@ function M.calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
 ---@param config Precognition.Config
----@param marks Precognition.VirtLine
+---@param marks Precognition.VirtLine?
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
