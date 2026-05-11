@@ -84,7 +84,10 @@ describe("e2e tests", function()
 
             neq(
                 nil,
-                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+                (
+                    vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1]
+                    or {}
+                )[1]
             )
             neq({}, get_gutter_extmarks(buffer))
 
@@ -92,7 +95,10 @@ describe("e2e tests", function()
 
             eq(
                 nil,
-                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+                (
+                    vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1]
+                    or {}
+                )[1]
             )
             eq({}, get_gutter_extmarks(buffer))
         end)
@@ -136,7 +142,10 @@ describe("e2e tests", function()
 
             neq(
                 nil,
-                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+                (
+                    vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1]
+                    or {}
+                )[1]
             )
 
             vim.api.nvim_win_set_cursor(0, { 2, 1 })
@@ -159,7 +168,10 @@ describe("e2e tests", function()
 
             eq(
                 nil,
-                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+                (
+                    vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1]
+                    or {}
+                )[1]
             )
             eq({}, get_gutter_extmarks(buffer))
         end)
@@ -202,7 +214,10 @@ describe("e2e tests", function()
 
             neq(
                 nil,
-                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+                (
+                    vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1]
+                    or {}
+                )[1]
             )
             neq({}, get_gutter_extmarks(buffer))
         end)
