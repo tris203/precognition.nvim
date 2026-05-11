@@ -211,7 +211,7 @@ local function display_marks()
     was_count_suppressed = count_suppressed
 
     if plan.skip_render then
-        clear_hints()
+        clear_hints(bufnr)
         return
     end
 

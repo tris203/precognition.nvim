@@ -37,6 +37,9 @@ function M.test(seed)
     vim.api.nvim_buf_set_lines(temp_buf, 0, -1, false, { cur_line })
 
     for loc, col in pairs(virtual_line_marks) do
+        if not hint_config[loc] then
+            error(string.format("missing hint_config entry for loc %s: %s", loc, vim.inspect(hint_config)))
+        end
         local key = hint_config[loc].text
         vim.api.nvim_set_current_buf(temp_buf)
         vim.fn.setcursorcharpos(1, cursorcol)

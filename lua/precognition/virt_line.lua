@@ -11,7 +11,12 @@ local M = {}
 function M.calculate_visual_cursorcol(cur_line, charcol, offset)
     local leading_whitespace = string.match(cur_line, "^([ \t]*)")
     local cursorcol = charcol - #leading_whitespace + offset
-    local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
+    local tab_width
+    if vim.bo.expandtab then
+        tab_width = vim.bo.shiftwidth
+    else
+        tab_width = vim.bo.tabstop
+    end
     local sanitised_line = cur_line:gsub("\t", string.rep(" ", tab_width))
     return cursorcol, sanitised_line, tab_width
 end

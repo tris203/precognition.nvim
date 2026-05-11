@@ -17,11 +17,11 @@ end
 ---Add a candidate Hint. Priority zero suppresses a Hint;
 ---equal priority keeps the first Hint so rendering stays stable.
 ---@param destination integer | nil
----@param priority integer | nil
+---@param priority integer
 ---@param hint any
 ---@return any updated_hint
 function HintPriority:add(destination, priority, hint)
-    priority = priority or 0
+    priority = priority or 1
     if not destination or destination == 0 or priority <= 0 then
         return nil
     end

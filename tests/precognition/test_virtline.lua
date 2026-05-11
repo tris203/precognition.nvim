@@ -360,7 +360,7 @@ describe("Text object virtual line", function()
     end)
 end)
 
-describe("replacment charcters", function()
+describe("replacement characters", function()
     it("regular replacement chars", function()
         config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields

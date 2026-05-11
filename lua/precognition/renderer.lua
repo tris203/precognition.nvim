@@ -2,6 +2,7 @@
 ---@field private _ns integer
 ---@field private _range_ns integer
 ---@field private _extmark integer | nil
+---@field private _extmark_buf integer | nil
 ---@field private _gutter_group string
 ---@field private _gutter_name_prefix string
 ---@field private _gutter_signs_cache table<string, { line: integer, id: integer }>
@@ -17,6 +18,7 @@ function M.new()
         _ns = vim.api.nvim_create_namespace("precognition"),
         _range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges"),
         _extmark = nil,
+        _extmark_buf = nil,
         _gutter_group = "precognition_gutter",
         _gutter_name_prefix = "precognition_gutter_",
         _gutter_signs_cache = {},
@@ -36,15 +38,20 @@ function Renderer:reset()
     self._ns = vim.api.nvim_create_namespace("precognition")
     self._range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     self._extmark = nil
+    self._extmark_buf = nil
     self._gutter_signs_cache = {}
 end
 
 ---@param bufnr? integer
 function Renderer:clear(bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if self._extmark then
-        vim.api.nvim_buf_del_extmark(bufnr, self._ns, self._extmark)
+    if self._extmark and self._extmark_buf and vim.api.nvim_buf_is_valid(self._extmark_buf) then
+        vim.api.nvim_buf_del_extmark(self._extmark_buf, self._ns, self._extmark)
         self._extmark = nil
+        self._extmark_buf = nil
+    elseif self._extmark then
+        self._extmark = nil
+        self._extmark_buf = nil
     end
     vim.api.nvim_buf_clear_namespace(bufnr, self._ns, 0, -1)
     vim.api.nvim_buf_clear_namespace(bufnr, self._range_ns, 0, -1)
@@ -56,10 +63,19 @@ end
 ---@param cursorline integer
 ---@param virt_line table
 function Renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)
+    if self._extmark and self._extmark_buf ~= bufnr then
+        if self._extmark_buf and vim.api.nvim_buf_is_valid(self._extmark_buf) then
+            vim.api.nvim_buf_del_extmark(self._extmark_buf, self._ns, self._extmark)
+        end
+        self._extmark = nil
+        self._extmark_buf = nil
+    end
+
     self._extmark = vim.api.nvim_buf_set_extmark(bufnr, self._ns, cursorline - 1, 0, {
         id = self._extmark,
         virt_lines = { virt_line },
     })
+    self._extmark_buf = bufnr
 end
 
 ---@param bufnr integer
@@ -69,12 +85,17 @@ function Renderer:clear_inline_hint_if_moved(bufnr, cursorline)
         return
     end
 
+    if self._extmark_buf ~= bufnr then
+        return
+    end
+
     local extmark = vim.api.nvim_buf_get_extmark_by_id(bufnr, self._ns, self._extmark, {
         details = true,
     })
     if extmark and extmark[1] ~= cursorline - 1 then
         vim.api.nvim_buf_del_extmark(bufnr, self._ns, self._extmark)
         self._extmark = nil
+        self._extmark_buf = nil
     end
 end
 
