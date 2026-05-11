@@ -263,6 +263,12 @@ local function display_marks()
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
+    if vim.wo.wrap then
+        local win_info = vim.fn.getwininfo(vim.fn.win_getid())
+        local textoff = win_info and win_info[1] and win_info[1].textoff or 0
+        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol, vim.api.nvim_win_get_width(0) - textoff)
+    end
+
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
         renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)

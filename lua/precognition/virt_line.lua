@@ -134,4 +134,38 @@ function M.build_text_object(config, anchors, line_len, extra_padding, min_width
     return virt_line
 end
 
+---@param line string
+---@param start_col integer
+---@param width integer
+---@return string
+local function slice_by_display_cols(line, start_col, width)
+    -- \%Nv anchors the match to virtual/display columns, unlike string indexes.
+    local start_pattern = ("\\%%%dv"):format(start_col + 1)
+    if vim.fn.strdisplaywidth(line) <= start_col + width then
+        return vim.fn.matchstr(line, start_pattern .. ".*")
+    end
+
+    local pattern = start_pattern .. ("\\_.\\{-}\\%%%dv"):format(start_col + width + 1)
+    return vim.fn.matchstr(line, pattern)
+end
+
+---@param virt_line table
+---@param cursorcol integer
+---@param width integer
+---@return table
+function M.fit_to_wrap(virt_line, cursorcol, width)
+    if width <= 0 or #virt_line == 0 then
+        return virt_line
+    end
+
+    local line = virt_line[1][1]
+    if vim.fn.strdisplaywidth(line) <= width then
+        return virt_line
+    end
+
+    local start_col = math.floor((math.max(cursorcol, 1) - 1) / width) * width
+    virt_line[1][1] = slice_by_display_cols(line, start_col, width)
+    return virt_line
+end
+
 return M

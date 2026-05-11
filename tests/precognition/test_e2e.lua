@@ -213,6 +213,30 @@ describe("e2e tests", function()
         eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
     end)
 
+    it("keeps full virtual lines when wrapping is disabled", function()
+        screenshot_child([[
+            local precognition = require("precognition")
+            precognition.setup({})
+            vim.o.columns = 20
+            vim.wo.wrap = false
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
+            vim.api.nvim_win_set_cursor(0, { 1, 12 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        ]])
+    end)
+
+    it("clips wrapped virtual lines to the cursor's visual row", function()
+        screenshot_child([[
+            local precognition = require("precognition")
+            precognition.setup({})
+            vim.o.columns = 20
+            vim.wo.wrap = true
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
+            vim.api.nvim_win_set_cursor(0, { 1, 22 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        ]])
+    end)
+
     it("virtual line text color can be customised", function()
         screenshot_child([[
             local precognition = require("precognition")

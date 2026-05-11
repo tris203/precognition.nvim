@@ -217,6 +217,56 @@ describe("Build Virtual Line", function()
     end)
 end)
 
+describe("Wrapped Virtual Line", function()
+    it("keeps the first visual row when the cursor is in the first wrap section", function()
+        local virtual_line = { { "^        w         e         $", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 8, 10)
+
+        eq("^        w", virtual_line[1][1])
+    end)
+
+    it("keeps the cursor's visual row when the cursor is in a later wrap section", function()
+        local virtual_line = { { "^        w         e         $", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 12, 10)
+
+        eq("         e", virtual_line[1][1])
+    end)
+
+    it("keeps the final visual row when the cursor is in the final wrap section", function()
+        local virtual_line = { { "^        w         e         $", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 23, 10)
+
+        eq("         $", virtual_line[1][1])
+    end)
+
+    it("does not change short virtual lines", function()
+        local virtual_line = { { "^   e w $", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 4, 20)
+
+        eq("^   e w $", virtual_line[1][1])
+    end)
+
+    it("clips by display columns when wide characters are present", function()
+        local virtual_line = { { "界界界eee$$$", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 7, 6)
+
+        eq("eee$$$", virtual_line[1][1])
+    end)
+
+    it("drops wide characters that overlap the wrap boundary", function()
+        local virtual_line = { { "界abc", "PrecognitionHighlight" } }
+
+        VirtLine.fit_to_wrap(virtual_line, 2, 1)
+
+        eq("", virtual_line[1][1])
+    end)
+end)
+
 describe("Priority", function()
     it("0 priority item is not added", function()
         config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
