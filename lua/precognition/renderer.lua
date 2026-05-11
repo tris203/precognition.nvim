@@ -26,7 +26,13 @@ function M.new()
 end
 
 function Renderer:reset()
-    self:clear()
+    for _, bufnr in ipairs(vim.api.nvim_list_bufs()) do
+        if vim.api.nvim_buf_is_loaded(bufnr) then
+            vim.api.nvim_buf_clear_namespace(bufnr, self._ns, 0, -1)
+            vim.api.nvim_buf_clear_namespace(bufnr, self._range_ns, 0, -1)
+        end
+    end
+    vim.fn.sign_unplace(self._gutter_group)
     self._ns = vim.api.nvim_create_namespace("precognition")
     self._range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     self._extmark = nil
@@ -46,10 +52,11 @@ function Renderer:clear(bufnr)
     self._gutter_signs_cache = {}
 end
 
+---@param bufnr integer
 ---@param cursorline integer
 ---@param virt_line table
-function Renderer:render_inline_hint_virt_line(cursorline, virt_line)
-    self._extmark = vim.api.nvim_buf_set_extmark(0, self._ns, cursorline - 1, 0, {
+function Renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)
+    self._extmark = vim.api.nvim_buf_set_extmark(bufnr, self._ns, cursorline - 1, 0, {
         id = self._extmark,
         virt_lines = { virt_line },
     })
@@ -104,7 +111,7 @@ function Renderer:clear_gutter_hint(hint)
 end
 
 ---@param bufnr integer
-function Renderer.flush(_self, bufnr)
+function Renderer:flush(bufnr)
     -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
     vim.api.nvim__redraw({ buf = bufnr, flush = true })
 end

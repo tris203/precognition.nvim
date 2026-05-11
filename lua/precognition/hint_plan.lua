@@ -20,8 +20,8 @@ local M = {}
 ---@field text string
 
 ---@class Precognition.HintPlan
----@field suppressed boolean
----@field message string | nil
+---@field skip_render boolean do not render UI
+---@field message string | nil user-facing reason to report
 ---@field kind "none" | "normal" | "text_object"
 ---@field inline_hints Precognition.VirtLine | nil
 ---@field gutter_hints Precognition.GutterHints | nil
@@ -46,17 +46,23 @@ end
 function M.prioritize_gutter_hints(config, gutter_hints)
     local priority = HintPriority.new()
     for hint, loc in pairs(gutter_hints) do
-        priority:add(loc, config.gutterHints[hint].prio, hint)
+        local opts = config.gutterHints[hint]
+        if opts then
+            priority:add(loc, opts.prio, hint)
+        end
     end
 
     local planned = {}
     for loc, prioritized_hint in pairs(priority:hints_by_destination()) do
         local hint = prioritized_hint.hint
-        table.insert(planned, {
-            hint = hint,
-            loc = loc,
-            text = config.gutterHints[hint].text,
-        })
+        local opts = config.gutterHints[hint]
+        if opts then
+            table.insert(planned, {
+                hint = hint,
+                loc = loc,
+                text = opts.text,
+            })
+        end
     end
     return planned
 end
@@ -65,15 +71,15 @@ end
 ---@return Precognition.HintPlan
 function M.build(ctx)
     if ctx.mode:sub(1, 1) == "i" then
-        return { suppressed = true, message = nil, kind = "none" }
+        return { skip_render = true, message = nil, kind = "none" }
     end
 
     if require("precognition.utils").is_blacklisted_buffer(ctx.bufnr, ctx.disabled_fts) then
-        return { suppressed = true, message = nil, kind = "none" }
+        return { skip_render = true, message = nil, kind = "none" }
     end
 
     if ctx.motion_count:is_operator_prefix(ctx.pending_command_prefix) then
-        return { suppressed = true, message = nil, kind = "none" }
+        return { skip_render = true, message = nil, kind = "none" }
     end
 
     local message = nil
@@ -89,7 +95,7 @@ function M.build(ctx)
             ctx.line_len
         )
         return {
-            suppressed = false,
+            skip_render = false,
             message = message,
             kind = "text_object",
             text_object_anchors = anchors,
@@ -101,7 +107,7 @@ function M.build(ctx)
         ctx.motion_count:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len)
     local gutter_hints = M.gutter_hints(ctx.motions)
     return {
-        suppressed = false,
+        skip_render = false,
         message = message,
         kind = "normal",
         inline_hints = {

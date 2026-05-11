@@ -85,7 +85,7 @@ local M = {}
 local default = defaults.config
 
 ---@type Precognition.Config
-local config = default
+local config = vim.deepcopy(default)
 
 ---@type boolean
 local dirty -- whether a redraw is needed
@@ -106,6 +106,8 @@ local handling_key = false
 local redraw_scheduled = false
 ---@type boolean
 local restoring_visual_selection = false
+---@type boolean
+local was_count_suppressed = false
 
 ---@type function?
 local cached_on_cursor_moved
@@ -202,11 +204,13 @@ local function display_marks()
         motions = motions,
         config = config,
     })
-    if plan.message then
+    local count_suppressed = motion_count:is_suppressed()
+    if plan.message and (not count_suppressed or not was_count_suppressed) then
         vim.notify_once(plan.message, vim.log.levels.INFO)
     end
+    was_count_suppressed = count_suppressed
 
-    if plan.suppressed then
+    if plan.skip_render then
         clear_hints()
         return
     end
@@ -232,7 +236,7 @@ local function display_marks()
         )
 
         if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-            renderer:render_inline_hint_virt_line(cursorline, virt_line)
+            renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)
         end
 
         dirty = false
@@ -253,13 +257,15 @@ local function display_marks()
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
         min_width = vim.api.nvim_win_get_width(0) - textoff
     end
-    local virt_line = build_virt_line(plan.inline_hints, line_len, extra_padding, min_width)
+    ---@type Precognition.VirtLine
+    local inline_hints = assert(plan.inline_hints)
+    local virt_line = build_virt_line(inline_hints, line_len, extra_padding, min_width)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-        renderer:render_inline_hint_virt_line(cursorline, virt_line)
+        renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)
     end
     apply_gutter_hints(plan.planned_gutter_hints or {})
 
@@ -530,6 +536,7 @@ function M.hide()
     pending_command_prefix = nil
     redraw_scheduled = false
     cached_on_cursor_moved = nil
+    was_count_suppressed = false
     clear_hints()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
 end
@@ -583,6 +590,7 @@ function M.setup(opts)
     handling_key = false
     redraw_scheduled = false
     restoring_visual_selection = false
+    was_count_suppressed = false
 
     setup_highlights()
     vim.api.nvim_create_autocmd("ColorScheme", {

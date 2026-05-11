@@ -10,7 +10,7 @@ end
 local function text_object_extmark()
     local ns = vim.api.nvim_create_namespace("precognition")
     local first = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})[1]
-    if not first then
+    if not first or not first[1] then
         return nil
     end
     return vim.api.nvim_buf_get_extmark_by_id(0, ns, first[1], {
@@ -49,11 +49,17 @@ describe("text object hints", function()
 
     it("switches from motion hints to inside text object hints", function()
         vim.api.nvim_input("d")
-        vim.wait(20)
+        vim.wait(150, function()
+            return text_object_extmark() ~= nil
+        end)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
 
         local extmark = text_object_extmark()
+        eq(true, ok)
         eq('    ({       "    w" })', virt_line_text(extmark))
     end)
 
@@ -63,16 +69,9 @@ describe("text object hints", function()
         end)
 
         vim.api.nvim_input("i")
-        vim.wait(20)
         local ok = vim.wait(150, function()
-            if
-                not (
-                    vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {}
-                )[1]
-            then
-                return false
-            end
-            return virt_line_text(text_object_extmark()) == '    ({       "    w" })'
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
         end)
         eq(true, ok)
 
@@ -89,7 +88,8 @@ describe("text object hints", function()
         local waited = vim.wait(150, function()
             local extmarks = vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {})
             local has_extmark = (extmarks[1] or {})[1] ~= nil
-            local has_virt_lines = text_object_extmark()[3].virt_lines ~= nil
+            local extmark = text_object_extmark()
+            local has_virt_lines = extmark and extmark[3].virt_lines ~= nil
             return has_extmark and has_virt_lines
         end)
         eq(true, waited)
@@ -102,17 +102,24 @@ describe("text object hints", function()
         local before = virt_line_text(text_object_extmark())
 
         vim.api.nvim_input("v")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == before
+        end)
 
+        eq(true, ok)
         eq(before, virt_line_text(text_object_extmark()))
     end)
 
     it("pads text object hint chunks to the full text area", function()
         precognition.setup({ highlightFullVirtLine = true })
         vim.api.nvim_input("d")
-        vim.wait(20)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and extmark[3].virt_lines ~= nil
+        end)
+        eq(true, ok)
 
         local extmark = text_object_extmark()
         local win_info = vim.fn.getwininfo(vim.fn.win_getid())
@@ -124,15 +131,18 @@ describe("text object hints", function()
 
     it("uses operator-pending mode to complete a text object prefix", function()
         vim.api.nvim_input("d")
-        vim.wait(20)
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "no" }
         end)
 
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
 
         local extmark = text_object_extmark()
+        eq(true, ok)
         eq('    ({       "    w" })', virt_line_text(extmark))
     end)
 
@@ -140,11 +150,14 @@ describe("text object hints", function()
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
         vim.api.nvim_input("d")
-        vim.wait(20)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '   w({       "     " })'
+        end)
 
         local extmark = text_object_extmark()
+        eq(true, ok)
         eq('   w({       "     " })', virt_line_text(extmark))
 
         local groups = {}
@@ -159,9 +172,12 @@ describe("text object hints", function()
 
     it("renders stacked same-line range previews on the virtual line", function()
         vim.api.nvim_input("d")
-        vim.wait(20)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
+        eq(true, ok)
 
         local extmark = text_object_extmark()
         local groups = {}
@@ -200,9 +216,12 @@ describe("text object hints", function()
         })
 
         vim.api.nvim_input("d")
-        vim.wait(20)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
+        eq(true, ok)
 
         local groups = {}
         for _, chunk in ipairs(text_object_extmark()[3].virt_lines[1]) do
@@ -237,10 +256,13 @@ describe("text object hints", function()
 
         local ok, err = pcall(function()
             vim.api.nvim_input("d")
-            vim.wait(20)
             vim.api.nvim_input("i")
-            vim.wait(20)
+            local waited = vim.wait(150, function()
+                local extmark = text_object_extmark()
+                return extmark and virt_line_text(extmark) == '      ({       "    w" })'
+            end)
 
+            eq(true, waited)
             eq('      ({       "    w" })', virt_line_text(text_object_extmark()))
         end)
         vim.lsp.inlay_hint.is_enabled = original_is_enabled
@@ -252,12 +274,19 @@ describe("text object hints", function()
 
     it("clears the text object prefix after cursor movement", function()
         vim.api.nvim_input("d")
-        vim.wait(20)
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local entered = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
+        eq(true, entered)
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
+        local ok = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == "^    % b   w          $"
+        end)
 
+        eq(true, ok)
         eq("^    % b   w          $", virt_line_text(text_object_extmark()))
     end)
 
@@ -267,13 +296,17 @@ describe("text object hints", function()
         end)
 
         vim.api.nvim_input("i")
-        vim.wait(20)
+        local entered = vim.wait(150, function()
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == '    ({       "    w" })'
+        end)
+        eq(true, entered)
 
         vim.api.nvim_win_set_cursor(0, { 1, 10 })
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
         local ok = vim.wait(150, function()
-            return virt_line_text(text_object_extmark()) == "^    % b   w          $"
+            local extmark = text_object_extmark()
+            return extmark and virt_line_text(extmark) == "^    % b   w          $"
         end)
         eq(true, ok)
 

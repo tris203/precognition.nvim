@@ -1,5 +1,8 @@
 ---@class Precognition.MotionCount
 ---@field private _prefix string | nil
+---MotionCount keeps numeric counts and pending commands separate: handle_key updates self._prefix,
+---which only contains the numeric count, while callers pass pending_command_prefix through
+---handle_input as the authoritative full Vim command string (count + operator/text-object).
 local MotionCount = {}
 MotionCount.__index = MotionCount
 
@@ -7,19 +10,19 @@ local M = {}
 
 ---@param mode string
 ---@return boolean
-function MotionCount.is_supported_prefix_mode(_self, mode)
+function MotionCount:is_supported_prefix_mode(mode)
     return mode == "n" or mode == "v" or mode == "V" or mode == "\22" or mode:sub(1, 2) == "no"
 end
 
 ---@param mode string
 ---@return boolean
-function MotionCount.is_operator_pending_mode(_self, mode)
+function MotionCount:is_operator_pending_mode(mode)
     return mode:sub(1, 2) == "no"
 end
 
 ---@param prefix string | nil
 ---@return boolean
-function MotionCount.is_text_object_prefix(_self, prefix)
+function MotionCount:is_text_object_prefix(prefix)
     if not prefix then
         return false
     end
@@ -29,7 +32,7 @@ end
 
 ---@param prefix string | nil
 ---@return boolean
-function MotionCount.is_operator_prefix(_self, prefix)
+function MotionCount:is_operator_prefix(prefix)
     if not prefix then
         return false
     end
@@ -78,7 +81,7 @@ function MotionCount:handle_key(key, mode)
         self._prefix = nil
     elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
         if key == "0" and not self._prefix then
-            self._prefix = nil
+            -- Ignore leading 0: it is the "0" motion, not a count.
         else
             self._prefix = (self._prefix or "") .. key
         end
@@ -107,7 +110,7 @@ function MotionCount:handle_input(key, mode, pending_command_prefix)
         pending_command_prefix = nil
     elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
         if key == "0" and not pending_command_prefix then
-            pending_command_prefix = nil
+            -- Ignore leading 0: it is the "0" motion, not a count.
         else
             pending_command_prefix = (pending_command_prefix or "") .. key
         end
@@ -157,7 +160,7 @@ end
 ---@param cursorcol integer
 ---@param linelen integer
 ---@return integer
-function MotionCount.destination(_self, count, motion, str, cursorcol, linelen)
+function MotionCount:destination(count, motion, str, cursorcol, linelen)
     local ret = cursorcol
     local out_of_bounds = false
     for _ = 1, count do
