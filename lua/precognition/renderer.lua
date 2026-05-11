@@ -132,7 +132,7 @@ function Renderer:clear_gutter_hint(hint)
 end
 
 ---@param bufnr integer
-function Renderer:flush(bufnr)
+function Renderer.flush(_self, bufnr)
     -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
     vim.api.nvim__redraw({ buf = bufnr, flush = true })
 end

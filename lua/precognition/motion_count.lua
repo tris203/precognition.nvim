@@ -10,19 +10,19 @@ local M = {}
 
 ---@param mode string
 ---@return boolean
-function MotionCount:is_supported_prefix_mode(mode)
+function MotionCount.is_supported_prefix_mode(_self, mode)
     return mode == "n" or mode == "v" or mode == "V" or mode == "\22" or mode:sub(1, 2) == "no"
 end
 
 ---@param mode string
 ---@return boolean
-function MotionCount:is_operator_pending_mode(mode)
+function MotionCount.is_operator_pending_mode(_self, mode)
     return mode:sub(1, 2) == "no"
 end
 
 ---@param prefix string | nil
 ---@return boolean
-function MotionCount:is_text_object_prefix(prefix)
+function MotionCount.is_text_object_prefix(_self, prefix)
     if not prefix then
         return false
     end
@@ -32,7 +32,7 @@ end
 
 ---@param prefix string | nil
 ---@return boolean
-function MotionCount:is_operator_prefix(prefix)
+function MotionCount.is_operator_prefix(_self, prefix)
     if not prefix then
         return false
     end
@@ -80,9 +80,8 @@ function MotionCount:handle_key(key, mode)
     if not self:is_supported_prefix_mode(mode) then
         self._prefix = nil
     elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
-        if key == "0" and not self._prefix then
-            -- Ignore leading 0: it is the "0" motion, not a count.
-        else
+        -- Ignore leading 0: it is the "0" motion, not a count.
+        if key ~= "0" or self._prefix then
             self._prefix = (self._prefix or "") .. key
         end
     else
@@ -109,9 +108,8 @@ function MotionCount:handle_input(key, mode, pending_command_prefix)
     if key == "\27" or key == "\3" then
         pending_command_prefix = nil
     elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
-        if key == "0" and not pending_command_prefix then
-            -- Ignore leading 0: it is the "0" motion, not a count.
-        else
+        -- Ignore leading 0: it is the "0" motion, not a count.
+        if key ~= "0" or pending_command_prefix then
             pending_command_prefix = (pending_command_prefix or "") .. key
         end
     elseif
@@ -160,7 +158,7 @@ end
 ---@param cursorcol integer
 ---@param linelen integer
 ---@return integer
-function MotionCount:destination(count, motion, str, cursorcol, linelen)
+function MotionCount.destination(_self, count, motion, str, cursorcol, linelen)
     local ret = cursorcol
     local out_of_bounds = false
     for _ = 1, count do
