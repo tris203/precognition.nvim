@@ -1,4 +1,5 @@
 local compat = require("precognition.compat")
+local HintPriority = require("precognition.hint_priority")
 local MotionCount = require("precognition.motion_count")
 
 local M = {}
@@ -178,7 +179,6 @@ local function build_text_object_virt_line(anchors, line_len, extra_padding, min
 
     local virt_line = {}
     local line_table = utils.create_pad_array(line_len, " ")
-    local priorities = {}
     local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
 
     ranges = ranges or {}
@@ -192,13 +192,11 @@ local function build_text_object_virt_line(anchors, line_len, extra_padding, min
         end
     end
 
+    local priority = HintPriority.new()
     for _, anchor in ipairs(anchors) do
-        if anchor.col > 0 and anchor.col <= line_len then
-            local existing_prio = priorities[anchor.col] or 0
-            if anchor.prio >= existing_prio then
-                line_table[anchor.col] = anchor.label
-                priorities[anchor.col] = anchor.prio
-            end
+        local updated_hint = priority:add(anchor.col, anchor.prio, anchor.label)
+        if updated_hint and anchor.col > 0 and anchor.col <= line_len then
+            line_table[anchor.col] = updated_hint
         end
     end
 
@@ -258,27 +256,11 @@ local function build_virt_line(marks, line_len, extra_padding, min_width)
     local virt_line = {}
     local line_table = utils.create_pad_array(line_len, " ")
 
+    local priority = HintPriority.new()
     for mark, loc in pairs(marks) do
-        local hint = config.hints[mark].text or mark
-        local prio = config.hints[mark].prio or 0
-        local col = loc
-
-        if col ~= 0 and prio > 0 then
-            local existing = line_table[col]
-            if existing == " " and existing ~= hint then
-                line_table[col] = hint
-            else -- if the character is not a space, then we need to check the prio
-                local existing_key
-                for key, value in pairs(config.hints) do
-                    if value.text == existing then
-                        existing_key = key
-                        break
-                    end
-                end
-                if existing ~= " " and config.hints[mark].prio > config.hints[existing_key].prio then
-                    line_table[col] = hint
-                end
-            end
+        local updated_hint = priority:add(loc, config.hints[mark].prio, config.hints[mark].text or mark)
+        if updated_hint and loc > 0 and loc <= line_len then
+            line_table[loc] = updated_hint
         end
     end
 
@@ -316,6 +298,28 @@ local function build_gutter_hints()
     return gutter_hints
 end
 
+---@param hint string
+---@param loc integer
+---@param bufnr integer
+local function place_gutter_hint(hint, loc, bufnr)
+    local sign_name = gutter_name_prefix .. hint
+    vim.fn.sign_define(sign_name, {
+        text = config.gutterHints[hint].text,
+        texthl = "PrecognitionHighlight",
+    })
+    local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
+        lnum = loc,
+        priority = 100,
+    })
+    if ok then
+        gutter_signs_cache[hint] = { line = loc, id = res }
+        return
+    end
+    if loc ~= 0 then
+        vim.notify_once("Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res), vim.log.levels.WARN)
+    end
+end
+
 ---@param gutter_hints Precognition.GutterHints
 ---@param bufnr? integer -- buffer number
 ---@return nil
@@ -325,45 +329,19 @@ local function apply_gutter_hints(gutter_hints, bufnr)
         return
     end
 
-    local gutter_table = {}
+    local priority = HintPriority.new()
     for hint, loc in pairs(gutter_hints) do
         if gutter_signs_cache[hint] then
             vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
             gutter_signs_cache[hint] = nil
         end
 
-        local prio = config.gutterHints[hint].prio
-
-        -- Build table of valid and priorised gutter hints.
-        if loc ~= 0 and loc ~= nil and prio > 0 then
-            local existing = gutter_table[loc]
-            if not existing or existing.prio < prio then
-                gutter_table[loc] = { hint = hint, prio = prio }
-            end
-        end
+        priority:add(loc, config.gutterHints[hint].prio, hint)
     end
 
     -- Only render valid and prioritised gutter hints.
-    for loc, data in pairs(gutter_table) do
-        local hint = data.hint
-        local sign_name = gutter_name_prefix .. hint
-        vim.fn.sign_define(sign_name, {
-            text = config.gutterHints[hint].text,
-            texthl = "PrecognitionHighlight",
-        })
-        local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
-            lnum = loc,
-            priority = 100,
-        })
-        if ok then
-            gutter_signs_cache[hint] = { line = loc, id = res }
-        end
-        if not ok and loc ~= 0 then
-            vim.notify_once(
-                "Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res),
-                vim.log.levels.WARN
-            )
-        end
+    for loc, prioritized_hint in pairs(priority:hints_by_destination()) do
+        place_gutter_hint(prioritized_hint.hint, loc, bufnr)
     end
 end
 
@@ -406,20 +384,8 @@ end
 
 ---@param mode string
 ---@return boolean
-local function is_supported_prefix_mode(mode)
-    return mode == "n" or mode == "v" or mode == "V" or mode == "\22" or mode:sub(1, 2) == "no"
-end
-
----@param mode string
----@return boolean
 local function is_visual_mode(mode)
     return mode == "v" or mode == "V" or mode == "\22"
-end
-
----@param mode string
----@return boolean
-local function is_operator_pending_mode(mode)
-    return mode:sub(1, 2) == "no"
 end
 
 local function display_marks()
@@ -608,7 +574,7 @@ local function schedule_visual_text_object_repaint(prefix)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        if not is_visual_mode(mode) and not is_operator_pending_mode(mode) then
+        if not is_visual_mode(mode) and not motion_count:is_operator_pending_mode(mode) then
             return
         end
         if pending_command_prefix ~= prefix then
@@ -731,7 +697,7 @@ local function on_key(key)
     end
 
     local mode = vim.api.nvim_get_mode().mode
-    if not is_supported_prefix_mode(mode) then
+    if not motion_count:is_supported_prefix_mode(mode) then
         return
     end
 
@@ -749,13 +715,13 @@ local function on_key(key)
 
         if key == "\27" or key == "\3" then
             pending_command_prefix = nil
-        elseif key:match("^%d$") and not is_operator_pending_mode(mode) then
+        elseif key:match("^%d$") and not motion_count:is_operator_pending_mode(mode) then
             if key == "0" and not pending_command_prefix then
                 pending_command_prefix = nil
             else
                 pending_command_prefix = (pending_command_prefix or "") .. key
             end
-        elseif (is_visual_mode(mode) or is_operator_pending_mode(mode)) and (key == "i" or key == "a") then
+        elseif (is_visual_mode(mode) or motion_count:is_operator_pending_mode(mode)) and (key == "i" or key == "a") then
             pending_command_prefix = key
             defer_redraw = true
         elseif key:match("^[dcy]$") and not is_text_object_prefix(pending_command_prefix) then

@@ -7,14 +7,34 @@ local M = {}
 
 ---@param mode string
 ---@return boolean
-local function is_supported_prefix_mode(mode)
+function MotionCount.is_supported_prefix_mode(_self, mode)
     return mode == "n" or mode == "v" or mode == "V" or mode == "\22" or mode:sub(1, 2) == "no"
 end
 
 ---@param mode string
 ---@return boolean
-local function is_operator_pending_mode(mode)
+function MotionCount.is_operator_pending_mode(_self, mode)
     return mode:sub(1, 2) == "no"
+end
+
+---@param prefix string | nil
+---@return boolean
+function MotionCount.is_text_object_prefix(_self, prefix)
+    if not prefix then
+        return false
+    end
+    local without_count = prefix:gsub("^%d+", "")
+    return without_count:match("^[vdcy]?[ia]$") ~= nil or without_count == "i" or without_count == "a"
+end
+
+---@param prefix string | nil
+---@return boolean
+function MotionCount.is_operator_prefix(_self, prefix)
+    if not prefix then
+        return false
+    end
+    local without_count = prefix:gsub("^%d+", "")
+    return without_count:match("^[dcy]$") ~= nil
 end
 
 ---@return Precognition.MotionCount
@@ -54,9 +74,9 @@ end
 ---@return boolean changed
 function MotionCount:handle_key(key, mode)
     local previous = self._prefix
-    if not is_supported_prefix_mode(mode) then
+    if not self:is_supported_prefix_mode(mode) then
         self._prefix = nil
-    elseif key:match("^%d$") and not is_operator_pending_mode(mode) then
+    elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
         if key == "0" and not self._prefix then
             self._prefix = nil
         else
@@ -67,6 +87,49 @@ function MotionCount:handle_key(key, mode)
     end
 
     return self._prefix ~= previous
+end
+
+---@class Precognition.MotionCountInput
+---@field pending_command_prefix string | nil
+---@field prefix_changed boolean
+---@field defer_redraw boolean
+
+---@param key string
+---@param mode string
+---@param pending_command_prefix string | nil
+---@return Precognition.MotionCountInput
+function MotionCount:handle_input(key, mode, pending_command_prefix)
+    local prev_pending_command_prefix = pending_command_prefix
+    local defer_redraw = false
+    local count_changed = self:handle_key(key, mode)
+
+    if key == "\27" or key == "\3" then
+        pending_command_prefix = nil
+    elseif key:match("^%d$") and not self:is_operator_pending_mode(mode) then
+        if key == "0" and not pending_command_prefix then
+            pending_command_prefix = nil
+        else
+            pending_command_prefix = (pending_command_prefix or "") .. key
+        end
+    elseif
+        (mode == "v" or mode == "V" or mode == "\22" or self:is_operator_pending_mode(mode))
+        and (key == "i" or key == "a")
+    then
+        pending_command_prefix = key
+        defer_redraw = true
+    elseif key:match("^[dcy]$") and not self:is_text_object_prefix(pending_command_prefix) then
+        pending_command_prefix = (pending_command_prefix or "") .. key
+    elseif (key == "i" or key == "a") and pending_command_prefix then
+        pending_command_prefix = pending_command_prefix .. key
+    else
+        pending_command_prefix = nil
+    end
+
+    return {
+        pending_command_prefix = pending_command_prefix,
+        prefix_changed = count_changed or pending_command_prefix ~= prev_pending_command_prefix,
+        defer_redraw = defer_redraw,
+    }
 end
 
 ---@return integer
@@ -94,7 +157,7 @@ end
 ---@param cursorcol integer
 ---@param linelen integer
 ---@return integer
-function MotionCount:destination(count, motion, str, cursorcol, linelen)
+function MotionCount.destination(_self, count, motion, str, cursorcol, linelen)
     local ret = cursorcol
     local out_of_bounds = false
     for _ = 1, count do
