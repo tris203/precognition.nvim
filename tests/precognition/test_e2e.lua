@@ -3,27 +3,6 @@ local eq = MiniTest.expect.equality
 local ss = MiniTest.expect.reference_screenshot
 local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
-local function neq(expected, actual)
-    MiniTest.expect.no_equality(expected, actual)
-end
-
-local function not_nil(value)
-    MiniTest.expect.no_equality(nil, value)
-end
-
-local function get_gutter_extmarks(buffer)
-    local gutter_extmarks = {}
-    for _, extmark in
-        pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
-            details = true,
-        }))
-    do
-        if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
-            table.insert(gutter_extmarks, extmark)
-        end
-    end
-    return gutter_extmarks
-end
 
 describe("e2e tests", function()
     before_each(function()
@@ -41,11 +20,17 @@ describe("e2e tests", function()
     end)
 
     it("auto commands are set", function()
-        local autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-        eq(5, vim.tbl_count(autocmds))
-        precognition.peek()
-        autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-        eq(8, vim.tbl_count(autocmds))
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            local precognition = require("precognition")
+
+            precognition.setup({})
+            local autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
+            eq(5, vim.tbl_count(autocmds))
+            precognition.peek()
+            autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
+            eq(8, vim.tbl_count(autocmds))
+        end)
     end)
 
     it("virtual line is displayed and updated", function()
@@ -65,149 +50,211 @@ describe("e2e tests", function()
     end)
 
     it("hides all hints in insert mode", function()
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            local eq = MiniTest.expect.equality
+            local neq = MiniTest.expect.no_equality
+            local function get_gutter_extmarks(buffer)
+                local gutter_extmarks = {}
+                for _, extmark in
+                    pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
+                        details = true,
+                    }))
+                do
+                    if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
+                        table.insert(gutter_extmarks, extmark)
+                    end
+                end
+                return gutter_extmarks
+            end
+            local buffer = vim.api.nvim_create_buf(true, false)
+            vim.api.nvim_set_current_buf(buffer)
+            vim.api.nvim_buf_set_lines(
+                buffer,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        precognition.hide()
-        precognition.show()
+            precognition.setup({})
+            precognition.hide()
+            precognition.show()
 
-        not_nil(
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-        )
-        neq({}, get_gutter_extmarks(buffer))
+            neq(
+                nil,
+                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+            )
+            neq({}, get_gutter_extmarks(buffer))
 
-        vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
+            vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
 
-        eq(
-            nil,
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-        )
-        eq({}, get_gutter_extmarks(buffer))
+            eq(
+                nil,
+                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+            )
+            eq({}, get_gutter_extmarks(buffer))
+        end)
     end)
 
     it("does not redraw pending debounced hints in insert mode", function()
-        precognition.setup({
-            debounceMs = 100,
-        })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            local eq = MiniTest.expect.equality
+            local neq = MiniTest.expect.no_equality
+            local function get_gutter_extmarks(buffer)
+                local gutter_extmarks = {}
+                for _, extmark in
+                    pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
+                        details = true,
+                    }))
+                do
+                    if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
+                        table.insert(gutter_extmarks, extmark)
+                    end
+                end
+                return gutter_extmarks
+            end
+            precognition.setup({
+                debounceMs = 100,
+            })
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            local buffer = vim.api.nvim_create_buf(true, false)
+            vim.api.nvim_set_current_buf(buffer)
+            vim.api.nvim_buf_set_lines(
+                buffer,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        precognition.hide()
-        precognition.show()
+            precognition.hide()
+            precognition.show()
 
-        not_nil(
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-        )
+            neq(
+                nil,
+                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+            )
 
-        vim.api.nvim_win_set_cursor(0, { 2, 1 })
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+            vim.api.nvim_win_set_cursor(0, { 2, 1 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
 
-        local get_mode = vim.api.nvim_get_mode
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "i" }
+            local get_mode = vim.api.nvim_get_mode
+            rawset(vim.api, "nvim_get_mode", function()
+                return { mode = "i" }
+            end)
+
+            local ok, err = pcall(function()
+                vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
+
+                vim.wait(200)
+            end)
+            rawset(vim.api, "nvim_get_mode", get_mode)
+            if not ok then
+                error(err)
+            end
+
+            eq(
+                nil,
+                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+            )
+            eq({}, get_gutter_extmarks(buffer))
         end)
-
-        local ok, err = pcall(function()
-            vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
-
-            vim.wait(200)
-        end)
-        rawset(vim.api, "nvim_get_mode", get_mode)
-        if not ok then
-            error(err)
-        end
-
-        eq(
-            nil,
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-        )
-        eq({}, get_gutter_extmarks(buffer))
     end)
 
     it("shows hints immediately when debounce is configured", function()
-        precognition.setup({
-            debounceMs = 200,
-        })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            local neq = MiniTest.expect.no_equality
+            local function get_gutter_extmarks(buffer)
+                local gutter_extmarks = {}
+                for _, extmark in
+                    pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
+                        details = true,
+                    }))
+                do
+                    if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
+                        table.insert(gutter_extmarks, extmark)
+                    end
+                end
+                return gutter_extmarks
+            end
+            precognition.setup({
+                debounceMs = 200,
+            })
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            local buffer = vim.api.nvim_create_buf(true, false)
+            vim.api.nvim_set_current_buf(buffer)
+            vim.api.nvim_buf_set_lines(
+                buffer,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
+            vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        precognition.hide()
-        precognition.show()
+            precognition.hide()
+            precognition.show()
 
-        not_nil(
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-        )
-        neq({}, get_gutter_extmarks(buffer))
+            neq(
+                nil,
+                (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+            )
+            neq({}, get_gutter_extmarks(buffer))
+        end)
     end)
 
     it("supports debounce", function()
-        precognition.setup({
-            debounceMs = 200,
-        })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            local eq = MiniTest.expect.equality
+            local neq = MiniTest.expect.no_equality
+            precognition.setup({
+                debounceMs = 200,
+            })
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
+            local buffer = vim.api.nvim_create_buf(true, false)
+            vim.api.nvim_set_current_buf(buffer)
+            vim.api.nvim_buf_set_lines(
+                buffer,
+                0,
+                -1,
+                false,
+                { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
+            )
 
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
 
-        local ns = vim.api.nvim_create_namespace("precognition")
+            local ns = vim.api.nvim_create_namespace("precognition")
 
-        eq(nil, (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1])
+            eq(nil, (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1])
 
-        eq(
-            {},
-            vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {
+            eq(
+                {},
+                vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {
+                    details = true,
+                })
+            )
+
+            local ok = vim.wait(500, function()
+                return (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1] ~= nil
+            end)
+
+            neq(false, ok)
+            local extmark_id = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1][1]
+            neq(nil, extmark_id)
+
+            local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
                 details = true,
             })
-        )
 
-        local ok = vim.wait(500, function()
-            return (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1] ~= nil
+            eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
+            eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
         end)
-
-        neq(false, ok)
-        local extmark_id = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1][1]
-        not_nil(extmark_id)
-
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])
     end)
 
     it("keeps full virtual lines when wrapping is disabled", function()
@@ -305,9 +352,13 @@ describe("e2e tests", function()
     end)
 
     it("preserves highlight groups through a colorscheme change", function()
-        vim.cmd.colorscheme("default")
-        local hl = vim.api.nvim_get_hl(0, { name = "PrecognitionHighlight" })
-        eq(false, vim.tbl_isempty(hl))
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            require("precognition").setup({})
+            vim.cmd.colorscheme("default")
+            local hl = vim.api.nvim_get_hl(0, { name = "PrecognitionHighlight" })
+            eq(false, vim.tbl_isempty(hl))
+        end)
     end)
 end)
 
