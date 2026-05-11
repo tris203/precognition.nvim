@@ -1,13 +1,17 @@
 local precognition = require("precognition")
+local HintPlan = require("precognition.hint_plan")
+local default_config = require("precognition.defaults").config
 local eq = MiniTest.expect.equality
 local function build_gutter_hints()
     local motions = require("precognition.motions").get_motions()
-    return {
-        G = motions.file_end(),
-        gg = motions.file_start(),
-        PrevParagraph = motions.prev_paragraph_line(),
-        NextParagraph = motions.next_paragraph_line(),
-    }
+    return HintPlan.gutter_hints(motions)
+end
+
+local function sort_planned_gutter_hints(hints)
+    table.sort(hints, function(left, right)
+        return left.hint < right.hint
+    end)
+    return hints
 end
 
 describe("Gutter hints table", function()
@@ -150,5 +154,28 @@ describe("Gutter hints table", function()
             NextParagraph = 4,
             ["G"] = 5,
         }, hints)
+    end)
+
+    it("prioritizes Gutter Hints sharing a Destination", function()
+        local config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
+            gutterHints = {
+                G = { text = "G", prio = 0 },
+                gg = { text = "gg", prio = 9 },
+                PrevParagraph = { text = "{", prio = 8 },
+                NextParagraph = { text = "}", prio = 10 },
+            },
+        })
+
+        local planned = sort_planned_gutter_hints(HintPlan.prioritize_gutter_hints(config, {
+            G = 1,
+            gg = 1,
+            PrevParagraph = 2,
+            NextParagraph = 2,
+        }))
+
+        eq({
+            { hint = "NextParagraph", loc = 2, text = "}" },
+            { hint = "gg", loc = 1, text = "gg" },
+        }, planned)
     end)
 end)

@@ -314,6 +314,45 @@ describe("Priority", function()
     end)
 end)
 
+describe("Text object virtual line", function()
+    before_each(function()
+        config = vim.deepcopy(default_config)
+    end)
+
+    it("builds text-object hints with range highlights", function()
+        local virtual_line = VirtLine.build_text_object(config, {
+            { label = "i", col = 3, prio = 10 },
+            { label = "a", col = 5, prio = 9 },
+        }, 7, {}, nil, {
+            { start_col = 2, end_col = 6, depth = 1 },
+        })
+
+        eq({
+            { " ", "PrecognitionTextObjectAvailability" },
+            { " i a ", "PrecognitionTextObjectRange1" },
+            { " ", "PrecognitionTextObjectAvailability" },
+        }, virtual_line)
+    end)
+
+    it("uses Hint Priority for text-object anchors", function()
+        local virtual_line = VirtLine.build_text_object(config, {
+            { label = "i", col = 3, prio = 1 },
+            { label = "a", col = 3, prio = 10 },
+        }, 5, {}, nil, {})
+
+        eq("  a  ", virtual_line[1][1])
+    end)
+
+    it("pads text-object hints to a minimum width", function()
+        local virtual_line = VirtLine.build_text_object(config, {
+            { label = "i", col = 3, prio = 10 },
+        }, 5, {}, 8, {})
+
+        eq("  i     ", virtual_line[1][1])
+        eq(8, vim.fn.strdisplaywidth(virtual_line[1][1]))
+    end)
+end)
+
 describe("replacment charcters", function()
     it("regular replacement chars", function()
         config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {

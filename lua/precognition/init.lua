@@ -1,6 +1,6 @@
 local compat = require("precognition.compat")
-local HintPriority = require("precognition.hint_priority")
 local defaults = require("precognition.defaults")
+local HintPlan = require("precognition.hint_plan")
 local MotionCount = require("precognition.motion_count")
 local Renderer = require("precognition.renderer")
 local VirtLine = require("precognition.virt_line")
@@ -115,81 +115,6 @@ local function clear_hints(bufnr)
     dirty = true
 end
 
----@param anchors Precognition.TextObjectAnchor[]
----@param line_len integer
----@param extra_padding Precognition.ExtraPadding[]
----@param min_width? integer
----@param ranges? Precognition.RangePreview[]
----@return table
-local function build_text_object_virt_line(anchors, line_len, extra_padding, min_width, ranges)
-    local utils = require("precognition.utils")
-    if line_len == 0 then
-        return {}
-    end
-
-    local virt_line = {}
-    local line_table = utils.create_pad_array(line_len, " ")
-    local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
-
-    ranges = ranges or {}
-    for index = math.min(#ranges, #config.textObjectHighlightColors), 1, -1 do
-        local range = ranges[index]
-        local hl_group = "PrecognitionTextObjectRange" .. index
-        for col = range.start_col, range.end_col do
-            if col > 0 and col <= line_len then
-                highlights[col] = hl_group
-            end
-        end
-    end
-
-    local priority = HintPriority.new()
-    for _, anchor in ipairs(anchors) do
-        local updated_hint = priority:add(anchor.col, anchor.prio, anchor.label)
-        if updated_hint and anchor.col > 0 and anchor.col <= line_len then
-            line_table[anchor.col] = updated_hint
-        end
-    end
-
-    if #extra_padding > 0 then
-        for _, padding in ipairs(extra_padding) do
-            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
-        end
-    end
-
-    local line = table.concat(line_table)
-    if min_width and vim.fn.strdisplaywidth(line) < min_width then
-        for _ = 1, min_width - vim.fn.strdisplaywidth(line) do
-            table.insert(line_table, " ")
-            table.insert(highlights, "PrecognitionTextObjectAvailability")
-        end
-        line = table.concat(line_table)
-    end
-    if line:match("^%s+$") then
-        if min_width and config.showBlankVirtLine then
-            return { { line, "PrecognitionTextObjectAvailability" } }
-        end
-        return {}
-    end
-
-    local chunk_text = ""
-    local chunk_hl = highlights[1]
-    for col = 1, #line_table do
-        local char = line_table[col]
-        local hl = highlights[col] or "PrecognitionTextObjectAvailability"
-        if hl ~= chunk_hl then
-            table.insert(virt_line, { chunk_text, chunk_hl })
-            chunk_text = char
-            chunk_hl = hl
-        else
-            chunk_text = chunk_text .. char
-        end
-    end
-    if chunk_text ~= "" then
-        table.insert(virt_line, { chunk_text, chunk_hl })
-    end
-    return virt_line
-end
-
 ---@param marks Precognition.VirtLine
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
@@ -199,39 +124,17 @@ local function build_virt_line(marks, line_len, extra_padding, min_width)
     return VirtLine.build(config, marks, line_len, extra_padding, min_width)
 end
 
----@return Precognition.GutterHints
-local function build_gutter_hints()
-    local motions = require("precognition.motions").get_motions()
-    ---@type Precognition.GutterHints
-    local gutter_hints = {
-        G = motions.file_end(),
-        gg = motions.file_start(),
-        PrevParagraph = motions.prev_paragraph_line(),
-        NextParagraph = motions.next_paragraph_line(),
-    }
-    return gutter_hints
-end
-
----@param gutter_hints Precognition.GutterHints
+---@param gutter_hints Precognition.PlannedGutterHint[]
 ---@param bufnr? integer -- buffer number
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
     bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if require("precognition.utils").is_blacklisted_buffer(bufnr, config.disabled_fts) then
-        return
-    end
-
-    local priority = HintPriority.new()
-    for hint, loc in pairs(gutter_hints) do
+    for hint, _ in pairs(config.gutterHints) do
         renderer:clear_gutter_hint(hint)
-
-        priority:add(loc, config.gutterHints[hint].prio, hint)
     end
 
-    -- Only render valid and prioritised gutter hints.
-    for loc, prioritized_hint in pairs(priority:hints_by_destination()) do
-        local hint = prioritized_hint.hint
-        renderer:render_gutter_hint(hint, loc, bufnr, config.gutterHints[hint].text)
+    for _, gutter_hint in ipairs(gutter_hints) do
+        renderer:render_gutter_hint(gutter_hint.hint, gutter_hint.loc, bufnr, gutter_hint.text)
     end
 end
 
@@ -252,19 +155,8 @@ local function is_visual_mode(mode)
 end
 
 local function display_marks()
-    if vim.api.nvim_get_mode().mode:sub(1, 1) == "i" then
-        return
-    end
-
     local utils = require("precognition.utils")
-    if motion_count:is_suppressed() then
-        vim.notify_once("Count is too high, not showing hints", vim.log.levels.INFO)
-    end
-
     local bufnr = vim.api.nvim_get_current_buf()
-    if utils.is_blacklisted_buffer(bufnr, config.disabled_fts) then
-        return
-    end
     local cursorline = vim.fn.line(".")
     if cursorline < 1 or cursorline > vim.api.nvim_buf_line_count(bufnr) then
         return
@@ -297,12 +189,29 @@ local function display_marks()
         end
     end
 
-    if motion_count:is_operator_prefix(pending_command_prefix) then
+    local motions = require("precognition.motions").get_motions()
+    local plan = HintPlan.build({
+        bufnr = bufnr,
+        mode = vim.api.nvim_get_mode().mode,
+        disabled_fts = config.disabled_fts,
+        pending_command_prefix = pending_command_prefix,
+        current_line = cur_line,
+        cursorcol = cursorcol,
+        line_len = line_len,
+        motion_count = motion_count,
+        motions = motions,
+        config = config,
+    })
+    if plan.message then
+        vim.notify_once(plan.message, vim.log.levels.INFO)
+    end
+
+    if plan.suppressed then
         clear_hints()
         return
     end
 
-    if motion_count:is_text_object_prefix(pending_command_prefix) then
+    if plan.kind == "text_object" then
         add_inlay_hint_padding()
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
@@ -313,9 +222,14 @@ local function display_marks()
             min_width = vim.api.nvim_win_get_width(0) - textoff
         end
 
-        local motions = require("precognition.motions").get_motions()
-        local anchors, ranges = motions.text_object_hints(pending_command_prefix or "", cur_line, cursorcol, line_len)
-        local virt_line = build_text_object_virt_line(anchors, line_len, extra_padding, min_width, ranges)
+        local virt_line = VirtLine.build_text_object(
+            config,
+            plan.text_object_anchors or {},
+            line_len,
+            extra_padding,
+            min_width,
+            plan.text_object_ranges
+        )
 
         if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
             renderer:render_inline_hint_virt_line(cursorline, virt_line)
@@ -325,25 +239,8 @@ local function display_marks()
         return
     end
 
-    local motions = require("precognition.motions").get_motions()
-    local counted_destinations = motion_count:destinations(motions, cur_line, cursorcol, line_len)
-
     -- FIXME: Lua patterns don't play nice with utf-8, we need a better way to
     -- get char offsets for more complex motions.
-
-    ---@type Precognition.VirtLine
-    local virtual_line_marks = {
-        Caret = motions.line_start_non_whitespace(cur_line, cursorcol, line_len),
-        w = counted_destinations.w,
-        e = counted_destinations.e,
-        b = counted_destinations.b,
-        W = counted_destinations.W,
-        E = counted_destinations.E,
-        B = counted_destinations.B,
-        MatchingPair = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        Dollar = motions.line_end(cur_line, cursorcol, line_len),
-        Zero = 1,
-    }
 
     add_inlay_hint_padding()
     --multicharacter padding
@@ -356,7 +253,7 @@ local function display_marks()
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
         min_width = vim.api.nvim_win_get_width(0) - textoff
     end
-    local virt_line = build_virt_line(virtual_line_marks, line_len, extra_padding, min_width)
+    local virt_line = build_virt_line(plan.inline_hints or {}, line_len, extra_padding, min_width)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
@@ -364,7 +261,7 @@ local function display_marks()
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
         renderer:render_inline_hint_virt_line(cursorline, virt_line)
     end
-    apply_gutter_hints(build_gutter_hints())
+    apply_gutter_hints(plan.planned_gutter_hints or {})
 
     dirty = false
 end

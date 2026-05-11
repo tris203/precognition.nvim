@@ -55,4 +55,78 @@ function M.build(config, marks, line_len, extra_padding, min_width)
     return { { line, "PrecognitionHighlight" } }
 end
 
+---@param config Precognition.Config
+---@param anchors Precognition.TextObjectAnchor[]
+---@param line_len integer
+---@param extra_padding Precognition.ExtraPadding[]
+---@param min_width? integer
+---@param ranges? Precognition.RangePreview[]
+---@return table
+function M.build_text_object(config, anchors, line_len, extra_padding, min_width, ranges)
+    local utils = require("precognition.utils")
+    if line_len == 0 then
+        return {}
+    end
+
+    local virt_line = {}
+    local line_table = utils.create_pad_array(line_len, " ")
+    local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
+
+    ranges = ranges or {}
+    for index = math.min(#ranges, #config.textObjectHighlightColors), 1, -1 do
+        local range = ranges[index]
+        local hl_group = "PrecognitionTextObjectRange" .. index
+        for col = range.start_col, range.end_col do
+            if col > 0 and col <= line_len then
+                highlights[col] = hl_group
+            end
+        end
+    end
+
+    local priority = HintPriority.new()
+    for _, anchor in ipairs(anchors) do
+        local updated_hint = priority:add(anchor.col, anchor.prio, anchor.label)
+        if updated_hint and anchor.col > 0 and anchor.col <= line_len then
+            line_table[anchor.col] = updated_hint
+        end
+    end
+
+    for _, padding in ipairs(extra_padding) do
+        line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
+    end
+
+    local line = table.concat(line_table)
+    if min_width and vim.fn.strdisplaywidth(line) < min_width then
+        for _ = 1, min_width - vim.fn.strdisplaywidth(line) do
+            table.insert(line_table, " ")
+            table.insert(highlights, "PrecognitionTextObjectAvailability")
+        end
+        line = table.concat(line_table)
+    end
+    if line:match("^%s+$") then
+        if min_width and config.showBlankVirtLine then
+            return { { line, "PrecognitionTextObjectAvailability" } }
+        end
+        return {}
+    end
+
+    local chunk_text = ""
+    local chunk_hl = highlights[1]
+    for col = 1, #line_table do
+        local char = line_table[col]
+        local hl = highlights[col] or "PrecognitionTextObjectAvailability"
+        if hl ~= chunk_hl then
+            table.insert(virt_line, { chunk_text, chunk_hl })
+            chunk_text = char
+            chunk_hl = hl
+        else
+            chunk_text = chunk_text .. char
+        end
+    end
+    if chunk_text ~= "" then
+        table.insert(virt_line, { chunk_text, chunk_hl })
+    end
+    return virt_line
+end
+
 return M
