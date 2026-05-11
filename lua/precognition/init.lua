@@ -1,6 +1,7 @@
 local compat = require("precognition.compat")
 local HintPriority = require("precognition.hint_priority")
 local MotionCount = require("precognition.motion_count")
+local Renderer = require("precognition.renderer")
 
 local M = {}
 
@@ -119,27 +120,17 @@ local default = {
 ---@type Precognition.Config
 local config = default
 
----@type integer?
-local extmark -- the active extmark in the current buffer
 ---@type boolean
 local dirty -- whether a redraw is needed
 ---@type boolean
 local visible = false
----@type string
-local gutter_name_prefix = "precognition_gutter_" -- prefix for gutter signs object naame
----@type {SupportedGutterHints: { line: integer, id: integer }} -- cache for gutter signs
-local gutter_signs_cache = {} -- cache for gutter signs
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
----@type integer
-local ns = vim.api.nvim_create_namespace("precognition")
----@type integer
-local range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
----@type string
-local gutter_group = "precognition_gutter"
 ---@type Precognition.MotionCount
 local motion_count = MotionCount.new()
+---@type Precognition.Renderer
+local renderer = Renderer.new()
 ---@type string | nil
 local pending_command_prefix
 ---@type boolean
@@ -153,15 +144,7 @@ local restoring_visual_selection = false
 local cached_on_cursor_moved
 
 local function clear_hints(bufnr)
-    bufnr = bufnr or vim.api.nvim_get_current_buf()
-    if extmark then
-        vim.api.nvim_buf_del_extmark(bufnr, ns, extmark)
-        extmark = nil
-    end
-    vim.api.nvim_buf_clear_namespace(bufnr, ns, 0, -1)
-    vim.api.nvim_buf_clear_namespace(bufnr, range_ns, 0, -1)
-    vim.fn.sign_unplace(gutter_group)
-    gutter_signs_cache = {}
+    renderer:clear(bufnr)
     dirty = true
 end
 
@@ -298,28 +281,6 @@ local function build_gutter_hints()
     return gutter_hints
 end
 
----@param hint string
----@param loc integer
----@param bufnr integer
-local function place_gutter_hint(hint, loc, bufnr)
-    local sign_name = gutter_name_prefix .. hint
-    vim.fn.sign_define(sign_name, {
-        text = config.gutterHints[hint].text,
-        texthl = "PrecognitionHighlight",
-    })
-    local ok, res = pcall(vim.fn.sign_place, 0, gutter_group, sign_name, bufnr, {
-        lnum = loc,
-        priority = 100,
-    })
-    if ok then
-        gutter_signs_cache[hint] = { line = loc, id = res }
-        return
-    end
-    if loc ~= 0 then
-        vim.notify_once("Failed to place sign: " .. hint .. " at line " .. loc .. vim.inspect(res), vim.log.levels.WARN)
-    end
-end
-
 ---@param gutter_hints Precognition.GutterHints
 ---@param bufnr? integer -- buffer number
 ---@return nil
@@ -331,17 +292,15 @@ local function apply_gutter_hints(gutter_hints, bufnr)
 
     local priority = HintPriority.new()
     for hint, loc in pairs(gutter_hints) do
-        if gutter_signs_cache[hint] then
-            vim.fn.sign_unplace(gutter_group, { id = gutter_signs_cache[hint].id })
-            gutter_signs_cache[hint] = nil
-        end
+        renderer:clear_gutter_hint(hint)
 
         priority:add(loc, config.gutterHints[hint].prio, hint)
     end
 
     -- Only render valid and prioritised gutter hints.
     for loc, prioritized_hint in pairs(priority:hints_by_destination()) do
-        place_gutter_hint(prioritized_hint.hint, loc, bufnr)
+        local hint = prioritized_hint.hint
+        renderer:render_gutter_hint(hint, loc, bufnr, config.gutterHints[hint].text)
     end
 end
 
@@ -360,26 +319,6 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
     local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
     local sanitised_line = cur_line:gsub("\t", string.rep(" ", tab_width))
     return cursorcol, sanitised_line, tab_width
-end
-
----@param prefix string | nil
----@return boolean
-local function is_text_object_prefix(prefix)
-    if not prefix then
-        return false
-    end
-    local without_count = prefix:gsub("^%d+", "")
-    return without_count:match("^[vdcy]?[ia]$") ~= nil or without_count == "i" or without_count == "a"
-end
-
----@param prefix string | nil
----@return boolean
-local function is_operator_prefix(prefix)
-    if not prefix then
-        return false
-    end
-    local without_count = prefix:gsub("^%d+", "")
-    return without_count:match("^[dcy]$") ~= nil
 end
 
 ---@param mode string
@@ -408,7 +347,7 @@ local function display_marks()
     end
     local cursorcol, cur_line, tab_width =
         calculate_visual_cursorcol(vim.api.nvim_get_current_line(), vim.fn.charcol("."), vim.fn.indent(cursorline))
-    if extmark and not dirty then
+    if renderer:extmark() and not dirty then
         return
     end
 
@@ -434,12 +373,12 @@ local function display_marks()
         end
     end
 
-    if is_operator_prefix(pending_command_prefix) then
+    if motion_count:is_operator_prefix(pending_command_prefix) then
         clear_hints()
         return
     end
 
-    if is_text_object_prefix(pending_command_prefix) then
+    if motion_count:is_text_object_prefix(pending_command_prefix) then
         add_inlay_hint_padding()
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
@@ -451,14 +390,11 @@ local function display_marks()
         end
 
         local motions = require("precognition.motions").get_motions()
-        local anchors, ranges = motions.text_object_hints(pending_command_prefix, cur_line, cursorcol, line_len)
+        local anchors, ranges = motions.text_object_hints(pending_command_prefix or "", cur_line, cursorcol, line_len)
         local virt_line = build_text_object_virt_line(anchors, line_len, extra_padding, min_width, ranges)
 
         if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-            extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-                id = extmark,
-                virt_lines = { virt_line },
-            })
+            renderer:render_inline_hint_virt_line(cursorline, virt_line)
         end
 
         dirty = false
@@ -502,10 +438,7 @@ local function display_marks()
 
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
-        extmark = vim.api.nvim_buf_set_extmark(0, ns, cursorline - 1, 0, {
-            id = extmark, -- reuse the same extmark if it exists
-            virt_lines = { virt_line },
-        })
+        renderer:render_inline_hint_virt_line(cursorline, virt_line)
     end
     apply_gutter_hints(build_gutter_hints())
 
@@ -556,8 +489,7 @@ end
 local function redraw_marks(preserve_visual)
     preserving_visual_selection(preserve_visual, display_marks)
 
-    -- nvim__redraw is experimental, but we intentionally use it here to flush this buffer's hints.
-    vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
+    renderer:flush(vim.api.nvim_get_current_buf())
 end
 
 ---@param prefix string
@@ -598,20 +530,13 @@ local function cursor_moved_handler(draw)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        local text_object_selection_finished = is_visual_mode(mode) and is_text_object_prefix(pending_command_prefix)
+        local text_object_selection_finished = is_visual_mode(mode)
+            and motion_count:is_text_object_prefix(pending_command_prefix)
         if not is_visual_mode(mode) or text_object_selection_finished then
             pending_command_prefix = nil
         end
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
-        if extmark then
-            local ext = vim.api.nvim_buf_get_extmark_by_id(buf, ns, extmark, {
-                details = true,
-            })
-            if ext and ext[1] ~= vim.api.nvim_win_get_cursor(0)[1] - 1 then
-                vim.api.nvim_buf_del_extmark(buf, ns, extmark)
-                extmark = nil
-            end
-        end
+        renderer:clear_inline_hint_if_moved(buf, vim.api.nvim_win_get_cursor(0)[1])
         dirty = true
         if is_visual_mode(mode) and not text_object_selection_finished then
             preserving_visual_selection(true, draw)
@@ -709,33 +634,11 @@ local function on_key(key)
             return
         end
 
-        local prev_pending_command_prefix = pending_command_prefix
-        local defer_redraw = false
-        local count_changed = motion_count:handle_key(key, mode)
-
-        if key == "\27" or key == "\3" then
-            pending_command_prefix = nil
-        elseif key:match("^%d$") and not motion_count:is_operator_pending_mode(mode) then
-            if key == "0" and not pending_command_prefix then
-                pending_command_prefix = nil
-            else
-                pending_command_prefix = (pending_command_prefix or "") .. key
-            end
-        elseif (is_visual_mode(mode) or motion_count:is_operator_pending_mode(mode)) and (key == "i" or key == "a") then
-            pending_command_prefix = key
-            defer_redraw = true
-        elseif key:match("^[dcy]$") and not is_text_object_prefix(pending_command_prefix) then
-            pending_command_prefix = (pending_command_prefix or "") .. key
-        elseif (key == "i" or key == "a") and pending_command_prefix then
-            pending_command_prefix = pending_command_prefix .. key
-        else
-            pending_command_prefix = nil
-        end
-
-        local prefix_changed = count_changed or pending_command_prefix ~= prev_pending_command_prefix
-        if visible and prefix_changed then
+        local input = motion_count:handle_input(key, mode, pending_command_prefix)
+        pending_command_prefix = input.pending_command_prefix
+        if visible and input.prefix_changed then
             dirty = true
-            if defer_redraw then
+            if input.defer_redraw then
                 local prefix = pending_command_prefix
                 if not prefix then
                     return
@@ -845,8 +748,7 @@ function M.setup(opts)
         config.textObjectHighlightColors = opts.textObjectHighlightColors
     end
 
-    ns = vim.api.nvim_create_namespace("precognition")
-    range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
+    renderer:reset()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     cached_on_cursor_moved = nil
     motion_count:reset()
@@ -864,7 +766,7 @@ function M.setup(opts)
 
     create_command()
 
-    vim.on_key(on_key, ns)
+    vim.on_key(on_key, renderer:ns())
     if config.startVisible then
         M.show()
     end
@@ -887,16 +789,16 @@ local state = {
         return get_on_cursor_moved()
     end,
     extmark = function()
-        return extmark
+        return renderer:extmark()
     end,
     gutter_group = function()
-        return gutter_group
+        return renderer:gutter_group()
     end,
     ns = function()
-        return ns
+        return renderer:ns()
     end,
     range_ns = function()
-        return range_ns
+        return renderer:range_ns()
     end,
     default_hint_config = function()
         return defaultHintConfig
