@@ -1,6 +1,4 @@
 local M = {}
-local HintPriority = {}
-HintPriority.__index = HintPriority
 
 ---@class Precognition.PrioritizedHint
 ---@field priority integer
@@ -8,6 +6,8 @@ HintPriority.__index = HintPriority
 
 ---@class Precognition.HintPriority
 ---@field private _hints_by_destination table<integer, Precognition.PrioritizedHint>
+local HintPriority = {}
+HintPriority.__index = HintPriority
 
 ---@return Precognition.HintPriority
 function M.new()
