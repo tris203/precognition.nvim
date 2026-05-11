@@ -87,9 +87,10 @@ describe("text object hints", function()
 
         vim.api.nvim_feedkeys("vi", "nx", true)
         local waited = vim.wait(150, function()
-            return (vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
-                    ~= nil
-                and text_object_extmark()[3].virt_lines ~= nil
+            local extmarks = vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {})
+            local has_extmark = (extmarks[1] or {})[1] ~= nil
+            local has_virt_lines = text_object_extmark()[3].virt_lines ~= nil
+            return has_extmark and has_virt_lines
         end)
         eq(true, waited)
 
@@ -147,6 +148,7 @@ describe("text object hints", function()
         eq('   w({       "     " })', virt_line_text(extmark))
 
         local groups = {}
+        assert(extmark, "Expected extmark to be non-nil")
         for _, chunk in ipairs(extmark[3].virt_lines[1]) do
             groups[chunk[2]] = true
         end
@@ -163,6 +165,7 @@ describe("text object hints", function()
 
         local extmark = text_object_extmark()
         local groups = {}
+        assert(extmark, "Expected extmark to be non-nil")
         for _, chunk in ipairs(extmark[3].virt_lines[1]) do
             groups[chunk[2]] = true
         end
@@ -214,9 +217,11 @@ describe("text object hints", function()
     it("accounts for inlay hint padding in text object hints", function()
         local original_is_enabled = vim.lsp.inlay_hint.is_enabled
         local original_get = vim.lsp.inlay_hint.get
+        ---@diagnostic disable-next-line: duplicate-set-field
         vim.lsp.inlay_hint.is_enabled = function()
             return true
         end
+        ---@diagnostic disable-next-line: duplicate-set-field
         vim.lsp.inlay_hint.get = function()
             return {
                 {
