@@ -1,12 +1,15 @@
-local precognition = require("precognition")
+local VirtLine = require("precognition.virt_line")
 local motions_mod = require("precognition.motions")
 local motions
 local utils = require("precognition.utils")
 local eq = MiniTest.expect.equality
+local default_config = require("precognition.defaults").config
+local config = vim.deepcopy(default_config)
 describe("Build Virtual Line", function()
     before_each(function()
         motions_mod.reset_default()
         motions = motions_mod.get_motions()
+        config = vim.deepcopy(default_config)
     end)
 
     it("can build a simple virtual line", function()
@@ -14,7 +17,7 @@ describe("Build Virtual Line", function()
             Caret = 4,
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("   ^     $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -23,7 +26,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Caret = 4,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("   ^      ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -32,7 +35,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("         $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -41,7 +44,7 @@ describe("Build Virtual Line", function()
         local marks = {
             Caret = 1,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("^         ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
@@ -56,7 +59,7 @@ describe("Build Virtual Line", function()
             w = 10,
             Dollar = 50,
         }
-        local virtual_line = precognition.build_virt_line(marks, 50, {})
+        local virtual_line = VirtLine.build(config, marks, 50, {})
         local line_num = 1
         for char in virtual_line[1][1]:gmatch(".") do
             if line_num == 1 then
@@ -84,7 +87,7 @@ describe("Build Virtual Line", function()
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
-        local virt_line = precognition.build_virt_line({
+        local virt_line = VirtLine.build(config, {
             w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
             e = motions.end_of_word(cur_line, cursorcol, line_len, false),
             b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
@@ -103,7 +106,7 @@ describe("Build Virtual Line", function()
         local cur_line = line:gsub("\t", string.rep(" ", tab_width))
         local line_len = vim.fn.strcharlen(cur_line)
 
-        local virt_line = precognition.build_virt_line({
+        local virt_line = VirtLine.build(config, {
             w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
             e = motions.end_of_word(cur_line, cursorcol, line_len, false),
             b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
@@ -123,7 +126,7 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
         local extra_padding = { { start = 4, length = 4 } }
 
-        local virt_line = precognition.build_virt_line({
+        local virt_line = VirtLine.build(config, {
             w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
             e = motions.end_of_word(cur_line, cursorcol, line_len, false),
             b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
@@ -148,7 +151,7 @@ describe("Build Virtual Line", function()
         local line_len = vim.fn.strcharlen(cur_line)
         local extra_padding = { { start = 4, length = 4 }, { start = 10, length = 5 } }
 
-        local virt_line = precognition.build_virt_line({
+        local virt_line = VirtLine.build(config, {
             w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
             e = motions.end_of_word(cur_line, cursorcol, line_len, false),
             b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
@@ -170,7 +173,7 @@ describe("Build Virtual Line", function()
             Caret = 4,
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {}, 20)
+        local virtual_line = VirtLine.build(config, marks, 10, {}, 20)
         eq("   ^     $          ", virtual_line[1][1])
         eq(20, #virtual_line[1][1])
     end)
@@ -180,13 +183,13 @@ describe("Build Virtual Line", function()
             Caret = 4,
             Dollar = 10,
         }
-        local virtual_line = precognition.build_virt_line(marks, 10, {}, 5)
+        local virtual_line = VirtLine.build(config, marks, 10, {}, 5)
         eq("   ^     $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
 
     it("can render a blank virtual line when padding to a minimum width", function()
-        local virtual_line = precognition.build_virt_line({}, 5, {}, 12)
+        local virtual_line = VirtLine.build(config, {}, 5, {}, 12)
         eq("            ", virtual_line[1][1])
         eq(12, #virtual_line[1][1])
     end)
@@ -201,7 +204,7 @@ describe("Build Virtual Line", function()
 
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
-        local virt_line = precognition.build_virt_line({
+        local virt_line = VirtLine.build(config, {
             w = motions.next_word_boundary(cur_line, cursorcol, line_len, false),
             e = motions.end_of_word(cur_line, cursorcol, line_len, false),
             b = motions.prev_word_boundary(cur_line, cursorcol, line_len, false),
@@ -216,7 +219,7 @@ end)
 
 describe("Priority", function()
     it("0 priority item is not added", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -236,13 +239,13 @@ describe("Priority", function()
             Dollar = 10,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("     w    ", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
 
     it("a higher priority mark in the same space takes priority", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -262,13 +265,13 @@ describe("Priority", function()
             Dollar = 10,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 10, {})
+        local virtual_line = VirtLine.build(config, marks, 10, {})
         eq("     w   $", virtual_line[1][1])
         eq(10, #virtual_line[1][1])
     end)
 
     it("a higher priority mark in the same space takes priority", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -287,11 +290,11 @@ describe("Priority", function()
             Dollar = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, {})
+        local virtual_line = VirtLine.build(config, marks, 1, {})
         eq("$", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
 
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -305,7 +308,7 @@ describe("Priority", function()
             },
         })
 
-        virtual_line = precognition.build_virt_line(marks, 1, {})
+        virtual_line = VirtLine.build(config, marks, 1, {})
         eq("^", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
     end)
@@ -313,7 +316,7 @@ end)
 
 describe("replacment charcters", function()
     it("regular replacement chars", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -327,13 +330,13 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, {})
+        local virtual_line = VirtLine.build(config, marks, 1, {})
         eq("x", virtual_line[1][1])
         eq(1, #virtual_line[1][1])
     end)
 
     it("extended alphabet chars", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -347,13 +350,13 @@ describe("replacment charcters", function()
             Caret = 1,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 1, {})
+        local virtual_line = VirtLine.build(config, marks, 1, {})
         eq("â", virtual_line[1][1])
         eq(2, #virtual_line[1][1])
     end)
 
     it("adjacent alphabet chars", function()
-        precognition.setup({})
+        config = vim.deepcopy(default_config)
         -- hello
 
         local marks = {
@@ -364,12 +367,12 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 8, {})
+        local virtual_line = VirtLine.build(config, marks, 8, {})
         eq("0^e w  $", virtual_line[1][1])
     end)
 
     it("adjacent extended chars", function()
-        precognition.setup({
+        config = vim.tbl_deep_extend("force", vim.deepcopy(default_config), {
             ---@diagnostic disable-next-line: missing-fields
             hints = {
                 Caret = {
@@ -389,7 +392,7 @@ describe("replacment charcters", function()
             Dollar = 8,
         }
 
-        local virtual_line = precognition.build_virt_line(marks, 8, {})
+        local virtual_line = VirtLine.build(config, marks, 8, {})
         eq("0âe w  $", virtual_line[1][1])
     end)
 end)

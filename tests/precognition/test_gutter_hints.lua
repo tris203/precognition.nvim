@@ -1,5 +1,14 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
+local function build_gutter_hints()
+    local motions = require("precognition.motions").get_motions()
+    return {
+        G = motions.file_end(),
+        gg = motions.file_start(),
+        PrevParagraph = motions.prev_paragraph_line(),
+        NextParagraph = motions.next_paragraph_line(),
+    }
+end
 
 describe("Gutter hints table", function()
     before_each(function()
@@ -21,7 +30,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_set_current_buf(testBuf)
         vim.api.nvim_win_set_cursor(0, { 4, 0 })
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = build_gutter_hints()
 
         eq({
             ["gg"] = 1,
@@ -36,7 +45,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_buf_set_lines(testBuf, 0, -1, false, {})
         vim.api.nvim_set_current_buf(testBuf)
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = build_gutter_hints()
 
         eq({
             ["gg"] = 1,
@@ -52,7 +61,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_set_current_buf(testBuf)
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = build_gutter_hints()
         eq({
             ["gg"] = 1,
             NextParagraph = 1,
@@ -76,7 +85,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_set_current_buf(testBuf)
         vim.api.nvim_win_set_cursor(0, { 4, 0 })
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = build_gutter_hints()
 
         eq({
             ["gg"] = 1,
@@ -86,7 +95,7 @@ describe("Gutter hints table", function()
         }, hints)
 
         vim.api.nvim_win_set_cursor(0, { 6, 0 })
-        hints = precognition.build_gutter_hints(testBuf)
+        hints = build_gutter_hints()
         eq({
             ["gg"] = 1,
             PrevParagraph = 5,
@@ -101,7 +110,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_set_current_buf(testBuf)
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-        local hints = precognition.build_gutter_hints(testBuf)
+        local hints = build_gutter_hints()
         eq({
             ["gg"] = 1,
             NextParagraph = 1,
@@ -111,7 +120,7 @@ describe("Gutter hints table", function()
 
         vim.api.nvim_buf_set_lines(testBuf, 1, 1, false, { "DEF" })
 
-        hints = precognition.build_gutter_hints(testBuf)
+        hints = build_gutter_hints()
         eq({
             ["gg"] = 1,
             PrevParagraph = 1,
@@ -121,7 +130,7 @@ describe("Gutter hints table", function()
 
         vim.api.nvim_buf_set_lines(testBuf, 2, 2, false, { "GHI" })
 
-        hints = precognition.build_gutter_hints(testBuf)
+        hints = build_gutter_hints()
 
         eq({
             ["gg"] = 1,
@@ -133,7 +142,7 @@ describe("Gutter hints table", function()
         vim.api.nvim_buf_set_lines(testBuf, 3, 3, false, { "" })
         vim.api.nvim_buf_set_lines(testBuf, 4, 4, false, { "JKL" })
 
-        hints = precognition.build_gutter_hints(testBuf)
+        hints = build_gutter_hints()
 
         eq({
             ["gg"] = 1,

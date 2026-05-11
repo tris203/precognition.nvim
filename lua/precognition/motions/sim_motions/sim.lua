@@ -63,7 +63,7 @@ local function check_pos(string, col, default_config)
 end
 
 M.check = function(line, col)
-    return check_pos(line, col, require("precognition").default_hint_config)
+    return check_pos(line, col, require("precognition.defaults").hints)
 end
 
 ---@param line string

@@ -1,7 +1,9 @@
 local compat = require("precognition.compat")
 local HintPriority = require("precognition.hint_priority")
+local defaults = require("precognition.defaults")
 local MotionCount = require("precognition.motion_count")
 local Renderer = require("precognition.renderer")
+local VirtLine = require("precognition.virt_line")
 
 local M = {}
 
@@ -79,43 +81,8 @@ local M = {}
 ---@field start integer
 ---@field length integer
 
----@type Precognition.HintConfig
-local defaultHintConfig = {
-    Caret = { text = "^", prio = 2 },
-    Dollar = { text = "$", prio = 1 },
-    MatchingPair = { text = "%", prio = 5 },
-    Zero = { text = "0", prio = 1 },
-    w = { text = "w", prio = 10 },
-    b = { text = "b", prio = 9 },
-    e = { text = "e", prio = 8 },
-    W = { text = "W", prio = 7 },
-    B = { text = "B", prio = 6 },
-    E = { text = "E", prio = 5 },
-}
-
 ---@type Precognition.Config
-local default = {
-    debounceMs = 0,
-    startVisible = true,
-    showBlankVirtLine = true,
-    highlightFullVirtLine = false,
-    highlightColor = { link = "Comment" },
-    textObjectHighlightColors = {
-        { link = "DiffText" },
-        { link = "DiffChange" },
-        { link = "Visual" },
-    },
-    hints = defaultHintConfig,
-    gutterHints = {
-        G = { text = "G", prio = 10 },
-        gg = { text = "gg", prio = 9 },
-        PrevParagraph = { text = "{", prio = 8 },
-        NextParagraph = { text = "}", prio = 8 },
-    },
-    disabled_fts = {
-        "startify",
-    },
-}
+local default = defaults.config
 
 ---@type Precognition.Config
 local config = default
@@ -229,43 +196,7 @@ end
 ---@param min_width? integer
 ---@return table
 local function build_virt_line(marks, line_len, extra_padding, min_width)
-    local utils = require("precognition.utils")
-    if not marks then
-        return {}
-    end
-    if line_len == 0 then
-        return {}
-    end
-    local virt_line = {}
-    local line_table = utils.create_pad_array(line_len, " ")
-
-    local priority = HintPriority.new()
-    for mark, loc in pairs(marks) do
-        local updated_hint = priority:add(loc, config.hints[mark].prio, config.hints[mark].text or mark)
-        if updated_hint and loc > 0 and loc <= line_len then
-            line_table[loc] = updated_hint
-        end
-    end
-
-    if #extra_padding > 0 then
-        for _, padding in ipairs(extra_padding) do
-            line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
-        end
-    end
-
-    local line = table.concat(line_table)
-    if min_width and vim.fn.strdisplaywidth(line) < min_width then
-        line = line .. string.rep(" ", min_width - vim.fn.strdisplaywidth(line))
-    end
-    if line:match("^%s+$") then
-        if min_width and config.showBlankVirtLine then
-            return { { line, "PrecognitionHighlight" } }
-        else
-            return {}
-        end
-    end
-    table.insert(virt_line, { line, "PrecognitionHighlight" })
-    return virt_line
+    return VirtLine.build(config, marks, line_len, extra_padding, min_width)
 end
 
 ---@return Precognition.GutterHints
@@ -311,14 +242,7 @@ end
 ---@return string
 ---@return number
 local function calculate_visual_cursorcol(cur_line, charcol, offset)
-    --matches all leading spaces and tabs in any order
-    local leading_whitespace = string.match(cur_line, "^([ \t]*)")
-    -- offset would be the equivalent space characters occupied by the whitespace
-    -- vim.fn.indent gives us this value
-    local cursorcol = charcol - #leading_whitespace + offset
-    local tab_width = vim.bo.expandtab and vim.bo.shiftwidth or vim.bo.tabstop
-    local sanitised_line = cur_line:gsub("\t", string.rep(" ", tab_width))
-    return cursorcol, sanitised_line, tab_width
+    return VirtLine.calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
 ---@param mode string
@@ -724,6 +648,12 @@ function M.toggle()
     return visible
 end
 
+--- Return whether automatic hints are currently visible.
+---@return boolean
+function M.is_visible()
+    return visible
+end
+
 local function setup_highlights()
     vim.api.nvim_set_hl(0, "PrecognitionHighlight", config.highlightColor)
     vim.api.nvim_set_hl(0, "PrecognitionTextObjectHint", { link = "PrecognitionHighlight" })
@@ -771,71 +701,5 @@ function M.setup(opts)
         M.show()
     end
 end
-
--- This is for testing purposes, since we need to
--- access these variables from outside the module
--- but we don't want to expose them to the user
-local state = {
-    build_virt_line = function()
-        return build_virt_line
-    end,
-    calculate_visual_cursorcol = function()
-        return calculate_visual_cursorcol
-    end,
-    build_gutter_hints = function()
-        return build_gutter_hints
-    end,
-    on_cursor_moved = function()
-        return get_on_cursor_moved()
-    end,
-    extmark = function()
-        return renderer:extmark()
-    end,
-    gutter_group = function()
-        return renderer:gutter_group()
-    end,
-    ns = function()
-        return renderer:ns()
-    end,
-    range_ns = function()
-        return renderer:range_ns()
-    end,
-    default_hint_config = function()
-        return defaultHintConfig
-    end,
-    is_visible = function()
-        return visible
-    end,
-    set_motion_count_prefix = function()
-        return function(cmd)
-            motion_count:set_prefix(cmd)
-        end
-    end,
-    motion_count_prefix = function()
-        return motion_count:prefix()
-    end,
-    set_pending_command_prefix = function()
-        return function(cmd)
-            pending_command_prefix = cmd
-        end
-    end,
-    pending_command_prefix = function()
-        return pending_command_prefix
-    end,
-    build_text_object_hints = function()
-        return require("precognition.motions").get_motions().text_object_hints
-    end,
-    on_key = function()
-        return on_key
-    end,
-}
-
-setmetatable(M, {
-    __index = function(_, k)
-        if state[k] then
-            return state[k]()
-        end
-    end,
-})
 
 return M
