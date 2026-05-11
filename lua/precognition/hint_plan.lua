@@ -97,7 +97,8 @@ function M.build(ctx)
         }
     end
 
-    local counted_destinations = ctx.motion_count:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len)
+    local counted_destinations =
+        ctx.motion_count:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len)
     local gutter_hints = M.gutter_hints(ctx.motions)
     return {
         suppressed = false,

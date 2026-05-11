@@ -82,12 +82,17 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        not_nil((vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        not_nil(
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
         neq({}, get_gutter_extmarks(buffer))
 
         vim.api.nvim_exec_autocmds("InsertEnter", { group = "precognition" })
 
-        eq(nil, (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        eq(
+            nil,
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
         eq({}, get_gutter_extmarks(buffer))
     end)
 
@@ -110,7 +115,9 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        not_nil((vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        not_nil(
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
 
         vim.api.nvim_win_set_cursor(0, { 2, 1 })
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
@@ -130,7 +137,10 @@ describe("e2e tests", function()
             error(err)
         end
 
-        eq(nil, (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        eq(
+            nil,
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
         eq({}, get_gutter_extmarks(buffer))
     end)
 
@@ -153,7 +163,9 @@ describe("e2e tests", function()
         precognition.hide()
         precognition.show()
 
-        not_nil((vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        not_nil(
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
         neq({}, get_gutter_extmarks(buffer))
     end)
 
@@ -174,7 +186,10 @@ describe("e2e tests", function()
 
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
 
-        eq(nil, (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        eq(
+            nil,
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
 
         eq(
             {},
@@ -184,15 +199,24 @@ describe("e2e tests", function()
         )
 
         local ok = vim.wait(500, function()
-            return (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1] ~= nil
+            return (
+                vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {}
+            )[1] ~= nil
         end)
 
         neq(false, ok)
-        not_nil((vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1])
+        not_nil(
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1]
+        )
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, vim.api.nvim_create_namespace("precognition"), (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1], {
-            details = true,
-        })
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(
+            buffer,
+            vim.api.nvim_create_namespace("precognition"),
+            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1],
+            {
+                details = true,
+            }
+        )
 
         eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
         eq("^   e w                  $", extmarks[3].virt_lines[1][1][1])

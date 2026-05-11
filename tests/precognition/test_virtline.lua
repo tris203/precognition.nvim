@@ -320,12 +320,19 @@ describe("Text object virtual line", function()
     end)
 
     it("builds text-object hints with range highlights", function()
-        local virtual_line = VirtLine.build_text_object(config, {
-            { label = "i", col = 3, prio = 10 },
-            { label = "a", col = 5, prio = 9 },
-        }, 7, {}, nil, {
-            { start_col = 2, end_col = 6, depth = 1 },
-        })
+        local virtual_line = VirtLine.build_text_object(
+            config,
+            {
+                { label = "i", col = 3, prio = 10 },
+                { label = "a", col = 5, prio = 9 },
+            },
+            7,
+            {},
+            nil,
+            {
+                { start_col = 2, end_col = 6, depth = 1 },
+            }
+        )
 
         eq({
             { " ", "PrecognitionTextObjectAvailability" },
