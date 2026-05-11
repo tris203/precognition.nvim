@@ -8,14 +8,14 @@ local function restart_child()
 end
 
 local function text_object_extmark()
-    return vim.api.nvim_buf_get_extmark_by_id(
-        0,
-        vim.api.nvim_create_namespace("precognition"),
-        (vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1],
-        {
-            details = true,
-        }
-    )
+    local ns = vim.api.nvim_create_namespace("precognition")
+    local first = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, {})[1]
+    if not first then
+        return nil
+    end
+    return vim.api.nvim_buf_get_extmark_by_id(0, ns, first[1], {
+        details = true,
+    })
 end
 
 local function virt_line_text(extmark)

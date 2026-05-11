@@ -26,6 +26,7 @@ function M.new()
 end
 
 function Renderer:reset()
+    self:clear()
     self._ns = vim.api.nvim_create_namespace("precognition")
     self._range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     self._extmark = nil

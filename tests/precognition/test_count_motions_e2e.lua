@@ -96,16 +96,16 @@ describe("e2e tests", function()
         vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
         vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local ok = vim.wait(500, function()
+            return (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1] ~= nil
+        end)
 
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(
-            buffer,
-            vim.api.nvim_create_namespace("precognition"),
-            (vim.api.nvim_buf_get_extmarks(buffer, vim.api.nvim_create_namespace("precognition"), 0, -1, {})[1] or {})[1],
-            {
-                details = true,
-            }
-        )
+        eq(true, ok)
+        local extmark_id = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1][1]
+        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
+            details = true,
+        })
 
         local gutter_extmarks = get_gutter_extmarks(buffer)
 
