@@ -1,17 +1,19 @@
 local M = {}
 
 local function show_with_display_marks_upvalue(child, upvalue_name, prefix)
-    child.lua_func(function(name_to_set, prefix_to_set)
+    child.lua_func(function(upvalue_name_to_set, name_to_set, prefix_to_set)
         local precognition = require("precognition")
         precognition.hide()
 
         local _, display_marks = debug.getupvalue(precognition.peek, 1)
+        local found = false
         for index = 1, math.huge do
             local name, value = debug.getupvalue(display_marks, index)
             if name == nil then
                 break
             end
             if name == name_to_set then
+                found = true
                 if value and value.set_prefix then
                     value:set_prefix(prefix_to_set)
                 else
@@ -20,9 +22,10 @@ local function show_with_display_marks_upvalue(child, upvalue_name, prefix)
                 break
             end
         end
+        assert(found, string.format("Expected upvalue %q to contain %q", upvalue_name_to_set, name_to_set))
         precognition.show()
         vim.api.nvim__redraw({ buf = vim.api.nvim_get_current_buf(), flush = true })
-    end, upvalue_name, prefix)
+    end, "display_marks", upvalue_name, prefix)
 end
 
 function M.show_with_pending_prefix(child, prefix)
