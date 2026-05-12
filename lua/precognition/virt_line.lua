@@ -74,6 +74,31 @@ local function add_inline_hint_candidates(candidates, priority, line_table, high
     end
 end
 
+---@param line_table string[]
+---@param highlights string[]
+---@param default_hl string
+---@return table
+local function chunk_by_highlight(line_table, highlights, default_hl)
+    local chunks = {}
+    local chunk_text = ""
+    local chunk_hl = highlights[1] or default_hl
+    for col = 1, #line_table do
+        local char = line_table[col]
+        local hl = highlights[col] or default_hl
+        if hl ~= chunk_hl then
+            table.insert(chunks, { chunk_text, chunk_hl })
+            chunk_text = char
+            chunk_hl = hl
+        else
+            chunk_text = chunk_text .. char
+        end
+    end
+    if chunk_text ~= "" then
+        table.insert(chunks, { chunk_text, chunk_hl })
+    end
+    return chunks
+end
+
 ---@overload fun(
 ---config: Precognition.Config,
 ---marks: Precognition.VirtLine,
@@ -127,25 +152,7 @@ function M.build(config, marks, line_len, extra_padding, min_width)
         return {}
     end
 
-    local virt_line = {}
-    local chunk_text = ""
-    local chunk_hl = highlights[1]
-    for col = 1, #line_table do
-        local char = line_table[col]
-        local hl = highlights[col] or "PrecognitionHighlight"
-        if hl ~= chunk_hl then
-            table.insert(virt_line, { chunk_text, chunk_hl })
-            chunk_text = char
-            chunk_hl = hl
-        else
-            chunk_text = chunk_text .. char
-        end
-    end
-    if chunk_text ~= "" then
-        table.insert(virt_line, { chunk_text, chunk_hl })
-    end
-
-    return virt_line
+    return chunk_by_highlight(line_table, highlights, "PrecognitionHighlight")
 end
 
 ---@param config Precognition.Config
@@ -161,7 +168,6 @@ function M.build_text_object(config, anchors, line_len, extra_padding, min_width
         return {}
     end
 
-    local virt_line = {}
     local line_table = utils.create_pad_array(line_len, " ")
     local highlights = utils.create_pad_array(line_len, "PrecognitionTextObjectAvailability")
 
@@ -203,23 +209,7 @@ function M.build_text_object(config, anchors, line_len, extra_padding, min_width
         return {}
     end
 
-    local chunk_text = ""
-    local chunk_hl = highlights[1]
-    for col = 1, #line_table do
-        local char = line_table[col]
-        local hl = highlights[col] or "PrecognitionTextObjectAvailability"
-        if hl ~= chunk_hl then
-            table.insert(virt_line, { chunk_text, chunk_hl })
-            chunk_text = char
-            chunk_hl = hl
-        else
-            chunk_text = chunk_text .. char
-        end
-    end
-    if chunk_text ~= "" then
-        table.insert(virt_line, { chunk_text, chunk_hl })
-    end
-    return virt_line
+    return chunk_by_highlight(line_table, highlights, "PrecognitionTextObjectAvailability")
 end
 
 ---@param line string
