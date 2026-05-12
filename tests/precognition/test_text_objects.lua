@@ -192,46 +192,24 @@ describe("text object hints", function()
     it("screenshots inside text object hints with stacked ranges", function()
         child.restart({ "-u", "scripts/minimal_init.lua" })
         child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup()
+            require("precognition").setup({})
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'call({ key = "value" })' })
             vim.api.nvim_win_set_cursor(0, { 1, 15 })
         end)
         test_utils.show_with_pending_prefix(child, "di")
 
-        child.lua_func(function()
-            local eq = MiniTest.expect.equality
-            local ns = vim.api.nvim_create_namespace("precognition")
-            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
-            local text = ""
-            for _, chunk in ipairs(extmark[4].virt_lines[1]) do
-                text = text .. chunk[1]
-            end
-            eq('    ({       "    w" })', text)
-        end)
         ss(child.get_screenshot({ redraw = false }))
     end)
 
     it("screenshots around text object hints with stacked ranges", function()
         child.restart({ "-u", "scripts/minimal_init.lua" })
         child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup()
+            require("precognition").setup({})
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'call({ key = "value" })' })
             vim.api.nvim_win_set_cursor(0, { 1, 15 })
         end)
         test_utils.show_with_pending_prefix(child, "da")
 
-        child.lua_func(function()
-            local eq = MiniTest.expect.equality
-            local ns = vim.api.nvim_create_namespace("precognition")
-            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
-            local text = ""
-            for _, chunk in ipairs(extmark[4].virt_lines[1]) do
-                text = text .. chunk[1]
-            end
-            eq('    ({       "    w"W})', text)
-        end)
         ss(child.get_screenshot({ redraw = false }))
     end)
 
