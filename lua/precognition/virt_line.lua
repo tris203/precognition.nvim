@@ -256,10 +256,31 @@ function M.fit_to_wrap(virt_line, cursorcol, width)
 
     local start_col = math.floor((math.max(cursorcol, 1) - 1) / width) * width
     local clipped = slice_by_display_cols(line, start_col, width)
-    if #virt_line == 1 then
+    local clipped_width = vim.fn.strdisplaywidth(clipped)
+    local clipped_virt_line = {}
+    local chunk_start_col = 0
+
+    for _, chunk in ipairs(virt_line) do
+        local chunk_text = chunk[1]
+        local chunk_width = vim.fn.strdisplaywidth(chunk_text)
+        local chunk_end_col = chunk_start_col + chunk_width
+        local overlap_start_col = math.max(chunk_start_col, start_col)
+        local overlap_end_col = math.min(chunk_end_col, start_col + clipped_width)
+
+        if overlap_start_col < overlap_end_col then
+            table.insert(clipped_virt_line, {
+                slice_by_display_cols(chunk_text, overlap_start_col - chunk_start_col, overlap_end_col - overlap_start_col),
+                chunk[2] or "PrecognitionHighlight",
+            })
+        end
+
+        chunk_start_col = chunk_end_col
+    end
+
+    if #clipped_virt_line == 0 then
         return { { clipped, virt_line[1][2] or "PrecognitionHighlight" } }
     end
-    return { { clipped, virt_line[1][2] or "PrecognitionHighlight" } }
+    return clipped_virt_line
 end
 
 return M

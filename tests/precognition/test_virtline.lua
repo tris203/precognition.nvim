@@ -258,6 +258,21 @@ describe("Wrapped Virtual Line", function()
         eq("eee$$$", wrapped[1][1])
     end)
 
+    it("preserves chunk highlights when clipping wrapped virtual lines", function()
+        local virtual_line = {
+            { "^    ", "PrecognitionHighlight" },
+            { "w    ", "PrecognitionTextObjectAvailability" },
+            { "e    ", "PrecognitionTextObjectRange1" },
+        }
+
+        local wrapped = VirtLine.fit_to_wrap(virtual_line, 7, 6)
+
+        eq({
+            { "    ", "PrecognitionTextObjectAvailability" },
+            { "e ", "PrecognitionTextObjectRange1" },
+        }, wrapped)
+    end)
+
     it("drops wide characters that overlap the wrap boundary", function()
         local virtual_line = { { "界abc", "PrecognitionHighlight" } }
 

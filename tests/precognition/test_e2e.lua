@@ -312,6 +312,18 @@ describe("e2e tests", function()
         ss(child.get_screenshot())
     end)
 
+    it("screenshots clipped wrapped virtual lines with preserved chunk highlights", function()
+        child.lua_func(function()
+            require("precognition").setup()
+            vim.o.columns = 20
+            vim.wo.wrap = true
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
+            vim.api.nvim_win_set_cursor(0, { 1, 22 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        end)
+        ss(child.get_screenshot())
+    end)
+
     it("virtual line text color can be customised", function()
         child.lua_func(function()
             require("precognition").setup({
