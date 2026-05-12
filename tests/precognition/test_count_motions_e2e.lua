@@ -1,6 +1,9 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
+local ss = MiniTest.expect.reference_screenshot
+local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
+local test_utils = require("tests.precognition.utils.utils")
 
 local function get_gutter_extmarks(buffer)
     local gutter_extmarks = {}
@@ -51,6 +54,9 @@ describe("e2e tests", function()
 
     after_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
+        if child.is_running() then
+            child.stop()
+        end
     end)
 
     it("auto commands are set", function()
@@ -249,6 +255,17 @@ describe("e2e tests", function()
         eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
     end)
 
+    it("screenshots counted hints from typed input", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            precognition.setup({ targetedMotionHints = { enabled = false } })
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test" })
+            vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        end)
+        test_utils.show_with_motion_count(child, "2")
+        ss(child.get_screenshot({ redraw = false }))
+    end)
     it("does not treat leading zero as a motion count", function()
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "n" }
@@ -408,5 +425,50 @@ describe("e2e tests", function()
         })
         eq("^                        $", extmarks[3].virt_lines[1][1][1])
         eq(3, #get_gutter_extmarks(buffer))
+    end)
+
+    it("clears hints for counts above 100", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            precognition.setup({
+                showBlankVirtLine = false,
+                targetedMotionHints = { enabled = false },
+                hints = {
+                    Caret = { prio = 0 },
+                    Dollar = { prio = 0 },
+                    MatchingPair = { prio = 0 },
+                    Zero = { prio = 0 },
+                    b = { prio = 0 },
+                    e = { prio = 0 },
+                    w = { prio = 0 },
+                },
+                gutterHints = {
+                    G = { prio = 0 },
+                    NextParagraph = { prio = 0 },
+                    PrevParagraph = { prio = 0 },
+                    gg = { prio = 0 },
+                },
+            })
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test", "line 2" })
+            vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        end)
+        test_utils.show_with_motion_count(child, "101")
+        ss(child.get_screenshot())
+    end)
+
+    it("ignores operator-pending counts", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            rawset(vim.api, "nvim_get_mode", function()
+                return { mode = "no" }
+            end)
+            precognition.setup({ targetedMotionHints = { enabled = false } })
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test" })
+            vim.api.nvim_win_set_cursor(0, { 1, 6 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        end)
+        ss(child.get_screenshot())
     end)
 end)
