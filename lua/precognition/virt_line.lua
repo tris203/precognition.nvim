@@ -269,7 +269,11 @@ function M.fit_to_wrap(virt_line, cursorcol, width)
 
         if overlap_start_col < overlap_end_col then
             table.insert(clipped_virt_line, {
-                slice_by_display_cols(chunk_text, overlap_start_col - chunk_start_col, overlap_end_col - overlap_start_col),
+                slice_by_display_cols(
+                    chunk_text,
+                    overlap_start_col - chunk_start_col,
+                    overlap_end_col - overlap_start_col
+                ),
                 chunk[2] or "PrecognitionHighlight",
             })
         end
