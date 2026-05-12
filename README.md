@@ -7,7 +7,13 @@
 
 **precognition.nvim** assists with discovering motions (Both vertical and horizontal) to navigate your current buffer
 
-![image](https://github.com/tris203/precognition.nvim/assets/18444302/6250954f-01c1-4343-8d89-0bdb84504c8d)
+![image](https://github.com/user-attachments/assets/82b60c32-638f-4b80-b2eb-754f68df18b8)
+
+Visual/Change/Delete a/i Hints
+![image](https://github.com/user-attachments/assets/8b8963df-b54c-434e-8b7f-57ca10328e0b)
+
+Comma and Semi-Colon Repeat Hints
+![image](https://github.com/user-attachments/assets/ec67d350-ed64-49b2-a93f-72676c5d91a1)
 
 ## 📦 Installation
 
