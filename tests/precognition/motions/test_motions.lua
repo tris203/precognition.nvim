@@ -24,6 +24,8 @@ describe("motions", function()
             next_paragraph_line = function() end,
             prev_paragraph_line = function() end,
             text_object_hints = function() end,
+            targeted_motions = {},
+            repeat_targeted_motion_hints = function() end,
         }
         motions.register_motions(test_adapter)
 

@@ -24,10 +24,15 @@ return {
     -- showBlankVirtLine = true,
     -- highlightFullVirtLine = false,
     -- highlightColor = { link = "Comment" },
+    -- targetedMotionHighlightColor = { link = "PrecognitionTargetedMotionDefault" },
     -- textObjectHighlightColors = {
     --     { link = "DiffText" },
     --     { link = "DiffChange" },
     --     { link = "Visual" },
+    -- },
+    -- targetedMotionHints = {
+    --     enabled = true,
+    --     prio = 1,
     -- },
     -- hints = {
     --      Caret = { text = "^", prio = 2 },
@@ -78,6 +83,23 @@ return {
 - `textObjectHighlightColors` controls the nested text object range highlight groups.
   Each entry uses the same format as `highlightColor` and maps to
   `PrecognitionTextObjectRange1`, `PrecognitionTextObjectRange2`, etc.
+
+- `targetedMotionHighlightColor` controls the highlight used for targeted motion
+  key hints such as `f` and `F`. It uses the same format as `highlightColor`.
+  The default links to `PrecognitionTargetedMotionDefault`, which blends
+  `Comment` with `SpecialComment` so targeted motion hints stay subtle while
+  remaining distinguishable from regular hints.
+
+- `targetedMotionHints` controls dynamic same-line targeted motion hints. By
+  default Precognition shows first-occurrence `f` / `F` hints for single-width
+  printable non-whitespace characters. These hints render as `f` or `F` until
+  that motion is pending, then render the target character. Leading counts are
+  supported, so `2f` previews the second reachable occurrence of each target
+  character. After `f`, `F`, `t`, or `T` has been used, repeat targets are shown
+  as `;` and `,`. Set `enabled = false` to hide these hints. `prio` is a number that
+  defaults to `1` and is used when an individual targeted hint does not provide
+  its own priority; higher-priority hints win when multiple hints share a
+  destination.
 
 - `disabled_fts` can be used to disable `precognition` on specific filetypes.
 

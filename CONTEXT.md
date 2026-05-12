@@ -60,6 +60,10 @@ _Avoid_: Treating text objects as cursor destinations
 The buffer position where Vim would land after a Motion, even when that is the current position.
 _Avoid_: Location, place, mark
 
+**Target Character Hint**:
+An Inline Hint that previews the first same-line occurrence of a unique character reachable by an `f` or `F` Motion from either side of the cursor.
+_Avoid_: Word jump hint, eyeliner mark
+
 **Peek**:
 A temporary display of Hints until the next cursor movement, insert mode entry, or buffer exit.
 _Avoid_: Preview, flash
@@ -127,6 +131,25 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - Counted text-object range previews are out of scope initially; counts may still allow **Text Object Hints** to show available candidate keys.
 - A text-object **Pending Command Prefix** ends when a key completes or invalidates it, the cursor moves, the user enters insert or command-line mode, the buffer is left, or the user cancels with `Esc` or `Ctrl-C`.
 - **Counted Motion** Hints are part of default Hint behavior and do not have a separate disable option.
+- Eyeliner-style `f` / `F` Hints are intended to be part of default Hint behavior once implemented.
+- A **Target Character Hint** previews a character-specific `f` or `F` Motion, not a word-boundary Motion.
+- Initial **Target Character Hints** should target the first same-line occurrence of each unique character.
+- **Target Character Hints** show both forward `f` targets and backward `F` targets at the same time.
+- Before the user starts a targeted `f` or `F` Motion, **Target Character Hints** render the targeted Motion key (`f` or `F`) rather than the target character.
+- Targeted Motion key labels such as `f` and `F` may use a distinct highlight from normal **Motion** Hints to distinguish the two-key interaction.
+- While a targeted `f` or `F` Motion is pending, **Target Character Hints** render the reachable target character for the pending Motion direction only.
+- While a targeted `f` or `F` Motion is pending, static normal **Motion** Hints are suppressed.
+- After a targeted `f`, `F`, `t`, or `T` Motion has been used, **Target Character Hints** show `;` for the next repeat **Destination** and `,` for the reverse repeat **Destination** when those same-line repeats are available.
+- Existing normal **Motion** Hints take priority over **Target Character Hints** when they share a **Destination**.
+- **Target Character Hints** include punctuation targets and exclude whitespace targets.
+- **Target Character Hints** are case-sensitive because `f` and `F` character searches are case-sensitive.
+- **Target Character Hints** exclude the character under the cursor because `f` and `F` search away from the cursor.
+- **Target Character Hint** uniqueness is tracked separately for forward `f` targets and backward `F` targets.
+- **Target Character Hints** scan the entire current line, matching same-line `f` and `F` Motion behavior.
+- Initial **Target Character Hints** are limited to single-width printable non-whitespace characters.
+- **Target Character Hints** respect a leading **Motion Count**, so `2f` and `2F` preview the second reachable occurrence of each target character in the chosen direction.
+- **Target Character Hints** may be supplied through Precognition's Motion extension path rather than hard-coded to built-in Motion behavior.
+- Targeted-motion Hint behavior is configured separately from static normal **Motion** Hints because targeted motions can produce multiple dynamic **Destinations** and labels.
 - Operator-pending counts, such as `2d3w`, are intentionally out of scope until operator-pending behavior is designed separately.
 - The current count prefix should be treated as input to **Counted Motion** Hint calculation, not as a rendering concern.
 - **Motion Count** comes from typed input, not from command-display text, so visual selection reporting is not interpreted as a count.

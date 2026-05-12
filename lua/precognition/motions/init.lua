@@ -25,6 +25,8 @@ local FUNCTION_NAMES = {
     "matching_comment",
     "matching_bracket",
     "text_object_hints",
+    "targeted_motions",
+    "repeat_targeted_motion_hints",
 }
 
 --- Reset to vanilla motion adapters.
@@ -45,7 +47,11 @@ function M.register_motions(adapter)
             return adapter[name]
         end)
         :each(function(name)
-            assert(type(adapter[name]) == "function", name .. " must be a function")
+            if name == "targeted_motions" then
+                assert(type(adapter[name]) == "table", name .. " must be a table")
+            else
+                assert(type(adapter[name]) == "function", name .. " must be a function")
+            end
             current_adapter[name] = adapter[name]
         end)
 
