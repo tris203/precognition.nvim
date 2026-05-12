@@ -1,5 +1,23 @@
 # Changelog
 
+## [1.3.0](https://github.com/tris203/precognition.nvim/compare/v1.2.0...v1.3.0) (2026-05-12)
+
+
+### Features
+
+* add full-width virtual line highlighting ([#116](https://github.com/tris203/precognition.nvim/issues/116)) ([a3f5e28](https://github.com/tris203/precognition.nvim/commit/a3f5e28709575be644687d57ea7116542975798d))
+* add optional debounce ([#55](https://github.com/tris203/precognition.nvim/issues/55)) ([caad869](https://github.com/tris203/precognition.nvim/commit/caad869f276f569a2283a83e3eddf452cbdef61c))
+* add text object range previews ([#118](https://github.com/tris203/precognition.nvim/issues/118)) ([dea5419](https://github.com/tris203/precognition.nvim/commit/dea5419d6b277f8c57ccc125c95cc39630512e0c))
+* motions with count ([#17](https://github.com/tris203/precognition.nvim/issues/17)) ([1e90942](https://github.com/tris203/precognition.nvim/commit/1e90942a73fea4ef3e31579ec19b127a31bf4b21))
+* **precognition:** add line wrapping for virtual lines ([#74](https://github.com/tris203/precognition.nvim/issues/74)) ([8ccf518](https://github.com/tris203/precognition.nvim/commit/8ccf518bb70fe44cfd0ecd1451189925cb597b15))
+* **simulation:** add simulation motions adapter ([#98](https://github.com/tris203/precognition.nvim/issues/98)) ([06e4bfa](https://github.com/tris203/precognition.nvim/commit/06e4bfa339ddc55a49fd1adcbb403f6e0855c43b))
+* **targeted_motions:** add targeted motion discovery hints ([#124](https://github.com/tris203/precognition.nvim/issues/124)) ([25f6a87](https://github.com/tris203/precognition.nvim/commit/25f6a87524c04d6587b43ecae5a0d300b60e77d8))
+
+
+### Bug Fixes
+
+* preserve visual text object hints ([#119](https://github.com/tris203/precognition.nvim/issues/119)) ([43e332a](https://github.com/tris203/precognition.nvim/commit/43e332afa7fef737d61ec821c51eab943d72a796))
+
 ## [1.2.0](https://github.com/tris203/precognition.nvim/compare/v1.1.0...v1.2.0) (2025-08-14)
 
 
