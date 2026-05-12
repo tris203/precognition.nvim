@@ -1,6 +1,9 @@
 local precognition = require("precognition")
 local eq = MiniTest.expect.equality
+local ss = MiniTest.expect.reference_screenshot
+local child = MiniTest.new_child_neovim()
 local original_get_mode = vim.api.nvim_get_mode
+local test_utils = require("tests.precognition.utils.utils")
 
 local function text_object_extmark()
     local ns = vim.api.nvim_create_namespace("precognition")
@@ -37,6 +40,9 @@ describe("text object hints", function()
     after_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
         pcall(precognition.hide)
+        if child.is_running() then
+            child.stop()
+        end
     end)
 
     it("switches from motion hints to inside text object hints", function()
@@ -181,6 +187,52 @@ describe("text object hints", function()
         eq(true, groups.PrecognitionTextObjectRange1)
         eq(true, groups.PrecognitionTextObjectRange2)
         eq(true, groups.PrecognitionTextObjectRange3)
+    end)
+
+    it("screenshots inside text object hints with stacked ranges", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            precognition.setup()
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'call({ key = "value" })' })
+            vim.api.nvim_win_set_cursor(0, { 1, 15 })
+        end)
+        test_utils.show_with_pending_prefix(child, "di")
+
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            local text = ""
+            for _, chunk in ipairs(extmark[4].virt_lines[1]) do
+                text = text .. chunk[1]
+            end
+            eq('    ({       "    w" })', text)
+        end)
+        ss(child.get_screenshot({ redraw = false }))
+    end)
+
+    it("screenshots around text object hints with stacked ranges", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            local precognition = require("precognition")
+            precognition.setup()
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { 'call({ key = "value" })' })
+            vim.api.nvim_win_set_cursor(0, { 1, 15 })
+        end)
+        test_utils.show_with_pending_prefix(child, "da")
+
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            local text = ""
+            for _, chunk in ipairs(extmark[4].virt_lines[1]) do
+                text = text .. chunk[1]
+            end
+            eq('    ({       "    w"W})', text)
+        end)
+        ss(child.get_screenshot({ redraw = false }))
     end)
 
     it("customises text object range highlights", function()
