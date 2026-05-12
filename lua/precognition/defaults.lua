@@ -18,11 +18,16 @@ M.config = {
     startVisible = true,
     showBlankVirtLine = true,
     highlightFullVirtLine = false,
-    highlightColor = { link = "Comment" },
+    highlightColor = { link = "SpecialComment" },
+    targetedMotionHighlightColor = { link = "Comment" },
     textObjectHighlightColors = {
         { link = "DiffText" },
         { link = "DiffChange" },
         { link = "Visual" },
+    },
+    targetedMotionHints = {
+        enabled = true,
+        prio = 1,
     },
     hints = M.hints,
     gutterHints = {

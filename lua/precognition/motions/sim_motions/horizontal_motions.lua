@@ -35,6 +35,112 @@ local availability_text_objects = {
     { key = "W", label = "W", prio = 9 },
 }
 
+local function is_single_width_printable_non_whitespace(char)
+    return char ~= "" and not char:match("%s") and vim.fn.strdisplaywidth(char) == 1
+end
+
+local function char_at(str, col)
+    return vim.fn.strcharpart(str, col - 1, 1)
+end
+
+---@param str string
+---@param start_col integer
+---@param end_col integer
+---@param step integer
+---@param count integer?
+---@param target_offset integer?
+---@return Precognition.TargetedMotionHint[]
+local function unique_character_targets(str, start_col, end_col, step, count, target_offset)
+    count = count or 1
+    target_offset = target_offset or 0
+    local hints = {}
+    local occurrences = {}
+    for col = start_col, end_col, step do
+        local char = char_at(str, col)
+        if is_single_width_printable_non_whitespace(char) then
+            occurrences[char] = (occurrences[char] or 0) + 1
+        end
+        if occurrences[char] == count then
+            table.insert(hints, { label = char, col = col + target_offset })
+        end
+    end
+    return hints
+end
+
+---@param str string
+---@param start_col integer
+---@param end_col integer
+---@param step integer
+---@param target string
+---@param count integer?
+---@param target_offset integer?
+---@return integer
+local function character_target(str, start_col, end_col, step, target, count, target_offset)
+    count = count or 1
+    target_offset = target_offset or 0
+    local occurrences = 0
+    for col = start_col, end_col, step do
+        if char_at(str, col) == target then
+            occurrences = occurrences + 1
+            if occurrences == count then
+                return col + target_offset
+            end
+        end
+    end
+    return 0
+end
+
+---@param cur_line string
+---@param cursorcol integer
+---@param line_len integer
+---@param count integer?
+---@param charsearch table | nil
+---@return Precognition.TargetedMotionHint[]
+function M.repeat_targeted_motion_hints(cur_line, cursorcol, line_len, count, charsearch)
+    if not charsearch or charsearch.char == nil or charsearch.char == "" then
+        return {}
+    end
+
+    local target = charsearch.char
+    local until_motion = charsearch["until"] == 1
+    local forward = charsearch.forward == 1
+    local repeat_col
+    local reverse_col
+
+    if forward then
+        repeat_col = character_target(
+            cur_line,
+            cursorcol + (until_motion and 2 or 1),
+            line_len,
+            1,
+            target,
+            count,
+            until_motion and -1 or 0
+        )
+        reverse_col = character_target(cur_line, cursorcol - 1, 1, -1, target, count, until_motion and 1 or 0)
+    else
+        repeat_col = character_target(
+            cur_line,
+            cursorcol - (until_motion and 2 or 1),
+            1,
+            -1,
+            target,
+            count,
+            until_motion and 1 or 0
+        )
+        reverse_col = character_target(cur_line, cursorcol + 1, line_len, 1, target, count, until_motion and -1 or 0)
+    end
+
+    local hints = {}
+    if repeat_col > 0 then
+        table.insert(hints, { label = ";", col = repeat_col })
+    end
+    if reverse_col > 0 then
+        table.insert(hints, { label = ",", col = reverse_col })
+    end
+    return hints
+end
+
 ---@param str string
 ---@param cursorcol integer
 ---@return Precognition.VirtLine
@@ -255,5 +361,20 @@ function M.text_object_hints(prefix, line, cursorcol, line_len)
 
     return anchors, ranges
 end
+
+M.targeted_motions = {
+    f = function(line, cursorcol, line_len, count)
+        return unique_character_targets(line, cursorcol + 1, line_len, 1, count)
+    end,
+    F = function(line, cursorcol, _line_len, count)
+        return unique_character_targets(line, cursorcol - 1, 1, -1, count)
+    end,
+    t = function(line, cursorcol, line_len, count)
+        return unique_character_targets(line, cursorcol + 1, line_len, 1, count, -1)
+    end,
+    T = function(line, cursorcol, _line_len, count)
+        return unique_character_targets(line, cursorcol - 1, 1, -1, count, 1)
+    end,
+}
 
 return M

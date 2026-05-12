@@ -17,7 +17,7 @@ describe("e2e tests", function()
             local eq = MiniTest.expect.equality
             local precognition = require("precognition")
 
-            precognition.setup({})
+            precognition.setup({ targetedMotionHints = { enabled = false } })
             local autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
             eq(5, vim.tbl_count(autocmds))
             precognition.peek()
@@ -28,7 +28,7 @@ describe("e2e tests", function()
 
     it("virtual line is displayed and updated", function()
         child.lua_func(function()
-            require("precognition").setup({})
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
             vim.api.nvim_buf_set_lines(
                 0,
                 0,
@@ -37,6 +37,27 @@ describe("e2e tests", function()
                 { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
             )
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        end)
+        ss(child.get_screenshot())
+    end)
+
+    it("screenshots targeted motion discovery hints", function()
+        child.lua_func(function()
+            require("precognition").setup()
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ab cab!a" })
+            vim.api.nvim_win_set_cursor(0, { 1, 3 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        end)
+        ss(child.get_screenshot())
+    end)
+
+    it("screenshots repeat targeted motion hints", function()
+        child.lua_func(function()
+            require("precognition").setup()
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "abacadaba" })
+            vim.api.nvim_win_set_cursor(0, { 1, 4 })
+            vim.fn.setcharsearch({ char = "a", forward = 1, ["until"] = 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
         end)
         ss(child.get_screenshot())
@@ -71,7 +92,7 @@ describe("e2e tests", function()
             )
             vim.api.nvim_win_set_cursor(0, { 1, 1 })
 
-            precognition.setup({})
+            precognition.setup({ targetedMotionHints = { enabled = false } })
             precognition.hide()
             precognition.show()
 
@@ -189,6 +210,7 @@ describe("e2e tests", function()
             end
             precognition.setup({
                 debounceMs = 200,
+                targetedMotionHints = { enabled = false },
             })
 
             local buffer = vim.api.nvim_create_buf(true, false)
@@ -223,6 +245,7 @@ describe("e2e tests", function()
             local neq = MiniTest.expect.no_equality
             precognition.setup({
                 debounceMs = 200,
+                targetedMotionHints = { enabled = false },
             })
 
             local buffer = vim.api.nvim_create_buf(true, false)
@@ -267,7 +290,7 @@ describe("e2e tests", function()
 
     it("keeps full virtual lines when wrapping is disabled", function()
         child.lua_func(function()
-            require("precognition").setup({})
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
             vim.o.columns = 20
             vim.wo.wrap = false
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
@@ -279,7 +302,7 @@ describe("e2e tests", function()
 
     it("clips wrapped virtual lines to the cursor's visual row", function()
         child.lua_func(function()
-            require("precognition").setup({})
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
             vim.o.columns = 20
             vim.wo.wrap = true
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma delta epsilon" })
@@ -291,7 +314,10 @@ describe("e2e tests", function()
 
     it("virtual line text color can be customised", function()
         child.lua_func(function()
-            require("precognition").setup({ highlightColor = { link = "Function" } })
+            require("precognition").setup({
+                targetedMotionHints = { enabled = false },
+                highlightColor = { link = "Function" },
+            })
             vim.api.nvim_buf_set_lines(
                 0,
                 0,
@@ -307,7 +333,10 @@ describe("e2e tests", function()
 
     it("virtual line can be customised without a link", function()
         child.lua_func(function()
-            require("precognition").setup({ highlightColor = { foreground = "#ff0000", background = "#00ff00" } })
+            require("precognition").setup({
+                targetedMotionHints = { enabled = false },
+                highlightColor = { foreground = "#ff0000", background = "#00ff00" },
+            })
             vim.api.nvim_buf_set_lines(
                 0,
                 0,
@@ -326,6 +355,7 @@ describe("e2e tests", function()
             require("precognition").setup({
                 showBlankVirtLine = false,
                 highlightFullVirtLine = true,
+                targetedMotionHints = { enabled = false },
                 hints = {
                     Caret = { prio = 0 },
                     w = { prio = 0 },
@@ -349,7 +379,7 @@ describe("e2e tests", function()
     it("pads full-width virtual lines to the text area", function()
         child.lua_func(function()
             local precognition = require("precognition")
-            precognition.setup({ highlightFullVirtLine = true })
+            precognition.setup({ targetedMotionHints = { enabled = false }, highlightFullVirtLine = true })
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World" })
             vim.wo.number = true
             vim.wo.signcolumn = "yes"
@@ -362,7 +392,7 @@ describe("e2e tests", function()
     it("preserves highlight groups through a colorscheme change", function()
         child.lua_func(function()
             local eq = MiniTest.expect.equality
-            require("precognition").setup({})
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
             vim.cmd.colorscheme("default")
             local hl = vim.api.nvim_get_hl(0, { name = "PrecognitionHighlight" })
             eq(false, vim.tbl_isempty(hl))
@@ -382,7 +412,10 @@ describe("Gutter Priority", function()
 
     it("0 priority item is not added", function()
         child.lua_func(function()
-            require("precognition").setup({ gutterHints = { G = { text = "G", prio = 0 } } })
+            require("precognition").setup({
+                targetedMotionHints = { enabled = false },
+                gutterHints = { G = { text = "G", prio = 0 } },
+            })
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ABC", "DEF", "", "GHI", "", "JKL", "", "MNO" })
             vim.api.nvim_win_set_cursor(0, { 4, 0 })
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
@@ -393,6 +426,7 @@ describe("Gutter Priority", function()
     it("higher priority item replaces", function()
         child.lua_func(function()
             require("precognition").setup({
+                targetedMotionHints = { enabled = false },
                 gutterHints = {
                     G = { text = "G", prio = 3 },
                     gg = { text = "gg", prio = 100 },

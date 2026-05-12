@@ -9,7 +9,11 @@ local M = {}
 
 ---@class Precognition.HintOpts
 ---@field text string
----@field prio integer
+---@field prio number
+
+---@class Precognition.TargetedMotionHintConfig
+---@field enabled boolean
+---@field prio number
 
 ---@alias Precognition.PlaceLoc integer
 
@@ -17,6 +21,9 @@ local M = {}
 ---@field w Precognition.HintOpts
 ---@field e Precognition.HintOpts
 ---@field b Precognition.HintOpts
+---@field W Precognition.HintOpts
+---@field E Precognition.HintOpts
+---@field B Precognition.HintOpts
 ---@field Zero Precognition.HintOpts
 ---@field MatchingPair Precognition.HintOpts
 ---@field Caret Precognition.HintOpts
@@ -34,7 +41,9 @@ local M = {}
 ---@field showBlankVirtLine boolean
 ---@field highlightFullVirtLine boolean
 ---@field highlightColor vim.api.keyset.highlight
+---@field targetedMotionHighlightColor vim.api.keyset.highlight
 ---@field textObjectHighlightColors vim.api.keyset.highlight[]
+---@field targetedMotionHints Precognition.TargetedMotionHintConfig
 ---@field hints Precognition.HintConfig
 ---@field gutterHints Precognition.GutterHintConfig
 ---@field disabled_fts string[]
@@ -45,7 +54,9 @@ local M = {}
 ---@field showBlankVirtLine? boolean
 ---@field highlightFullVirtLine? boolean
 ---@field highlightColor? vim.api.keyset.highlight
+---@field targetedMotionHighlightColor? vim.api.keyset.highlight
 ---@field textObjectHighlightColors? vim.api.keyset.highlight[]
+---@field targetedMotionHints? Precognition.TargetedMotionHintConfig
 ---@field hints? Precognition.HintConfig
 ---@field gutterHints? Precognition.GutterHintConfig
 
@@ -60,6 +71,17 @@ local M = {}
 ---@field Caret Precognition.PlaceLoc
 ---@field Dollar Precognition.PlaceLoc
 ---@field MatchingPair Precognition.PlaceLoc
+
+---@class Precognition.InlineHintCandidate
+---@field label string
+---@field col integer
+---@field prio number
+---@field hl_group? string
+
+---@class Precognition.TargetedMotionHint
+---@field label string
+---@field col integer
+---@field prio? number
 
 ---@class Precognition.TextObjectAnchor
 ---@field label string
@@ -117,7 +139,7 @@ local function clear_hints(bufnr)
     dirty = true
 end
 
----@param marks Precognition.VirtLine?
+---@param marks Precognition.VirtLine | Precognition.InlineHintCandidate[] | nil
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
@@ -203,6 +225,7 @@ local function display_marks()
         motion_count = motion_count,
         motions = motions,
         config = config,
+        charsearch = vim.fn.getcharsearch(),
     })
     local count_suppressed = motion_count:is_suppressed()
     if plan.message and (not count_suppressed or not was_count_suppressed) then
@@ -257,7 +280,7 @@ local function display_marks()
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
         min_width = vim.api.nvim_win_get_width(0) - textoff
     end
-    ---@type Precognition.VirtLine
+    ---@type Precognition.InlineHintCandidate[]
     local inline_hints = assert(plan.inline_hints)
     local virt_line = build_virt_line(inline_hints, line_len, extra_padding, min_width)
 
@@ -566,6 +589,7 @@ end
 
 local function setup_highlights()
     vim.api.nvim_set_hl(0, "PrecognitionHighlight", config.highlightColor)
+    vim.api.nvim_set_hl(0, "PrecognitionTargetedMotion", config.targetedMotionHighlightColor)
     vim.api.nvim_set_hl(0, "PrecognitionTextObjectHint", { link = "PrecognitionHighlight" })
     vim.api.nvim_set_hl(0, "PrecognitionTextObjectAvailability", { link = "PrecognitionHighlight" })
     for index, highlight in ipairs(config.textObjectHighlightColors) do
@@ -583,6 +607,9 @@ function M.setup(opts)
     config = vim.tbl_deep_extend("force", vim.deepcopy(default), opts)
     if opts.highlightColor then
         config.highlightColor = opts.highlightColor
+    end
+    if opts.targetedMotionHighlightColor then
+        config.targetedMotionHighlightColor = opts.targetedMotionHighlightColor
     end
     if opts.textObjectHighlightColors then
         config.textObjectHighlightColors = opts.textObjectHighlightColors

@@ -46,10 +46,366 @@ describe("Hint planning", function()
 
         eq(false, plan.skip_render)
         eq("normal", plan.kind)
-        eq(7, plan.inline_hints.w)
-        eq(5, plan.inline_hints.e)
+        eq(
+            { 7 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "w"
+                end, plan.inline_hints)
+            )
+        )
+        eq(
+            { 5 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "e"
+                end, plan.inline_hints)
+            )
+        )
         eq(1, plan.gutter_hints.gg)
         eq("table", type(plan.planned_gutter_hints))
+    end)
+
+    it("plans Target Character Hints as targeted Motion keys before a targeted Motion is pending", function()
+        local plan = HintPlan.build(context({
+            current_line = "ab cab!a",
+            cursorcol = 4,
+            line_len = 8,
+        }))
+
+        eq(false, plan.skip_render)
+        eq("normal", plan.kind)
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 5
+        end, plan.inline_hints))
+        for _, candidate in ipairs(plan.inline_hints) do
+            if candidate.label == "f" then
+                eq("PrecognitionTargetedMotion", candidate.hl_group)
+            end
+        end
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 6
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 7
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "F" and candidate.col == 2
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "F" and candidate.col == 1
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "t" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "t" and candidate.col == 5
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "t" and candidate.col == 6
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "T" and candidate.col == 3
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "T" and candidate.col == 1
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == " " and candidate.col == 3
+        end, plan.inline_hints))
+    end)
+
+    it("plans Target Character Hints as characters while a targeted Motion is pending", function()
+        local plan = HintPlan.build(context({
+            current_line = "ab cab!a",
+            cursorcol = 4,
+            line_len = 8,
+            pending_command_prefix = "f",
+        }))
+
+        eq(false, plan.skip_render)
+        eq("normal", plan.kind)
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 5
+        end, plan.inline_hints))
+        for _, candidate in ipairs(plan.inline_hints) do
+            if candidate.label == "a" and candidate.col == 5 then
+                eq(nil, candidate.hl_group)
+            end
+        end
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "b" and candidate.col == 6
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "!" and candidate.col == 7
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "c" and candidate.col == 3
+        end, plan.inline_hints))
+        eq(
+            {},
+            vim.tbl_filter(function(candidate)
+                return candidate.label == "w"
+            end, plan.inline_hints)
+        )
+        eq(
+            {},
+            vim.tbl_filter(function(candidate)
+                return candidate.label == "e"
+            end, plan.inline_hints)
+        )
+    end)
+
+    it("plans backward Target Character Hints as characters while F is pending", function()
+        local plan = HintPlan.build(context({
+            current_line = "ab cab!a",
+            cursorcol = 4,
+            line_len = 8,
+            pending_command_prefix = "F",
+        }))
+
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == " " and candidate.col == 3
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "b" and candidate.col == 2
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 1
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "!" and candidate.col == 7
+        end, plan.inline_hints))
+    end)
+
+    it("plans till Target Character Hints as characters while t is pending", function()
+        local plan = HintPlan.build(context({
+            current_line = "ab cab!a",
+            cursorcol = 4,
+            line_len = 8,
+            pending_command_prefix = "t",
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "b" and candidate.col == 5
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "!" and candidate.col == 6
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 7
+        end, plan.inline_hints))
+    end)
+
+    it("plans backward till Target Character Hints as characters while T is pending", function()
+        local plan = HintPlan.build(context({
+            current_line = "ab cab!a",
+            cursorcol = 4,
+            line_len = 8,
+            pending_command_prefix = "T",
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "b" and candidate.col == 3
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 2
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "!" and candidate.col == 7
+        end, plan.inline_hints))
+    end)
+
+    it("plans counted Target Character Hints", function()
+        local motion_count = MotionCount.new()
+        motion_count:set_prefix("2")
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 1,
+            line_len = 6,
+            motion_count = motion_count,
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 5
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "t" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 3
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "t" and candidate.col == 2
+        end, plan.inline_hints))
+    end)
+
+    it("plans counted pending Target Character Hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 1,
+            line_len = 6,
+            pending_command_prefix = "2f",
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 5
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 3
+        end, plan.inline_hints))
+        eq(
+            {},
+            vim.tbl_filter(function(candidate)
+                return candidate.label == "w"
+            end, plan.inline_hints)
+        )
+    end)
+
+    it("plans counted pending till Target Character Hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 1,
+            line_len = 6,
+            pending_command_prefix = "2t",
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "a" and candidate.col == 2
+        end, plan.inline_hints))
+        eq(
+            {},
+            vim.tbl_filter(function(candidate)
+                return candidate.label == "w"
+            end, plan.inline_hints)
+        )
+    end)
+
+    it("can disable Target Character Hints", function()
+        local config = vim.deepcopy(default_config)
+        config.targetedMotionHints.enabled = false
+        local plan = HintPlan.build(context({
+            current_line = "abc",
+            cursorcol = 1,
+            line_len = 3,
+            config = config,
+        }))
+
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 2
+        end, plan.inline_hints))
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 3
+        end, plan.inline_hints))
+    end)
+
+    it("plans repeat Target Character Hints after f", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 3,
+            line_len = 6,
+            charsearch = { char = "a", forward = 1, ["until"] = 0 },
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 5
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "," and candidate.col == 1
+        end, plan.inline_hints))
+    end)
+
+    it("prioritizes repeat Target Character Hints over discovery hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 3,
+            line_len = 6,
+            charsearch = { char = "a", forward = 1, ["until"] = 0 },
+        }))
+
+        local repeat_hint = vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 5
+        end, plan.inline_hints)[1]
+        local discovery_hint = vim.tbl_filter(function(candidate)
+            return candidate.label == "f" and candidate.col == 5
+        end, plan.inline_hints)[1]
+
+        eq(true, repeat_hint.prio > discovery_hint.prio)
+    end)
+
+    it("uses normal highlight for repeat Target Character Hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacad",
+            cursorcol = 3,
+            line_len = 6,
+            charsearch = { char = "a", forward = 1, ["until"] = 0 },
+        }))
+
+        local repeat_hint = vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 5
+        end, plan.inline_hints)[1]
+
+        eq(nil, repeat_hint.hl_group)
+    end)
+
+    it("plans repeat Target Character Hints after T", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacadxa",
+            cursorcol = 5,
+            line_len = 8,
+            charsearch = { char = "a", forward = 0, ["until"] = 1 },
+        }))
+
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == "," and candidate.col == 7
+        end, plan.inline_hints))
+    end)
+
+    it("skips the previous t target when planning repeat till hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacadaba",
+            cursorcol = 4,
+            line_len = 9,
+            charsearch = { char = "a", forward = 1, ["until"] = 1 },
+        }))
+
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 4
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 6
+        end, plan.inline_hints))
+    end)
+
+    it("skips the previous T target when planning repeat till hints", function()
+        local plan = HintPlan.build(context({
+            current_line = "abacadaba",
+            cursorcol = 6,
+            line_len = 9,
+            charsearch = { char = "a", forward = 0, ["until"] = 1 },
+        }))
+
+        eq(0, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 6
+        end, plan.inline_hints))
+        eq(1, #vim.tbl_filter(function(candidate)
+            return candidate.label == ";" and candidate.col == 4
+        end, plan.inline_hints))
     end)
 
     it("plans Counted Motion Destinations", function()
@@ -63,7 +419,17 @@ describe("Hint planning", function()
             motion_count = motion_count,
         }))
 
-        eq(13, plan.inline_hints.w)
+        eq(
+            { 13 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "w"
+                end, plan.inline_hints)
+            )
+        )
     end)
 
     it("keeps Counted Motion suppression in Hint planning", function()
@@ -74,7 +440,17 @@ describe("Hint planning", function()
 
         eq(false, plan.skip_render)
         eq("Count is too high, not showing hints", plan.message)
-        eq(0, plan.inline_hints.w)
+        eq(
+            { 0 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "w"
+                end, plan.inline_hints)
+            )
+        )
     end)
 
     it("plans text-object Inline Hints from pending prefixes", function()

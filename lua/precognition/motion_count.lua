@@ -8,6 +8,8 @@ MotionCount.__index = MotionCount
 
 local M = {}
 
+M.preferred_targeted_motion_order = { f = 1, F = 2, t = 3, T = 4 }
+
 ---@param mode string
 ---@return boolean
 function MotionCount.is_supported_prefix_mode(_self, mode)
@@ -38,6 +40,20 @@ function MotionCount.is_operator_prefix(_self, prefix)
     end
     local without_count = prefix:gsub("^%d+", "")
     return without_count:match("^[dcy]$") ~= nil
+end
+
+---@param prefix string | nil
+---@param targeted_motions table<string, Precognition.TargetedMotionFunction> | nil
+---@return string | nil
+function MotionCount.targeted_motion_prefix(_self, prefix, targeted_motions)
+    if not prefix or not targeted_motions then
+        return nil
+    end
+    local without_count = prefix:gsub("^%d+", "")
+    if targeted_motions[without_count] then
+        return without_count
+    end
+    return nil
 end
 
 ---@return Precognition.MotionCount
@@ -119,6 +135,11 @@ function MotionCount:handle_input(key, mode, pending_command_prefix)
         pending_command_prefix = key
         defer_redraw = true
     elseif key:match("^[dcy]$") and not self:is_text_object_prefix(pending_command_prefix) then
+        pending_command_prefix = (pending_command_prefix or "") .. key
+    elseif
+        M.preferred_targeted_motion_order[key]
+        and (not pending_command_prefix or pending_command_prefix:match("^%d+$"))
+    then
         pending_command_prefix = (pending_command_prefix or "") .. key
     elseif (key == "i" or key == "a") and pending_command_prefix then
         pending_command_prefix = pending_command_prefix .. key

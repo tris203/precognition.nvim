@@ -14,6 +14,12 @@
 ---
 ---@alias Precognition.MatchingPairMotionFunction fun(line_content: string, cursorcol: integer,
 ---linelen: integer): fun(line_content: string, cursorcol: integer, linelen: integer): Precognition.PlaceLoc
+---
+---@alias Precognition.TargetedMotionFunction fun(line_content: string, cursorcol: integer,
+---linelen: integer, count?: integer): Precognition.TargetedMotionHint[]
+---
+---@alias Precognition.RepeatTargetedMotionFunction fun(line_content: string, cursorcol: integer,
+---linelen: integer, count?: integer, charsearch?: table): Precognition.TargetedMotionHint[]
 
 --- This interface defines the contract for implementing custom motion logic
 --- in Precognition. Plugin developers can implement any subset of these
@@ -98,6 +104,10 @@
 ---
 ---@field text_object_hints? fun(prefix: string, line_content: string, cursorcol: integer, linelen: integer):
 ---    Precognition.TextObjectAnchor[], Precognition.RangePreview[]
+---
+---@field targeted_motions? table<string, Precognition.TargetedMotionFunction>
+---
+---@field repeat_targeted_motion_hints? Precognition.RepeatTargetedMotionFunction
 ---
 local M = {}
 

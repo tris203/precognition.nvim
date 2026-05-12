@@ -49,7 +49,7 @@ end
 describe("e2e tests", function()
     before_each(function()
         rawset(vim.api, "nvim_get_mode", original_get_mode)
-        precognition.setup({})
+        precognition.setup({ targetedMotionHints = { enabled = false } })
     end)
 
     after_each(function()
@@ -258,14 +258,38 @@ describe("e2e tests", function()
     it("screenshots counted hints from typed input", function()
         child.restart({ "-u", "scripts/minimal_init.lua" })
         child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup({ targetedMotionHints = { enabled = false } })
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
             vim.api.nvim_buf_set_lines(0, 0, -1, false, { "Hello World this is a test" })
             vim.api.nvim_win_set_cursor(0, { 1, 6 })
         end)
         test_utils.show_with_motion_count(child, "2")
         ss(child.get_screenshot({ redraw = false }))
     end)
+
+    it("screenshots pending f target characters", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            require("precognition").setup({})
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "ab cab!a" })
+            vim.api.nvim_win_set_cursor(0, { 1, 3 })
+        end)
+        test_utils.show_with_pending_prefix(child, "f")
+
+        ss(child.get_screenshot({ redraw = false }))
+    end)
+
+    it("screenshots counted pending f target characters", function()
+        child.restart({ "-u", "scripts/minimal_init.lua" })
+        child.lua_func(function()
+            require("precognition").setup({})
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "abacad" })
+            vim.api.nvim_win_set_cursor(0, { 1, 0 })
+        end)
+        test_utils.show_with_pending_prefix(child, "2f")
+
+        ss(child.get_screenshot({ redraw = false }))
+    end)
+
     it("does not treat leading zero as a motion count", function()
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "n" }
@@ -301,7 +325,7 @@ describe("e2e tests", function()
 
     it("does not build motion counts while hidden", function()
         precognition.hide()
-        precognition.setup({ startVisible = false })
+        precognition.setup({ startVisible = false, targetedMotionHints = { enabled = false } })
         rawset(vim.api, "nvim_get_mode", function()
             return { mode = "n" }
         end)
@@ -430,8 +454,7 @@ describe("e2e tests", function()
     it("clears hints for counts above 100", function()
         child.restart({ "-u", "scripts/minimal_init.lua" })
         child.lua_func(function()
-            local precognition = require("precognition")
-            precognition.setup({
+            require("precognition").setup({
                 showBlankVirtLine = false,
                 targetedMotionHints = { enabled = false },
                 hints = {
