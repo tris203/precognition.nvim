@@ -1,4 +1,5 @@
 local MotionCount = require("precognition.motion_count")
+local ObservedCommandState = require("precognition.observed_command_state")
 local PendingCommandPrefix = require("precognition.pending_command_prefix")
 local hm = require("precognition.motions.vanilla_motions.horizontal_motions")
 local eq = MiniTest.expect.equality
@@ -12,6 +13,64 @@ describe("motion strings", function()
         eq(1, MotionCount.parse(nil))
         eq(1, MotionCount.parse(""))
         eq(1, MotionCount.parse("<20>"))
+    end)
+end)
+
+describe("observed command state", function()
+    it("combines operator and operator-pending Motion Counts", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("2", "n")
+        state:handle_key("d", "n")
+        state:handle_key("3", "no")
+
+        local snapshot = state:snapshot()
+        eq("2d3", snapshot.raw)
+        eq("6", snapshot.effective_motion_count_prefix)
+        eq(6, snapshot.motion_count)
+        eq(true, snapshot.normal_motion_hints_visible)
+        eq(false, snapshot.text_object_hints_visible)
+    end)
+
+    it("surfaces Text Object Hint and redraw state", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("d", "n")
+        local input = state:handle_key("i", "no")
+
+        local snapshot = state:snapshot()
+        eq("di", snapshot.raw)
+        eq(true, snapshot.text_object_hints_visible)
+        eq("di", snapshot.text_object_prefix)
+        eq(false, input.defer_redraw)
+        eq("di", input.scheduled_prefix)
+    end)
+
+    it("surfaces pending Target Character Hint state", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("2", "n")
+        state:handle_key("f", "n")
+
+        local snapshot = state:snapshot()
+        eq("2f", snapshot.raw)
+        eq("2", snapshot.effective_motion_count_prefix)
+        eq(2, snapshot.motion_count)
+        eq(false, snapshot.normal_motion_hints_visible)
+        eq(false, snapshot.repeat_target_character_hints_visible)
+        eq("f", snapshot.prefix:pending_targeted_motion_key({ f = function() end }))
+    end)
+
+    it("suppresses counts above 100 from typed input", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("1", "n")
+        state:handle_key("0", "n")
+        state:handle_key("1", "n")
+
+        local snapshot = state:snapshot()
+        eq("101", snapshot.raw)
+        eq(true, snapshot.count_suppressed)
     end)
 end)
 

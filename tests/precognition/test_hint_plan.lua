@@ -472,25 +472,15 @@ describe("Hint planning", function()
         )
     end)
 
-    it("keeps Counted Motion suppression in Hint planning", function()
+    it("suppresses Counted Motion rendering in Hint planning", function()
         local motion_count = MotionCount.new()
         motion_count:set_prefix("101")
 
         local plan = HintPlan.build(context({ motion_count = motion_count }))
 
-        eq(false, plan.skip_render)
+        eq(true, plan.skip_render)
         eq("Count is too high, not showing hints", plan.message)
-        eq(
-            { 0 },
-            vim.tbl_map(
-                function(candidate)
-                    return candidate.col
-                end,
-                vim.tbl_filter(function(candidate)
-                    return candidate.label == "w"
-                end, plan.inline_hints)
-            )
-        )
+        eq("none", plan.kind)
     end)
 
     it("plans text-object Inline Hints from pending prefixes", function()

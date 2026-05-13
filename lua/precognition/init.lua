@@ -2,7 +2,7 @@ local compat = require("precognition.compat")
 local defaults = require("precognition.defaults")
 local HintPlan = require("precognition.hint_plan")
 local MotionCount = require("precognition.motion_count")
-local PendingCommandPrefix = require("precognition.pending_command_prefix")
+local ObservedCommandAdapter = require("precognition.observed_command_adapter")
 local Renderer = require("precognition.renderer")
 local VirtLine = require("precognition.virt_line")
 
@@ -121,14 +121,10 @@ local au = vim.api.nvim_create_augroup("precognition", { clear = true })
 local motion_count = MotionCount.new()
 ---@type Precognition.Renderer
 local renderer = Renderer.new()
----@type string | nil
-local pending_command_prefix
----@type Precognition.PendingCommandPrefix
-local prefix = PendingCommandPrefix.new()
+---@type Precognition.ObservedCommandAdapter
+local observed_command
 ---@type boolean
 local handling_key = false
----@type boolean
-local redraw_scheduled = false
 ---@type boolean
 local restoring_visual_selection = false
 ---@type boolean
@@ -136,6 +132,7 @@ local was_count_suppressed = false
 
 ---@type function?
 local cached_on_cursor_moved
+local get_observed_command
 
 local function clear_hints(bufnr)
     renderer:clear(bufnr)
@@ -175,13 +172,7 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
     return VirtLine.calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
----@param mode string
----@return boolean
-local function is_visual_mode(mode)
-    return mode == "v" or mode == "V" or mode == "\22"
-end
-
-local function display_marks()
+local function display_marks_impl()
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
     local cursorline = vim.fn.line(".")
@@ -217,16 +208,12 @@ local function display_marks()
     end
 
     local motions = require("precognition.motions").get_motions()
-    local active_prefix = prefix
-    if pending_command_prefix ~= prefix:raw() then
-        active_prefix = PendingCommandPrefix.from_raw(pending_command_prefix)
-    end
+    local command_state = get_observed_command():snapshot()
     local plan = HintPlan.build({
         bufnr = bufnr,
         mode = vim.api.nvim_get_mode().mode,
         disabled_fts = config.disabled_fts,
-        pending_command_prefix = pending_command_prefix,
-        prefix = active_prefix,
+        command_state = command_state,
         current_line = cur_line,
         cursorcol = cursorcol,
         line_len = line_len,
@@ -235,7 +222,7 @@ local function display_marks()
         config = config,
         charsearch = vim.fn.getcharsearch(),
     })
-    local count_suppressed = motion_count:is_suppressed(active_prefix:effective_motion_count_prefix())
+    local count_suppressed = command_state.count_suppressed
     if plan.message and (not count_suppressed or not was_count_suppressed) then
         vim.notify_once(plan.message, vim.log.levels.INFO)
     end
@@ -247,6 +234,7 @@ local function display_marks()
     end
 
     if plan.kind == "text_object" then
+        apply_gutter_hints({})
         add_inlay_hint_padding()
         utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
@@ -309,11 +297,21 @@ local function display_marks()
     dirty = false
 end
 
+local function display_marks()
+    local was_handling_key = handling_key
+    handling_key = true
+    local ok, err = xpcall(display_marks_impl, debug.traceback)
+    handling_key = was_handling_key
+    if not ok then
+        error(err)
+    end
+end
+
 local function restore_visual_selection(win, bufnr, cursor, visual_start)
     if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
         return
     end
-    if vim.api.nvim_get_current_win() ~= win or not is_visual_mode(vim.api.nvim_get_mode().mode) then
+    if vim.api.nvim_get_current_win() ~= win or not ObservedCommandAdapter.is_visual_mode(vim.api.nvim_get_mode().mode) then
         return
     end
 
@@ -336,7 +334,7 @@ end
 ---@param preserve_visual boolean?
 ---@param fn fun()
 local function preserving_visual_selection(preserve_visual, fn)
-    if not preserve_visual or not is_visual_mode(vim.api.nvim_get_mode().mode) then
+    if not preserve_visual or not ObservedCommandAdapter.is_visual_mode(vim.api.nvim_get_mode().mode) then
         fn()
         return
     end
@@ -356,30 +354,23 @@ local function redraw_marks(preserve_visual)
     renderer:flush(vim.api.nvim_get_current_buf())
 end
 
----@param cmd_prefix string
-local function schedule_visual_text_object_repaint(cmd_prefix)
-    if redraw_scheduled then
-        return
+function get_observed_command()
+    if not observed_command then
+        observed_command = ObservedCommandAdapter.new({
+            is_visible = function()
+                return visible
+            end,
+            mark_dirty = function()
+                dirty = true
+            end,
+            redraw = redraw_marks,
+            current_mode = function()
+                return vim.api.nvim_get_mode().mode
+            end,
+        })
     end
 
-    redraw_scheduled = true
-    vim.schedule(function()
-        redraw_scheduled = false
-        if not visible then
-            return
-        end
-
-        local mode = vim.api.nvim_get_mode().mode
-        if not is_visual_mode(mode) and not PendingCommandPrefix.is_operator_pending_mode(mode) then
-            return
-        end
-        if pending_command_prefix ~= cmd_prefix then
-            return
-        end
-
-        dirty = true
-        redraw_marks(true)
-    end)
+    return observed_command
 end
 
 local function on_insert_enter(ev)
@@ -394,15 +385,16 @@ local function cursor_moved_handler(draw)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        local text_object_selection_finished = is_visual_mode(mode) and prefix:text_object_hints_visible()
-        if not is_visual_mode(mode) or text_object_selection_finished then
-            pending_command_prefix = nil
-            prefix:reset()
+        local command = get_observed_command()
+        local text_object_selection_finished = ObservedCommandAdapter.is_visual_mode(mode)
+            and command:snapshot().text_object_hints_visible
+        if not ObservedCommandAdapter.is_visual_mode(mode) or text_object_selection_finished then
+            command:reset()
         end
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
         renderer:clear_inline_hint_if_moved(buf, vim.api.nvim_win_get_cursor(0)[1])
         dirty = true
-        if is_visual_mode(mode) and not text_object_selection_finished then
+        if ObservedCommandAdapter.is_visual_mode(mode) and not text_object_selection_finished then
             preserving_visual_selection(true, draw)
         else
             draw()
@@ -486,36 +478,18 @@ local function on_key(key)
     end
 
     local mode = vim.api.nvim_get_mode().mode
-    if not PendingCommandPrefix.is_supported_mode(mode) then
+    if not ObservedCommandAdapter.is_supported_mode(mode) then
         return
     end
 
     handling_key = true
     local ok, err = xpcall(function()
         if not visible then
-            motion_count:reset()
-            pending_command_prefix = nil
-            prefix:reset()
+            get_observed_command():reset()
             return
         end
 
-        local count_changed = motion_count:handle_key(key, mode)
-        local input = prefix:handle_key(key, mode)
-        motion_count:set_prefix(prefix:effective_motion_count_prefix())
-        pending_command_prefix = prefix:raw()
-        if visible and (count_changed or input.changed) then
-            dirty = true
-            if input.defer_redraw then
-                local scheduled_prefix = pending_command_prefix
-                if not scheduled_prefix then
-                    return
-                end
-                redraw_marks(true)
-                schedule_visual_text_object_repaint(scheduled_prefix)
-            else
-                redraw_marks()
-            end
-        end
+        get_observed_command():observe_key(key, mode)
     end, debug.traceback)
 
     handling_key = false
@@ -572,10 +546,7 @@ end
 --- Disable automatic showing of hints
 function M.hide()
     visible = false
-    motion_count:reset()
-    pending_command_prefix = nil
-    prefix:reset()
-    redraw_scheduled = false
+    get_observed_command():reset()
     cached_on_cursor_moved = nil
     was_count_suppressed = false
     clear_hints()
@@ -630,11 +601,8 @@ function M.setup(opts)
     renderer:reset()
     au = vim.api.nvim_create_augroup("precognition", { clear = true })
     cached_on_cursor_moved = nil
-    motion_count:reset()
-    pending_command_prefix = nil
-    prefix:reset()
+    get_observed_command():reset()
     handling_key = false
-    redraw_scheduled = false
     restoring_visual_selection = false
     was_count_suppressed = false
 
