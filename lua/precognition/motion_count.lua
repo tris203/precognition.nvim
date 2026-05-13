@@ -15,7 +15,7 @@ end
 
 ---@param prefix? string
 ---@return boolean
-function M:is_suppressed(prefix)
+function M.is_suppressed(_self, prefix)
     return M.parse(prefix) > 100
 end
 
@@ -25,7 +25,7 @@ end
 ---@param cursorcol integer
 ---@param linelen integer
 ---@return integer
-function M:destination(count, motion, str, cursorcol, linelen)
+function M.destination(_self, count, motion, str, cursorcol, linelen)
     local ret = cursorcol
     local out_of_bounds = false
     for _ = 1, count do

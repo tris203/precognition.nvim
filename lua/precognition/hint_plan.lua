@@ -209,7 +209,6 @@ function M.build(ctx)
     local counted_destinations =
         MotionCount:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len, effective_count_prefix)
     local gutter_hints = M.gutter_hints(ctx.motions)
-    local pending_targeted_motion = prefix:pending_targeted_motion_key(ctx.motions.targeted_motions)
     local inline_hints = {
         Caret = ctx.motions.line_start_non_whitespace(ctx.current_line, ctx.cursorcol, ctx.line_len),
         w = counted_destinations.w,

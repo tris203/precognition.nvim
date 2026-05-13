@@ -307,7 +307,9 @@ local function restore_visual_selection(win, bufnr, cursor, visual_start)
     if not vim.api.nvim_win_is_valid(win) or vim.api.nvim_win_get_buf(win) ~= bufnr then
         return
     end
-    if vim.api.nvim_get_current_win() ~= win or not ObservedCommandAdapter.is_visual_mode(vim.api.nvim_get_mode().mode) then
+    if
+        vim.api.nvim_get_current_win() ~= win or not ObservedCommandAdapter.is_visual_mode(vim.api.nvim_get_mode().mode)
+    then
         return
     end
 
