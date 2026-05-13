@@ -48,7 +48,7 @@ function ObservedCommandState:snapshot()
         prefix = self._prefix,
         effective_motion_count_prefix = effective_motion_count_prefix,
         motion_count = MotionCount.parse(effective_motion_count_prefix),
-        count_suppressed = MotionCount.parse(effective_motion_count_prefix) > 100,
+        count_suppressed = MotionCount:is_suppressed(effective_motion_count_prefix),
         normal_motion_hints_visible = self._prefix:normal_motion_hints_visible(),
         text_object_hints_visible = self._prefix:text_object_hints_visible(),
         text_object_prefix = self._prefix:text_object_prefix(),

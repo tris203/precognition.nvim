@@ -8,13 +8,10 @@ local M = {}
 ---@field bufnr integer
 ---@field mode string
 ---@field disabled_fts string[]
----@field pending_command_prefix string | nil
----@field prefix Precognition.PendingCommandPrefix | nil
----@field command_state Precognition.ObservedCommandSnapshot | nil
+---@field command_state Precognition.ObservedCommandSnapshot
 ---@field current_line string
 ---@field cursorcol integer
 ---@field line_len integer
----@field motion_count Precognition.MotionCount
 ---@field motions Precognition.MotionsAdapter
 ---@field config Precognition.Config
 ---@field charsearch table | nil
@@ -98,13 +95,11 @@ local function add_targeted_motion_hints(candidates, ctx)
         return
     end
 
-    local prefix = ctx.command_state and ctx.command_state.prefix
-        or ctx.prefix
-        or PendingCommandPrefix.from_raw(ctx.pending_command_prefix)
+    local prefix = ctx.command_state.prefix
     local pending_targeted_motion = prefix:pending_targeted_motion_key(ctx.motions.targeted_motions)
 
     local count = pending_targeted_motion and MotionCount.parse(prefix:effective_motion_count_prefix())
-        or (ctx.command_state and ctx.command_state.motion_count or ctx.motion_count:count())
+        or ctx.command_state.motion_count
 
     local function add_source(motion_key, targeted_motion)
         for _, hint in ipairs(targeted_motion(ctx.current_line, ctx.cursorcol, ctx.line_len, count)) do
@@ -154,10 +149,7 @@ local function add_repeat_targeted_motion_hints(candidates, ctx)
     if not ctx.motions.repeat_targeted_motion_hints then
         return
     end
-    if ctx.command_state and not ctx.command_state.repeat_target_character_hints_visible then
-        return
-    end
-    if not ctx.command_state and ctx.pending_command_prefix then
+    if not ctx.command_state.repeat_target_character_hints_visible then
         return
     end
 
@@ -167,7 +159,7 @@ local function add_repeat_targeted_motion_hints(candidates, ctx)
                 ctx.current_line,
                 ctx.cursorcol,
                 ctx.line_len,
-                ctx.command_state and ctx.command_state.motion_count or ctx.motion_count:count(),
+                ctx.command_state.motion_count,
                 ctx.charsearch
             )
         )
@@ -183,9 +175,7 @@ end
 ---@param ctx Precognition.HintPlanContext
 ---@return Precognition.HintPlan
 function M.build(ctx)
-    local prefix = ctx.command_state and ctx.command_state.prefix
-        or ctx.prefix
-        or PendingCommandPrefix.from_raw(ctx.pending_command_prefix)
+    local prefix = ctx.command_state.prefix
     if ctx.mode:sub(1, 1) == "i" then
         return { skip_render = true, message = nil, kind = "none" }
     end
@@ -195,11 +185,8 @@ function M.build(ctx)
     end
 
     local message = nil
-    local effective_count_prefix = ctx.command_state and ctx.command_state.effective_motion_count_prefix
-        or prefix:effective_motion_count_prefix()
-    local count_suppressed = ctx.command_state and ctx.command_state.count_suppressed
-        or ctx.motion_count:is_suppressed(effective_count_prefix)
-    if count_suppressed then
+    local effective_count_prefix = ctx.command_state.effective_motion_count_prefix
+    if ctx.command_state.count_suppressed then
         return { skip_render = true, message = "Count is too high, not showing hints", kind = "none" }
     end
 
@@ -220,7 +207,7 @@ function M.build(ctx)
     end
 
     local counted_destinations =
-        ctx.motion_count:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len, effective_count_prefix)
+        MotionCount:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len, effective_count_prefix)
     local gutter_hints = M.gutter_hints(ctx.motions)
     local pending_targeted_motion = prefix:pending_targeted_motion_key(ctx.motions.targeted_motions)
     local inline_hints = {

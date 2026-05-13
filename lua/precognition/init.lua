@@ -1,7 +1,6 @@
 local compat = require("precognition.compat")
 local defaults = require("precognition.defaults")
 local HintPlan = require("precognition.hint_plan")
-local MotionCount = require("precognition.motion_count")
 local ObservedCommandAdapter = require("precognition.observed_command_adapter")
 local Renderer = require("precognition.renderer")
 local VirtLine = require("precognition.virt_line")
@@ -117,8 +116,6 @@ local visible = false
 
 ---@type integer
 local au = vim.api.nvim_create_augroup("precognition", { clear = true })
----@type Precognition.MotionCount
-local motion_count = MotionCount.new()
 ---@type Precognition.Renderer
 local renderer = Renderer.new()
 ---@type Precognition.ObservedCommandAdapter
@@ -217,7 +214,6 @@ local function display_marks_impl()
         current_line = cur_line,
         cursorcol = cursorcol,
         line_len = line_len,
-        motion_count = motion_count,
         motions = motions,
         config = config,
         charsearch = vim.fn.getcharsearch(),

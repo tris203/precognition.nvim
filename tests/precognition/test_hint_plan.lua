@@ -1,25 +1,29 @@
 local HintPlan = require("precognition.hint_plan")
-local MotionCount = require("precognition.motion_count")
-local PendingCommandPrefix = require("precognition.pending_command_prefix")
+local ObservedCommandState = require("precognition.observed_command_state")
 local default_config = require("precognition.defaults").config
 local eq = MiniTest.expect.equality
 local buffers = {}
 
 local function context(overrides)
     local line = overrides.current_line or "hello world this"
-    local motion_count = overrides.motion_count or MotionCount.new()
     local bufnr = vim.api.nvim_create_buf(true, false)
     table.insert(buffers, bufnr)
     vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { line })
+
+    local command_state = ObservedCommandState.new()
+    for _, input in ipairs(overrides.command_inputs or {}) do
+        command_state:handle_key(input[1], input[2] or "n")
+    end
+
+    overrides.command_inputs = nil
     return vim.tbl_extend("force", {
         bufnr = bufnr,
         mode = "n",
         disabled_fts = default_config.disabled_fts,
-        pending_command_prefix = nil,
+        command_state = command_state:snapshot(),
         current_line = line,
         cursorcol = 1,
         line_len = vim.fn.strcharlen(line),
-        motion_count = motion_count,
         motions = require("precognition.motions").get_motions(),
         config = default_config,
     }, overrides)
@@ -127,7 +131,7 @@ describe("Hint planning", function()
             current_line = "ab cab!a",
             cursorcol = 4,
             line_len = 8,
-            pending_command_prefix = "f",
+            command_inputs = { { "f" } },
         }))
 
         eq(false, plan.skip_render)
@@ -168,7 +172,7 @@ describe("Hint planning", function()
             current_line = "ab cab!a",
             cursorcol = 4,
             line_len = 8,
-            pending_command_prefix = "F",
+            command_inputs = { { "F" } },
         }))
 
         eq(0, #vim.tbl_filter(function(candidate)
@@ -190,7 +194,7 @@ describe("Hint planning", function()
             current_line = "ab cab!a",
             cursorcol = 4,
             line_len = 8,
-            pending_command_prefix = "t",
+            command_inputs = { { "t" } },
         }))
 
         eq(1, #vim.tbl_filter(function(candidate)
@@ -212,7 +216,7 @@ describe("Hint planning", function()
             current_line = "ab cab!a",
             cursorcol = 4,
             line_len = 8,
-            pending_command_prefix = "T",
+            command_inputs = { { "T" } },
         }))
 
         eq(1, #vim.tbl_filter(function(candidate)
@@ -227,13 +231,13 @@ describe("Hint planning", function()
     end)
 
     it("plans counted Target Character Hints", function()
-        local motion_count = MotionCount.new()
-        motion_count:set_prefix("2")
+        local state = ObservedCommandState.new()
+        state:handle_key("2", "n")
         local plan = HintPlan.build(context({
             current_line = "abacad",
             cursorcol = 1,
             line_len = 6,
-            motion_count = motion_count,
+            command_state = state:snapshot(),
         }))
 
         eq(1, #vim.tbl_filter(function(candidate)
@@ -255,7 +259,7 @@ describe("Hint planning", function()
             current_line = "abacad",
             cursorcol = 1,
             line_len = 6,
-            pending_command_prefix = "2f",
+            command_inputs = { { "2" }, { "f" } },
         }))
 
         eq(1, #vim.tbl_filter(function(candidate)
@@ -277,7 +281,7 @@ describe("Hint planning", function()
             current_line = "abacad",
             cursorcol = 1,
             line_len = 6,
-            pending_command_prefix = "2t",
+            command_inputs = { { "2" }, { "t" } },
         }))
 
         eq(1, #vim.tbl_filter(function(candidate)
@@ -410,14 +414,14 @@ describe("Hint planning", function()
     end)
 
     it("plans Counted Motion Destinations", function()
-        local motion_count = MotionCount.new()
-        motion_count:set_prefix("2")
+        local state = ObservedCommandState.new()
+        state:handle_key("2", "n")
 
         local plan = HintPlan.build(context({
             current_line = "hello world this",
             cursorcol = 1,
             line_len = 16,
-            motion_count = motion_count,
+            command_state = state:snapshot(),
         }))
 
         eq(
@@ -434,7 +438,7 @@ describe("Hint planning", function()
     end)
 
     it("keeps normal Motion Hints visible for operator-only Pending Command Prefixes", function()
-        local plan = HintPlan.build(context({ pending_command_prefix = "d" }))
+        local plan = HintPlan.build(context({ command_inputs = { { "d" } } }))
 
         eq(false, plan.skip_render)
         eq("normal", plan.kind)
@@ -456,7 +460,7 @@ describe("Hint planning", function()
             current_line = "one two three four five six seven",
             cursorcol = 1,
             line_len = 33,
-            prefix = PendingCommandPrefix.from_raw("2d3"),
+            command_inputs = { { "2" }, { "d" }, { "3", "no" } },
         }))
 
         eq(
@@ -473,10 +477,7 @@ describe("Hint planning", function()
     end)
 
     it("suppresses Counted Motion rendering in Hint planning", function()
-        local motion_count = MotionCount.new()
-        motion_count:set_prefix("101")
-
-        local plan = HintPlan.build(context({ motion_count = motion_count }))
+        local plan = HintPlan.build(context({ command_inputs = { { "1" }, { "0" }, { "1" } } }))
 
         eq(true, plan.skip_render)
         eq("Count is too high, not showing hints", plan.message)
@@ -484,7 +485,7 @@ describe("Hint planning", function()
     end)
 
     it("plans text-object Inline Hints from pending prefixes", function()
-        local plan = HintPlan.build(context({ pending_command_prefix = "i" }))
+        local plan = HintPlan.build(context({ command_inputs = { { "i", "v" } } }))
 
         eq(false, plan.skip_render)
         eq("text_object", plan.kind)
