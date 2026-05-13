@@ -1,4 +1,6 @@
 local MotionCount = require("precognition.motion_count")
+local ObservedCommandState = require("precognition.observed_command_state")
+local PendingCommandPrefix = require("precognition.pending_command_prefix")
 local hm = require("precognition.motions.vanilla_motions.horizontal_motions")
 local eq = MiniTest.expect.equality
 
@@ -14,148 +16,136 @@ describe("motion strings", function()
     end)
 end)
 
-describe("motion count state", function()
-    local motion_count
+describe("observed command state", function()
+    it("combines operator and operator-pending Motion Counts", function()
+        local state = ObservedCommandState.new()
 
-    before_each(function()
-        motion_count = MotionCount.new()
+        state:handle_key("2", "n")
+        state:handle_key("d", "n")
+        state:handle_key("3", "no")
+
+        local snapshot = state:snapshot()
+        eq("2d3", snapshot.raw)
+        eq("6", snapshot.effective_motion_count_prefix)
+        eq(6, snapshot.motion_count)
+        eq(true, snapshot.normal_motion_hints_visible)
+        eq(false, snapshot.text_object_hints_visible)
     end)
 
-    it("collects typed digits in supported modes", function()
-        eq(true, motion_count:handle_key("2", "n"))
-        eq("2", motion_count:prefix())
-        eq(true, motion_count:handle_key("0", "n"))
-        eq("20", motion_count:prefix())
-        eq({ count = 20, suppressed = false }, motion_count:current())
+    it("surfaces Text Object Hint and redraw state", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("d", "n")
+        local input = state:handle_key("i", "no")
+
+        local snapshot = state:snapshot()
+        eq("di", snapshot.raw)
+        eq(true, snapshot.text_object_hints_visible)
+        eq("di", snapshot.text_object_prefix)
+        eq(false, input.defer_redraw)
+        eq("di", input.scheduled_prefix)
     end)
 
-    it("does not start a count with zero", function()
-        eq(false, motion_count:handle_key("0", "n"))
-        eq(nil, motion_count:prefix())
+    it("surfaces pending Target Character Hint state", function()
+        local state = ObservedCommandState.new()
+
+        state:handle_key("2", "n")
+        state:handle_key("f", "n")
+
+        local snapshot = state:snapshot()
+        eq("2f", snapshot.raw)
+        eq("2", snapshot.effective_motion_count_prefix)
+        eq(2, snapshot.motion_count)
+        eq(false, snapshot.normal_motion_hints_visible)
+        eq(false, snapshot.repeat_target_character_hints_visible)
+        eq("f", snapshot.prefix:pending_targeted_motion_key({ f = function() end }))
     end)
 
-    it("resets on non-digit keys and unsupported modes", function()
-        motion_count:handle_key("2", "n")
-        eq(true, motion_count:handle_key("w", "n"))
-        eq(nil, motion_count:prefix())
+    it("suppresses counts above 100 from typed input", function()
+        local state = ObservedCommandState.new()
 
-        motion_count:handle_key("3", "n")
-        eq(true, motion_count:handle_key("4", "i"))
-        eq(nil, motion_count:prefix())
+        state:handle_key("1", "n")
+        state:handle_key("0", "n")
+        state:handle_key("1", "n")
+
+        local snapshot = state:snapshot()
+        eq("101", snapshot.raw)
+        eq(true, snapshot.count_suppressed)
     end)
+end)
 
-    it("does not collect digits in operator-pending mode", function()
-        motion_count:handle_key("2", "n")
-        eq(true, motion_count:handle_key("3", "no"))
-        eq(nil, motion_count:prefix())
-    end)
-
+describe("motion count calculation", function()
     it("suppresses count prefixes above one hundred", function()
-        motion_count:set_prefix("101")
-        eq({ count = 101, suppressed = true }, motion_count:current())
+        eq(false, MotionCount:is_suppressed("100"))
+        eq(true, MotionCount:is_suppressed("101"))
+    end)
+end)
+
+describe("pending command prefixes", function()
+    it("identifies modes that can receive Pending Command Prefix input", function()
+        eq(true, PendingCommandPrefix.is_supported_mode("n"))
+        eq(true, PendingCommandPrefix.is_supported_mode("v"))
+        eq(true, PendingCommandPrefix.is_supported_mode("V"))
+        eq(true, PendingCommandPrefix.is_supported_mode("\22"))
+        eq(true, PendingCommandPrefix.is_supported_mode("no"))
+        eq(false, PendingCommandPrefix.is_supported_mode("i"))
     end)
 
-    it("supports independent Motion Count instances", function()
-        local first = MotionCount.new()
-        local second = MotionCount.new()
+    it("keeps normal Motion Hints visible for operator-only prefixes", function()
+        local prefix = PendingCommandPrefix.from_raw("d")
 
-        first:handle_key("2", "n")
-        second:handle_key("1", "n")
-        second:handle_key("0", "n")
-        second:handle_key("1", "n")
-
-        eq("2", first:prefix())
-        eq(2, first:count())
-        eq(false, first:is_suppressed())
-        eq("101", second:prefix())
-        eq(101, second:count())
-        eq(true, second:is_suppressed())
+        eq(true, prefix:normal_motion_hints_visible())
+        eq(false, prefix:text_object_hints_visible())
     end)
 
-    it("identifies modes that can receive Motion Count input", function()
-        eq(true, motion_count:is_supported_prefix_mode("n"))
-        eq(true, motion_count:is_supported_prefix_mode("v"))
-        eq(true, motion_count:is_supported_prefix_mode("V"))
-        eq(true, motion_count:is_supported_prefix_mode("\22"))
-        eq(true, motion_count:is_supported_prefix_mode("no"))
-        eq(false, motion_count:is_supported_prefix_mode("i"))
+    it("switches to Text Object Hints for text-object prefixes", function()
+        local prefix = PendingCommandPrefix.from_raw("2di")
+
+        eq(false, prefix:normal_motion_hints_visible())
+        eq(true, prefix:text_object_hints_visible())
+        eq("2di", prefix:text_object_prefix())
     end)
 
-    it("identifies operator-pending mode", function()
-        eq(true, motion_count:is_operator_pending_mode("no"))
-        eq(true, motion_count:is_operator_pending_mode("nov"))
-        eq(false, motion_count:is_operator_pending_mode("n"))
+    it("combines operator and operator-pending Motion Counts", function()
+        local prefix = PendingCommandPrefix.new()
+
+        prefix:handle_key("2", "n")
+        prefix:handle_key("d", "n")
+        prefix:handle_key("3", "no")
+
+        eq("2d3", prefix:raw())
+        eq("6", prefix:effective_motion_count_prefix())
+        eq(true, prefix:normal_motion_hints_visible())
     end)
 
-    it("identifies text-object prefixes", function()
-        eq(true, motion_count:is_text_object_prefix("i"))
-        eq(true, motion_count:is_text_object_prefix("a"))
-        eq(true, motion_count:is_text_object_prefix("di"))
-        eq(true, motion_count:is_text_object_prefix("2di"))
-        eq(false, motion_count:is_text_object_prefix("d"))
-        eq(false, motion_count:is_text_object_prefix(nil))
-    end)
+    it("identifies pending targeted Motions", function()
+        local prefix = PendingCommandPrefix.from_raw("2f")
 
-    it("identifies operator prefixes", function()
-        eq(true, motion_count:is_operator_prefix("d"))
-        eq(true, motion_count:is_operator_prefix("2d"))
-        eq(false, motion_count:is_operator_prefix("di"))
-        eq(false, motion_count:is_operator_prefix(nil))
-    end)
-
-    it("returns input state for counted Motion prefixes", function()
-        local input = motion_count:handle_input("2", "n", nil)
-        eq("2", motion_count:prefix())
-        eq({ pending_command_prefix = "2", prefix_changed = true, defer_redraw = false }, input)
-
-        input = motion_count:handle_input("0", "n", input.pending_command_prefix)
-        eq("20", motion_count:prefix())
-        eq({ pending_command_prefix = "20", prefix_changed = true, defer_redraw = false }, input)
-    end)
-
-    it("returns input state for text-object prefixes", function()
-        local input = motion_count:handle_input("d", "n", nil)
-        eq({ pending_command_prefix = "d", prefix_changed = true, defer_redraw = false }, input)
-
-        input = motion_count:handle_input("i", "no", input.pending_command_prefix)
-        eq({ pending_command_prefix = "i", prefix_changed = true, defer_redraw = true }, input)
-    end)
-
-    it("clears input state for escape", function()
-        motion_count:handle_input("2", "n", nil)
-        local input = motion_count:handle_input("\27", "n", "2")
-
-        eq(nil, motion_count:prefix())
-        eq({ pending_command_prefix = nil, prefix_changed = true, defer_redraw = false }, input)
+        eq("f", prefix:pending_targeted_motion_key({ f = function() end }))
+        eq(false, prefix:normal_motion_hints_visible())
     end)
 end)
 
 describe("count motions", function()
-    local motion_count
-
-    before_each(function()
-        motion_count = MotionCount.new()
-    end)
-
     it("applies a motion repeatedly", function()
         local str = "hello world this is a test"
         eq(
             13,
-            motion_count:destination(2, function(s, col, len)
+            MotionCount:destination(2, function(s, col, len)
                 return hm.next_word_boundary(s, col, len, false)
             end, str, 1, #str)
         )
 
         eq(
             18,
-            motion_count:destination(3, function(s, col, len)
+            MotionCount:destination(3, function(s, col, len)
                 return hm.next_word_boundary(s, col, len, false)
             end, str, 6, #str)
         )
 
         eq(
             1,
-            motion_count:destination(1, function(s, col, len)
+            MotionCount:destination(1, function(s, col, len)
                 return hm.prev_word_boundary(s, col, len, false)
             end, str, 6, #str)
         )
@@ -165,14 +155,14 @@ describe("count motions", function()
         local str = "hello world"
         eq(
             0,
-            motion_count:destination(5, function(s, col, len)
+            MotionCount:destination(5, function(s, col, len)
                 return hm.next_word_boundary(s, col, len, false)
             end, str, 1, 1)
         )
 
         eq(
             0,
-            motion_count:destination(4, function(s, col, len)
+            MotionCount:destination(4, function(s, col, len)
                 return hm.prev_word_boundary(s, col, len, false)
             end, str, #str, #str)
         )
@@ -180,7 +170,6 @@ describe("count motions", function()
 
     it("returns supported horizontal Counted Motion Destinations", function()
         local str = "hello world this is a test"
-        motion_count:set_prefix("2")
 
         eq({
             w = 13,
@@ -189,12 +178,11 @@ describe("count motions", function()
             W = 13,
             E = 11,
             B = 0,
-        }, motion_count:destinations(hm, str, 1, #str))
+        }, MotionCount:destinations(hm, str, 1, #str, "2"))
     end)
 
     it("suppresses supported horizontal Counted Motion Destinations", function()
         local str = "hello world this is a test"
-        motion_count:set_prefix("101")
 
         eq({
             w = 0,
@@ -203,6 +191,6 @@ describe("count motions", function()
             W = 0,
             E = 0,
             B = 0,
-        }, motion_count:destinations(hm, str, 1, #str))
+        }, MotionCount:destinations(hm, str, 1, #str, "101"))
     end)
 end)

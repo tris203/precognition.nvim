@@ -1,0 +1,5 @@
+# Keep Hint behavior behind the motion adapter
+
+Precognition keeps standalone motion implementations behind `Precognition.MotionsAdapter` in `lua/precognition/motions/interface.lua`. That seam intentionally includes Motion behavior plus related Hint behavior such as Text Object Hints and Target Character Hints. Even though Text Object Hints are not Motions in the domain language, placing their source behavior behind the same adapter interface preserves locality for alternate motion implementations: a vanilla adapter and a simulation adapter can each provide the Hint behavior that matches their Motion behavior.
+
+We considered splitting Text Object Source behavior into a separate public seam. We rejected that for now because it would add a hypothetical seam without a second independent adapter need. The existing adapter seam is the real variation point, and deleting it would spread alternate implementation knowledge across callers rather than concentrating it. Future reviews should not re-suggest this split unless there is concrete friction that the current adapter interface cannot absorb.

@@ -1,5 +1,6 @@
 local HintPriority = require("precognition.hint_priority")
 local MotionCount = require("precognition.motion_count")
+local PendingCommandPrefix = require("precognition.pending_command_prefix")
 
 local M = {}
 
@@ -7,11 +8,10 @@ local M = {}
 ---@field bufnr integer
 ---@field mode string
 ---@field disabled_fts string[]
----@field pending_command_prefix string | nil
+---@field command_state Precognition.ObservedCommandSnapshot
 ---@field current_line string
 ---@field cursorcol integer
 ---@field line_len integer
----@field motion_count Precognition.MotionCount
 ---@field motions Precognition.MotionsAdapter
 ---@field config Precognition.Config
 ---@field charsearch table | nil
@@ -95,10 +95,11 @@ local function add_targeted_motion_hints(candidates, ctx)
         return
     end
 
-    local pending_targeted_motion =
-        ctx.motion_count:targeted_motion_prefix(ctx.pending_command_prefix, ctx.motions.targeted_motions)
+    local prefix = ctx.command_state.prefix
+    local pending_targeted_motion = prefix:pending_targeted_motion_key(ctx.motions.targeted_motions)
 
-    local count = pending_targeted_motion and MotionCount.parse(ctx.pending_command_prefix) or ctx.motion_count:count()
+    local count = pending_targeted_motion and MotionCount.parse(prefix:effective_motion_count_prefix())
+        or ctx.command_state.motion_count
 
     local function add_source(motion_key, targeted_motion)
         for _, hint in ipairs(targeted_motion(ctx.current_line, ctx.cursorcol, ctx.line_len, count)) do
@@ -125,8 +126,8 @@ local function add_targeted_motion_hints(candidates, ctx)
         table.insert(motion_keys, motion_key)
     end
     table.sort(motion_keys, function(a, b)
-        local a_order = MotionCount.preferred_targeted_motion_order[a] or (100 + a:byte())
-        local b_order = MotionCount.preferred_targeted_motion_order[b] or (100 + b:byte())
+        local a_order = PendingCommandPrefix.targeted_motion_order[a] or (100 + a:byte())
+        local b_order = PendingCommandPrefix.targeted_motion_order[b] or (100 + b:byte())
         if a_order ~= b_order then
             return a_order < b_order
         end
@@ -148,7 +149,7 @@ local function add_repeat_targeted_motion_hints(candidates, ctx)
     if not ctx.motions.repeat_targeted_motion_hints then
         return
     end
-    if ctx.pending_command_prefix then
+    if not ctx.command_state.repeat_target_character_hints_visible then
         return
     end
 
@@ -158,7 +159,7 @@ local function add_repeat_targeted_motion_hints(candidates, ctx)
                 ctx.current_line,
                 ctx.cursorcol,
                 ctx.line_len,
-                ctx.motion_count:count(),
+                ctx.command_state.motion_count,
                 ctx.charsearch
             )
         )
@@ -174,6 +175,7 @@ end
 ---@param ctx Precognition.HintPlanContext
 ---@return Precognition.HintPlan
 function M.build(ctx)
+    local prefix = ctx.command_state.prefix
     if ctx.mode:sub(1, 1) == "i" then
         return { skip_render = true, message = nil, kind = "none" }
     end
@@ -182,18 +184,15 @@ function M.build(ctx)
         return { skip_render = true, message = nil, kind = "none" }
     end
 
-    if ctx.motion_count:is_operator_prefix(ctx.pending_command_prefix) then
-        return { skip_render = true, message = nil, kind = "none" }
-    end
-
     local message = nil
-    if ctx.motion_count:is_suppressed() then
-        message = "Count is too high, not showing hints"
+    local effective_count_prefix = ctx.command_state.effective_motion_count_prefix
+    if ctx.command_state.count_suppressed then
+        return { skip_render = true, message = "Count is too high, not showing hints", kind = "none" }
     end
 
-    if ctx.motion_count:is_text_object_prefix(ctx.pending_command_prefix) then
+    if prefix:text_object_hints_visible() then
         local anchors, ranges = ctx.motions.text_object_hints(
-            ctx.pending_command_prefix or "",
+            prefix:text_object_prefix() or "",
             ctx.current_line,
             ctx.cursorcol,
             ctx.line_len
@@ -208,10 +207,8 @@ function M.build(ctx)
     end
 
     local counted_destinations =
-        ctx.motion_count:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len)
+        MotionCount:destinations(ctx.motions, ctx.current_line, ctx.cursorcol, ctx.line_len, effective_count_prefix)
     local gutter_hints = M.gutter_hints(ctx.motions)
-    local pending_targeted_motion =
-        ctx.motion_count:targeted_motion_prefix(ctx.pending_command_prefix, ctx.motions.targeted_motions)
     local inline_hints = {
         Caret = ctx.motions.line_start_non_whitespace(ctx.current_line, ctx.cursorcol, ctx.line_len),
         w = counted_destinations.w,
@@ -229,7 +226,7 @@ function M.build(ctx)
         Zero = 1,
     }
     local inline_candidates = {}
-    if not pending_targeted_motion then
+    if prefix:normal_motion_hints_visible() then
         add_static_inline_hints(inline_candidates, ctx.config, inline_hints)
     end
     add_targeted_motion_hints(inline_candidates, ctx)

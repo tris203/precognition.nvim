@@ -94,7 +94,8 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - A **Pending Command Prefix** is broader than a **Motion Count**; **Motion Count** was the first supported prefix behavior, and **Text Object Hints** add text-object prefix behavior.
 - A **Text Object Hint** is different from a **Motion** Hint because it previews an available text object after a pending text-object prefix rather than a cursor **Destination**.
 - While a text-object **Pending Command Prefix** is active, **Text Object Hints** replace normal **Motion** Hints rather than appearing alongside them.
-- Once an operator or text-object **Pending Command Prefix** is active, normal **Motion** Hints remain suppressed until that prefix is completed or cancelled.
+- An operator-only **Pending Command Prefix**, such as `d`, `c`, or `y`, should keep the current normal **Motion** Hints visible because a following **Motion** remains a valid completion.
+- Once a text-object **Pending Command Prefix** is active, normal **Motion** Hints are replaced by **Text Object Hints** until that prefix is completed or cancelled.
 - **Text Object Hints** should support both inside text-object prefixes, such as `vi`, and around text-object prefixes, such as `va`.
 - Inside and around prefixes use the same **Text Object Hint** candidates, but each candidate's meaning follows the active prefix.
 - Built-in Vim text objects are the default **Text Object Hint** candidates; additional text objects may be exposed by a **Text Object Source**.
@@ -150,8 +151,10 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - **Target Character Hints** respect a leading **Motion Count**, so `2f` and `2F` preview the second reachable occurrence of each target character in the chosen direction.
 - **Target Character Hints** may be supplied through Precognition's Motion extension path rather than hard-coded to built-in Motion behavior.
 - Targeted-motion Hint behavior is configured separately from static normal **Motion** Hints because targeted motions can produce multiple dynamic **Destinations** and labels.
-- Operator-pending counts, such as `2d3w`, are intentionally out of scope until operator-pending behavior is designed separately.
-- The current count prefix should be treated as input to **Counted Motion** Hint calculation, not as a rendering concern.
+- Operator-pending **Motion Counts**, such as the `3` in `2d3w`, should update supported horizontal word **Motion** **Hints** while the operator-only **Pending Command Prefix** is active.
+- For supported horizontal word **Motion** **Hints**, an operator count and operator-pending **Motion Count** combine into an effective **Motion Count**, so `2d3` previews the **Destinations** for `6w`, `6e`, `6b`, `6W`, `6E`, and `6B` where reachable.
+- Operator-pending count support is limited to supported horizontal word **Motion** **Hints** until other operator-pending behavior is designed separately.
+- The current **Motion Count** should be treated as input to **Counted Motion** Hint calculation, not as a rendering concern.
 - **Motion Count** comes from typed input, not from command-display text, so visual selection reporting is not interpreted as a count.
 - In visual mode, a **Hint** previews where a **Motion** would move the active end of the selection, not where the whole selection would move.
 - Visual mode uses the same **Motion Count** behavior as normal mode for supported horizontal word Motions.
