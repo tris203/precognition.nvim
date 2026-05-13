@@ -1,5 +1,6 @@
 local HintPlan = require("precognition.hint_plan")
 local MotionCount = require("precognition.motion_count")
+local PendingCommandPrefix = require("precognition.pending_command_prefix")
 local default_config = require("precognition.defaults").config
 local eq = MiniTest.expect.equality
 local buffers = {}
@@ -421,6 +422,45 @@ describe("Hint planning", function()
 
         eq(
             { 13 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "w"
+                end, plan.inline_hints)
+            )
+        )
+    end)
+
+    it("keeps normal Motion Hints visible for operator-only Pending Command Prefixes", function()
+        local plan = HintPlan.build(context({ pending_command_prefix = "d" }))
+
+        eq(false, plan.skip_render)
+        eq("normal", plan.kind)
+        eq(
+            { 7 },
+            vim.tbl_map(
+                function(candidate)
+                    return candidate.col
+                end,
+                vim.tbl_filter(function(candidate)
+                    return candidate.label == "w"
+                end, plan.inline_hints)
+            )
+        )
+    end)
+
+    it("plans operator-pending Counted Motion Destinations", function()
+        local plan = HintPlan.build(context({
+            current_line = "one two three four five six seven",
+            cursorcol = 1,
+            line_len = 33,
+            prefix = PendingCommandPrefix.from_raw("2d3"),
+        }))
+
+        eq(
+            { 29 },
             vim.tbl_map(
                 function(candidate)
                     return candidate.col

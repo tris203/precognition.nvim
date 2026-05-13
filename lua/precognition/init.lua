@@ -2,6 +2,7 @@ local compat = require("precognition.compat")
 local defaults = require("precognition.defaults")
 local HintPlan = require("precognition.hint_plan")
 local MotionCount = require("precognition.motion_count")
+local PendingCommandPrefix = require("precognition.pending_command_prefix")
 local Renderer = require("precognition.renderer")
 local VirtLine = require("precognition.virt_line")
 
@@ -122,6 +123,8 @@ local motion_count = MotionCount.new()
 local renderer = Renderer.new()
 ---@type string | nil
 local pending_command_prefix
+---@type Precognition.PendingCommandPrefix
+local prefix = PendingCommandPrefix.new()
 ---@type boolean
 local handling_key = false
 ---@type boolean
@@ -214,11 +217,16 @@ local function display_marks()
     end
 
     local motions = require("precognition.motions").get_motions()
+    local active_prefix = prefix
+    if pending_command_prefix ~= prefix:raw() then
+        active_prefix = PendingCommandPrefix.from_raw(pending_command_prefix)
+    end
     local plan = HintPlan.build({
         bufnr = bufnr,
         mode = vim.api.nvim_get_mode().mode,
         disabled_fts = config.disabled_fts,
         pending_command_prefix = pending_command_prefix,
+        prefix = active_prefix,
         current_line = cur_line,
         cursorcol = cursorcol,
         line_len = line_len,
@@ -227,7 +235,7 @@ local function display_marks()
         config = config,
         charsearch = vim.fn.getcharsearch(),
     })
-    local count_suppressed = motion_count:is_suppressed()
+    local count_suppressed = motion_count:is_suppressed(active_prefix:effective_motion_count_prefix())
     if plan.message and (not count_suppressed or not was_count_suppressed) then
         vim.notify_once(plan.message, vim.log.levels.INFO)
     end
@@ -348,8 +356,8 @@ local function redraw_marks(preserve_visual)
     renderer:flush(vim.api.nvim_get_current_buf())
 end
 
----@param prefix string
-local function schedule_visual_text_object_repaint(prefix)
+---@param cmd_prefix string
+local function schedule_visual_text_object_repaint(cmd_prefix)
     if redraw_scheduled then
         return
     end
@@ -362,10 +370,10 @@ local function schedule_visual_text_object_repaint(prefix)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        if not is_visual_mode(mode) and not motion_count:is_operator_pending_mode(mode) then
+        if not is_visual_mode(mode) and not PendingCommandPrefix.is_operator_pending_mode(mode) then
             return
         end
-        if pending_command_prefix ~= prefix then
+        if pending_command_prefix ~= cmd_prefix then
             return
         end
 
@@ -386,10 +394,10 @@ local function cursor_moved_handler(draw)
         end
 
         local mode = vim.api.nvim_get_mode().mode
-        local text_object_selection_finished = is_visual_mode(mode)
-            and motion_count:is_text_object_prefix(pending_command_prefix)
+        local text_object_selection_finished = is_visual_mode(mode) and prefix:text_object_hints_visible()
         if not is_visual_mode(mode) or text_object_selection_finished then
             pending_command_prefix = nil
+            prefix:reset()
         end
         local buf = ev and ev.buf or vim.api.nvim_get_current_buf()
         renderer:clear_inline_hint_if_moved(buf, vim.api.nvim_win_get_cursor(0)[1])
@@ -478,7 +486,7 @@ local function on_key(key)
     end
 
     local mode = vim.api.nvim_get_mode().mode
-    if not motion_count:is_supported_prefix_mode(mode) then
+    if not PendingCommandPrefix.is_supported_mode(mode) then
         return
     end
 
@@ -487,20 +495,23 @@ local function on_key(key)
         if not visible then
             motion_count:reset()
             pending_command_prefix = nil
+            prefix:reset()
             return
         end
 
-        local input = motion_count:handle_input(key, mode, pending_command_prefix)
-        pending_command_prefix = input.pending_command_prefix
-        if visible and input.prefix_changed then
+        local count_changed = motion_count:handle_key(key, mode)
+        local input = prefix:handle_key(key, mode)
+        motion_count:set_prefix(prefix:effective_motion_count_prefix())
+        pending_command_prefix = prefix:raw()
+        if visible and (count_changed or input.changed) then
             dirty = true
             if input.defer_redraw then
-                local prefix = pending_command_prefix
-                if not prefix then
+                local scheduled_prefix = pending_command_prefix
+                if not scheduled_prefix then
                     return
                 end
                 redraw_marks(true)
-                schedule_visual_text_object_repaint(prefix)
+                schedule_visual_text_object_repaint(scheduled_prefix)
             else
                 redraw_marks()
             end
@@ -563,6 +574,7 @@ function M.hide()
     visible = false
     motion_count:reset()
     pending_command_prefix = nil
+    prefix:reset()
     redraw_scheduled = false
     cached_on_cursor_moved = nil
     was_count_suppressed = false
@@ -620,6 +632,7 @@ function M.setup(opts)
     cached_on_cursor_moved = nil
     motion_count:reset()
     pending_command_prefix = nil
+    prefix:reset()
     handling_key = false
     redraw_scheduled = false
     restoring_visual_selection = false
