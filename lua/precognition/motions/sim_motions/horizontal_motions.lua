@@ -87,11 +87,11 @@ end
 
 ---@param cur_line string
 ---@param cursorcol integer
----@param line_len integer
+---@param _line_len integer
 ---@param count integer?
 ---@param charsearch table | nil
 ---@return Precognition.TargetedMotionHint[]
-function M.repeat_targeted_motion_hints(cur_line, cursorcol, line_len, count, charsearch)
+function M.repeat_targeted_motion_hints(cur_line, cursorcol, _line_len, count, charsearch)
     if not charsearch or charsearch.char == nil or charsearch.char == "" then
         return {}
     end
@@ -99,8 +99,11 @@ function M.repeat_targeted_motion_hints(cur_line, cursorcol, line_len, count, ch
     local prefix = count and count > 1 and tostring(count) or ""
     local previous_charsearch = vim.fn.getcharsearch()
     vim.fn.setcharsearch(charsearch)
-    local destinations = sim.motion_destinations(cur_line, cursorcol, { prefix .. ";", prefix .. "," })
+    local ok, destinations = pcall(sim.motion_destinations, cur_line, cursorcol, { prefix .. ";", prefix .. "," })
     vim.fn.setcharsearch(previous_charsearch)
+    if not ok then
+        error(destinations)
+    end
     local repeat_col = destinations[prefix .. ";"] or 0
     local reverse_col = destinations[prefix .. ","] or 0
 

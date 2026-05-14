@@ -168,7 +168,7 @@ local function check_repeat_candidates(
     failures,
     seed,
     line,
-    cursorcol,
+    _cursorcol,
     targeted_candidate,
     repeated_from,
     remaining_checks
@@ -177,8 +177,13 @@ local function check_repeat_candidates(
         return 0
     end
 
-    local repeat_hints =
-        motions.repeat_targeted_motion_hints(line, repeated_from.col, vim.fn.strcharlen(line), nil, vim.v.charsearch)
+    local repeat_hints = motions.repeat_targeted_motion_hints(
+        line,
+        repeated_from.col,
+        vim.fn.strcharlen(line),
+        nil,
+        vim.fn.getcharsearch()
+    )
     local checks = 0
     for _, hint in ipairs(repeat_hints) do
         if checks >= remaining_checks then
