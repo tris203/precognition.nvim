@@ -68,6 +68,36 @@ end
 
 ---@param line string
 ---@param col integer
+---@param inputs string[]
+---@return table<string, integer>
+M.motion_destinations = function(line, col, inputs)
+    local buf = ensure_sim_buf()
+    local destinations = {}
+    local previous_charsearch = vim.fn.getcharsearch()
+
+    local ok, err = pcall(vim.api.nvim_buf_call, buf, function()
+        vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", line, "" })
+
+        for _, input in ipairs(inputs) do
+            vim.fn.setcursorcharpos(2, col)
+            local start_col = vim.fn.getcursorcharpos(0)[3]
+            vim.cmd({ cmd = "normal", bang = true, args = { input } })
+            local cur_pos = vim.fn.getcursorcharpos(0)
+            if cur_pos[2] == 2 and cur_pos[3] ~= start_col then
+                destinations[input] = cur_pos[3]
+            end
+        end
+    end)
+    vim.fn.setcharsearch(previous_charsearch)
+    if not ok then
+        error(err)
+    end
+
+    return destinations
+end
+
+---@param line string
+---@param col integer
 ---@param keys_by_name table<string, string>
 ---@return table<string, { start_col: integer, end_col: integer }>
 M.select_text_objects = function(line, col, keys_by_name)
