@@ -117,13 +117,12 @@ local function static_cursor_candidates(cur_line, cursorcol, line_len)
             input = hint_config.B.text,
             col = motions.prev_word_boundary(cur_line, cursorcol, line_len, true),
         },
-        -- TODO: fix some edge cases around pairs and we can enable this
-        -- {
-        --     kind = "cursor",
-        --     loc = "MatchingPair",
-        --     input = hint_config.MatchingPair.text,
-        --     col = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
-        -- },
+        {
+            kind = "cursor",
+            loc = "MatchingPair",
+            input = hint_config.MatchingPair.text,
+            col = motions.matching_pair(cur_line, cursorcol, line_len)(cur_line, cursorcol, line_len),
+        },
         {
             kind = "cursor",
             loc = "Dollar",
