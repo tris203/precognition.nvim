@@ -106,7 +106,7 @@ describe("Hint planning", function()
         eq(1, #vim.tbl_filter(function(candidate)
             return candidate.label == "F" and candidate.col == 1
         end, plan.inline_hints))
-        eq(1, #vim.tbl_filter(function(candidate)
+        eq(0, #vim.tbl_filter(function(candidate)
             return candidate.label == "t" and candidate.col == 4
         end, plan.inline_hints))
         eq(1, #vim.tbl_filter(function(candidate)
@@ -197,7 +197,7 @@ describe("Hint planning", function()
             command_inputs = { { "t" } },
         }))
 
-        eq(1, #vim.tbl_filter(function(candidate)
+        eq(0, #vim.tbl_filter(function(candidate)
             return candidate.label == "a" and candidate.col == 4
         end, plan.inline_hints))
         eq(1, #vim.tbl_filter(function(candidate)

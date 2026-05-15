@@ -72,6 +72,10 @@ _Avoid_: Preview, flash
 A test assertion that verifies rendered Hints as they appear in a Neovim screen, rather than only inspecting internal data structures.
 _Avoid_: Visual confirmation, screenshot test
 
+**DTS**:
+A deterministic testing simulation that compares data-layer Hint behavior against the corresponding Vim behavior.
+_Avoid_: Treating every Hint as a Motion Destination test
+
 **Hint Priority**:
 The precedence used to choose which Hint appears when multiple Hints share the same Destination.
 _Avoid_: Weight, rank
@@ -147,7 +151,7 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - **Target Character Hints** exclude the character under the cursor because `f` and `F` search away from the cursor.
 - **Target Character Hint** uniqueness is tracked separately for forward `f` targets and backward `F` targets.
 - **Target Character Hints** scan the entire current line, matching same-line `f` and `F` Motion behavior.
-- Initial **Target Character Hints** are limited to single-width printable non-whitespace characters.
+- Initial **Target Character Hints** consider single-width printable non-whitespace target labels; simulation-backed adapters only present targets whose corresponding `f`, `F`, `t`, or `T` input produces a same-line **Destination**.
 - **Target Character Hints** respect a leading **Motion Count**, so `2f` and `2F` preview the second reachable occurrence of each target character in the chosen direction.
 - **Target Character Hints** may be supplied through Precognition's Motion extension path rather than hard-coded to built-in Motion behavior.
 - Targeted-motion Hint behavior is configured separately from static normal **Motion** Hints because targeted motions can produce multiple dynamic **Destinations** and labels.
@@ -162,6 +166,12 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - An **Inline Hint** is a **Hint** for the column component of a **Destination** on the current line.
 - A **Gutter Hint** is a **Hint** for the line component of a **Destination**.
 - A **Peek** temporarily displays the currently available **Hints**.
+- **DTS** may test multiple Hint families in one runner, but each Hint family needs an oracle matching its domain behavior.
+- **DTS** for **Motion** Hints compares cursor **Destinations**; **DTS** for **Text Object Hints** compares affected ranges or anchors instead.
+- Current **DTS** coverage checks presented current-line cursor **Motion** Hints for `^`, `w`, `e`, `b`, `W`, `E`, `B`, `$`, and `0` when the adapter returns a non-zero **Destination**.
+- Current **DTS** coverage checks presented same-line targeted **Motion** Hints for `f`, `F`, `t`, and `T` by feeding each returned target input to Vim and comparing the resulting cursor **Destination**.
+- Current **DTS** coverage samples presented repeat targeted **Motion** Hints for `;` and `,` after successful targeted **Motion** checks; the runner caps repeat checks per seed for runtime.
+- Current **DTS** coverage does not check **MatchingPair**, **Text Object Hints**, **Gutter Hints**, vertical **Motion** Hints, or non-presented **Motions** whose adapter returns no **Destination**.
 - A **Screen Assertion** can verify whether **Hints** appear at the expected on-screen positions.
 - End-to-end tests that assert what a user sees should prefer **Screen Assertions** over inspecting rendering internals.
 - **Screen Assertions** run across supported CI operating systems to verify rendered **Hint** consistency.
