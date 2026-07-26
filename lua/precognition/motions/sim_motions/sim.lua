@@ -5,7 +5,7 @@ local sim_buf
 
 ---@return integer
 local function ensure_sim_buf()
-    if sim_buf and vim.api.nvim_buf_is_valid(sim_buf) then
+    if sim_buf and vim.api.nvim_buf_is_valid(sim_buf) and vim.api.nvim_buf_is_loaded(sim_buf) then
         return sim_buf
     end
 
