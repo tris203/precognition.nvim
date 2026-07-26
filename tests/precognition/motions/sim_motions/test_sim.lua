@@ -5,9 +5,15 @@ local sim = require("precognition.motions.sim_motions.sim")
 
 ---@param line string
 ---@return integer?
-local function find_loaded_buffer(line)
+local function find_sim_buffer(line)
     for _, buf in ipairs(vim.api.nvim_list_bufs()) do
-        if vim.api.nvim_buf_is_loaded(buf) then
+        if
+            vim.api.nvim_buf_is_loaded(buf)
+            and not vim.bo[buf].buflisted
+            and vim.bo[buf].buftype == "nofile"
+            and vim.bo[buf].bufhidden == "hide"
+            and not vim.bo[buf].swapfile
+        then
             local lines = vim.api.nvim_buf_get_lines(buf, 0, -1, false)
             if vim.tbl_contains(lines, line) then
                 return buf
@@ -36,7 +42,7 @@ describe("simulation buffer", function()
         local current_buf = vim.api.nvim_get_current_buf()
 
         eq({ w = 7 }, sim.motion_destinations("alpha beta", 1, { "w" }))
-        local unloaded_buf = assert(find_loaded_buffer("alpha beta"))
+        local unloaded_buf = assert(find_sim_buffer("alpha beta"))
         table.insert(buffers_to_delete, unloaded_buf)
 
         vim.cmd({ cmd = "bunload", bang = true, args = { tostring(unloaded_buf) } })
@@ -44,7 +50,7 @@ describe("simulation buffer", function()
         eq(false, vim.api.nvim_buf_is_loaded(unloaded_buf))
 
         eq({ w = 5 }, sim.motion_destinations("one two", 1, { "w" }))
-        local replacement_buf = assert(find_loaded_buffer("one two"))
+        local replacement_buf = assert(find_sim_buffer("one two"))
         table.insert(buffers_to_delete, replacement_buf)
 
         eq(false, vim.api.nvim_buf_is_loaded(unloaded_buf))
