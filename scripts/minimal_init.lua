@@ -1,5 +1,8 @@
 local M = {}
 
+---@type string
+local mini_test_version = "v0.17.0"
+
 local function tempdir(plugin)
     return vim.uv.os_tmpdir() .. "/" .. plugin
 end
@@ -9,6 +12,10 @@ if vim.fn.isdirectory(minitest_dir) == 0 then
     local output = vim.fn.system({
         "git",
         "clone",
+        "--branch",
+        mini_test_version,
+        "--depth",
+        "1",
         "https://github.com/nvim-mini/mini.test",
         minitest_dir,
     })
