@@ -1,5 +1,12 @@
 # Changelog
 
+## [1.3.1](https://github.com/tris203/precognition.nvim/compare/v1.3.0...v1.3.1) (2026-07-26)
+
+
+### Bug Fixes
+
+* **sim:** replace unloaded simulation buffer ([#130](https://github.com/tris203/precognition.nvim/issues/130)) ([201da44](https://github.com/tris203/precognition.nvim/commit/201da44c95c634ae9d99414ec3cf8fc582fb323b))
+
 ## [1.3.0](https://github.com/tris203/precognition.nvim/compare/v1.2.0...v1.3.0) (2026-05-12)
 
 
