@@ -19,10 +19,10 @@ describe("e2e tests", function()
 
             precognition.setup({ targetedMotionHints = { enabled = false } })
             local autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-            eq(5, vim.tbl_count(autocmds))
+            eq(7, vim.tbl_count(autocmds))
             precognition.peek()
             autocmds = vim.api.nvim_get_autocmds({ group = "precognition" })
-            eq(8, vim.tbl_count(autocmds))
+            eq(10, vim.tbl_count(autocmds))
         end)
     end)
 

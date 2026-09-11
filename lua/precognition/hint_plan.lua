@@ -15,6 +15,7 @@ local M = {}
 ---@field motions Precognition.MotionsAdapter
 ---@field config Precognition.Config
 ---@field charsearch table | nil
+---@field recording boolean | nil
 
 ---@class Precognition.PlannedGutterHint
 ---@field hint string
@@ -229,8 +230,11 @@ function M.build(ctx)
     if prefix:normal_motion_hints_visible() then
         add_static_inline_hints(inline_candidates, ctx.config, inline_hints)
     end
-    add_targeted_motion_hints(inline_candidates, ctx)
-    add_repeat_targeted_motion_hints(inline_candidates, ctx)
+    -- Simulating character searches adds <Ignore> keys to an active macro recording.
+    if not ctx.recording then
+        add_targeted_motion_hints(inline_candidates, ctx)
+        add_repeat_targeted_motion_hints(inline_candidates, ctx)
+    end
     return {
         skip_render = false,
         message = message,
