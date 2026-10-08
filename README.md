@@ -102,7 +102,8 @@ return {
   that motion is pending, then render the target character. Leading counts are
   supported, so `2f` previews the second reachable occurrence of each target
   character. After `f`, `F`, `t`, or `T` has been used, repeat targets are shown
-  as `;` and `,`. Set `enabled = false` to hide these hints. `prio` is a number that
+  as `;` and `,`. These hints are temporarily hidden during macro recording and
+  return when recording ends. Set `enabled = false` to hide these hints. `prio` is a number that
   defaults to `1` and is used when an individual targeted hint does not provide
   its own priority; higher-priority hints win when multiple hints share a
   destination.

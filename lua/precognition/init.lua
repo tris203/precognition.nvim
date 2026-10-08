@@ -217,6 +217,7 @@ local function display_marks_impl()
         motions = motions,
         config = config,
         charsearch = vim.fn.getcharsearch(),
+        recording = vim.fn.reg_recording() ~= "",
     })
     local count_suppressed = command_state.count_suppressed
     if plan.message and (not count_suppressed or not was_count_suppressed) then
@@ -515,6 +516,24 @@ function M.show()
     end
     visible = true
     cached_on_cursor_moved = nil
+
+    vim.api.nvim_create_autocmd({ "RecordingEnter", "RecordingLeave" }, {
+        group = au,
+        callback = function(ev)
+            local function refresh()
+                if visible then
+                    dirty = true
+                    display_marks()
+                end
+            end
+            -- RecordingLeave fires before reg_recording() is cleared.
+            if ev.event == "RecordingLeave" then
+                vim.schedule(refresh)
+            else
+                refresh()
+            end
+        end,
+    })
 
     -- clear and redraw the hints when the cursor moves
     vim.api.nvim_create_autocmd("CursorMoved", {

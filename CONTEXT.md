@@ -140,6 +140,7 @@ _Avoid_: Disabled filetype, blacklisted buffer
 - A **Target Character Hint** previews a character-specific `f` or `F` Motion, not a word-boundary Motion.
 - Initial **Target Character Hints** should target the first same-line occurrence of each unique character.
 - **Target Character Hints** show both forward `f` targets and backward `F` targets at the same time.
+- Macro recording suppresses **Target Character Hints**, including pending, counted, and repeat targets. They refresh when recording ends without requiring cursor movement; other Hint families retain their normal behavior.
 - Before the user starts a targeted `f` or `F` Motion, **Target Character Hints** render the targeted Motion key (`f` or `F`) rather than the target character.
 - Targeted Motion key labels such as `f` and `F` may use a distinct highlight from normal **Motion** Hints to distinguish the two-key interaction.
 - While a targeted `f` or `F` Motion is pending, **Target Character Hints** render the reachable target character for the pending Motion direction only.
