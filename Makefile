@@ -17,7 +17,8 @@ test:
 # Each chunk runs in a fresh nvim: a long-lived process overflows Neovim's
 # copyID counter through repeated vim.fn calls and aborts.
 dts:
-	@seed=${SEED_START}; end=$$((${SEED_START} + ${NUM_TESTS})); \
+	@[ ${DTS_CHUNK} -gt 0 ] || { echo "DTS_CHUNK must be positive" >&2; exit 1; }; \
+	seed=${SEED_START}; end=$$((${SEED_START} + ${NUM_TESTS})); \
 	while [ $$seed -lt $$end ]; do \
 		n=$$((end - seed)); \
 		[ $$n -gt ${DTS_CHUNK} ] && n=${DTS_CHUNK}; \
