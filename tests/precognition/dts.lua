@@ -278,7 +278,7 @@ else
     local seed = seed_start
     local seed_end = seed_start + num_sims
     local start_time = vim.uv.hrtime()
-    while seed <= seed_end do
+    while seed < seed_end do
         M.test(seed, failures)
         if seed % 10000 == 0 then
             vim.print(string.format("[SEED: %d]", seed))
