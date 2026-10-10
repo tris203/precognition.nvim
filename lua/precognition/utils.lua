@@ -137,9 +137,15 @@ function M.get_inline_virtual_indent(winid, line)
     if first_char == "" then
         return 0
     end
-    local char_width = vim.api.nvim_win_call(winid, function()
-        return vim.fn.strdisplaywidth(first_char)
-    end)
+    -- Only a tab's width depends on which window it is measured in
+    local char_width
+    if first_char == "\t" and winid ~= vim.api.nvim_get_current_win() then
+        char_width = vim.api.nvim_win_call(winid, function()
+            return vim.fn.strdisplaywidth(first_char)
+        end)
+    else
+        char_width = vim.fn.strdisplaywidth(first_char)
+    end
 
     local virtualedit = vim.wo[winid].virtualedit
     if virtualedit == "" then

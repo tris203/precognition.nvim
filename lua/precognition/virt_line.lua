@@ -231,17 +231,39 @@ end
 local function slice_by_display_cols(line, start_col, width)
     -- Walk display columns by hand: \%Nv patterns also count inline virtual
     -- text from the current window, which is not part of this string.
+    local end_col = start_col + width
     local sliced = {}
     local col = 0
-    for _, char in ipairs(vim.fn.split(line, "\\zs")) do
-        local next_col = col + vim.fn.strdisplaywidth(char)
-        if next_col > start_col + width then
+    local pos = 1
+    while pos <= #line and col < end_col do
+        -- Printable ASCII is one cell per byte, so whole runs are sliced at once
+        local wide_start, wide_end = line:find("[^\32-\126]+", pos)
+        -- The byte before a wider run may carry its composing characters
+        local ascii_end = wide_start and math.max(wide_start - 2, pos - 1) or #line
+        local ascii_len = ascii_end - pos + 1
+        if ascii_len > 0 then
+            local from = math.max(start_col - col, 0)
+            local to = math.min(ascii_len, end_col - col)
+            if from < to then
+                table.insert(sliced, line:sub(pos + from, pos + to - 1))
+            end
+            col = col + ascii_len
+        end
+        if not wide_start or col >= end_col then
             break
         end
-        if col >= start_col then
-            table.insert(sliced, char)
+
+        for _, char in ipairs(vim.fn.split(line:sub(ascii_end + 1, wide_end), "\\zs")) do
+            local next_col = col + vim.fn.strdisplaywidth(char)
+            if next_col > end_col then
+                return table.concat(sliced)
+            end
+            if col >= start_col then
+                table.insert(sliced, char)
+            end
+            col = next_col
         end
-        col = next_col
+        pos = wide_end + 1
     end
     return table.concat(sliced)
 end
