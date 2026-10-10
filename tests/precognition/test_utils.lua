@@ -89,6 +89,17 @@ describe("utils", function()
             eq(3, utils.get_inline_virtual_indent(winid, 1))
         end)
 
+        it("measures leading inline virtual text before a composed character", function()
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "a\204\129lpha" })
+            add_extmark(0, { { "   ", "Comment" } })
+            eq(3, utils.get_inline_virtual_indent(winid, 1))
+
+            vim.wo[winid].virtualedit = "all"
+            local width = utils.get_inline_virtual_indent(winid, 1)
+            vim.wo[winid].virtualedit = ""
+            eq(3, width)
+        end)
+
         it("is zero on an empty line", function()
             vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "" })
             add_extmark(0, { { "   ", "Comment" } })

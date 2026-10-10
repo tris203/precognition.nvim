@@ -131,21 +131,35 @@ function M.get_inline_virtual_indent(winid, line)
         winid = vim.api.nvim_get_current_win()
     end
     local bufnr = vim.api.nvim_win_get_buf(winid)
-    local first_char = vim.fn.strcharpart(vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or "", 0, 1)
+    local cur_line = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
+    -- skipcc keeps composing characters with the character they are drawn on
+    local first_char = vim.fn.strcharpart(cur_line, 0, 1, true)
     if first_char == "" then
-        return 0
-    end
-
-    -- Measure up to the start of what follows the first character: under
-    -- 'virtualedit' the first character's own columns leave the virtual text out.
-    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
-    if not ok or type(virtcol) ~= "table" or virtcol[1] == 0 then
         return 0
     end
     local char_width = vim.api.nvim_win_call(winid, function()
         return vim.fn.strdisplaywidth(first_char)
     end)
-    return math.max(virtcol[1] - 1 - char_width, 0)
+
+    local virtualedit = vim.wo[winid].virtualedit
+    if virtualedit == "" then
+        virtualedit = vim.go.virtualedit
+    end
+    if virtualedit:find("all", 1, true) then
+        -- Here the first character's own columns leave the virtual text out,
+        -- so measure up to the start of whatever follows it instead.
+        local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
+        if not ok or type(virtcol) ~= "table" or virtcol[1] == 0 then
+            return 0
+        end
+        return math.max(virtcol[1] - 1 - char_width, 0)
+    end
+
+    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 }, true, winid)
+    if not ok or type(virtcol) ~= "table" then
+        return 0
+    end
+    return math.max(virtcol[2] - char_width, 0)
 end
 
 ---Debounces calls to a function, and ensures it only runs once per delay
