@@ -122,7 +122,7 @@ end
 ---
 ---The width is read from where the window draws the first character, so it
 ---only counts virtual text that is visible there, and none that a leading
----tab absorbs on its way to the next tabstop.
+---tab absorbs on its way to the next tabstop. Empty lines measure as zero.
 ---@param winid integer window to measure in, 0 for the current window
 ---@param line integer 1-indexed line number
 ---@return integer width display width of the leading inline virtual text
@@ -130,18 +130,22 @@ function M.get_inline_virtual_indent(winid, line)
     if winid == 0 then
         winid = vim.api.nvim_get_current_win()
     end
-    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 }, true, winid)
-    if not ok or type(virtcol) ~= "table" or virtcol[2] == 0 then
+    local bufnr = vim.api.nvim_win_get_buf(winid)
+    local first_char = vim.fn.strcharpart(vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or "", 0, 1)
+    if first_char == "" then
         return 0
     end
 
-    local bufnr = vim.api.nvim_win_get_buf(winid)
-    local first_char = vim.fn.strcharpart(vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or "", 0, 1)
+    -- Measure up to the start of what follows the first character: under
+    -- 'virtualedit' the first character's own columns leave the virtual text out.
+    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
+    if not ok or type(virtcol) ~= "table" or virtcol[1] == 0 then
+        return 0
+    end
     local char_width = vim.api.nvim_win_call(winid, function()
         return vim.fn.strdisplaywidth(first_char)
     end)
-    -- An empty line still ends on the cell the cursor would occupy
-    return math.max(virtcol[2] - math.max(char_width, 1), 0)
+    return math.max(virtcol[1] - 1 - char_width, 0)
 end
 
 ---Debounces calls to a function, and ensures it only runs once per delay

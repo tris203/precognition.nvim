@@ -75,10 +75,24 @@ describe("utils", function()
             eq(3, utils.get_inline_virtual_indent(winid, 1))
         end)
 
-        it("measures leading inline virtual text on an empty line", function()
-            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "" })
+        it("measures leading inline virtual text under virtualedit", function()
+            vim.wo[winid].virtualedit = "all"
+            add_extmark(0, { { "   ", "Comment" } })
+            local width = utils.get_inline_virtual_indent(winid, 1)
+            vim.wo[winid].virtualedit = ""
+            eq(3, width)
+        end)
+
+        it("measures leading inline virtual text before a lone character", function()
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "界" })
             add_extmark(0, { { "   ", "Comment" } })
             eq(3, utils.get_inline_virtual_indent(winid, 1))
+        end)
+
+        it("is zero on an empty line", function()
+            vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "" })
+            add_extmark(0, { { "   ", "Comment" } })
+            eq(0, utils.get_inline_virtual_indent(winid, 1))
         end)
 
         it("ignores leading text absorbed by a leading tab", function()
