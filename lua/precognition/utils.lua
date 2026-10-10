@@ -136,7 +136,8 @@ function M.get_inline_virtual_indent(bufnr, line)
         local details = extmark[4]
         if extmark[3] == 0 and details and details.virt_text_pos == "inline" and details.virt_text then
             for _, chunk in ipairs(details.virt_text) do
-                width = width + vim.fn.strdisplaywidth(chunk[1])
+                -- A tab in virtual text is drawn as a single cell, not expanded to a tabstop
+                width = width + vim.fn.strdisplaywidth((chunk[1]:gsub("\t", " ")))
             end
         end
     end

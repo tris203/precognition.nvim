@@ -61,6 +61,14 @@ describe("utils", function()
             eq(4, utils.get_inline_virtual_indent(bufnr, 1))
         end)
 
+        it("measures a tab in leading text as the single cell it is drawn in", function()
+            add_extmark(0, { { "  ", "Comment" }, { "\t", "Comment" } })
+            eq(3, utils.get_inline_virtual_indent(bufnr, 1))
+
+            vim.api.nvim_win_set_buf(0, bufnr)
+            eq(vim.fn.virtcol({ 1, 1 }, 1)[2] - 1, utils.get_inline_virtual_indent(bufnr, 1))
+        end)
+
         it("ignores virtual text that is not inline", function()
             add_extmark(0, { { "     ", "Comment" } }, "eol")
             eq(0, utils.get_inline_virtual_indent(bufnr, 1))
