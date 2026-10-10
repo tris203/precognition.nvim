@@ -38,7 +38,7 @@ local function hints()
         local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
         local gutter = {}
         for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, -1, 0, -1, { details = true })) do
-            local details = mark[4]
+            local details = mark[4] or {}
             if details.sign_name and details.sign_name:match("precognition_gutter") then
                 gutter[details.sign_text] = mark[2]
             end
