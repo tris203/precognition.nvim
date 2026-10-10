@@ -1,5 +1,14 @@
 # Changelog
 
+## [1.3.1](https://github.com/tris203/precognition.nvim/compare/v1.3.0...v1.3.1) (2026-10-10)
+
+
+### Bug Fixes
+
+* align virtual lines with inline virtual text indentation ([#135](https://github.com/tris203/precognition.nvim/issues/135)) ([dd1f049](https://github.com/tris203/precognition.nvim/commit/dd1f0492223b8052b5ddf0a62b01da9a016bc5f0))
+* prevent targeted hints from polluting macro recordings ([#133](https://github.com/tris203/precognition.nvim/issues/133)) ([ea4f369](https://github.com/tris203/precognition.nvim/commit/ea4f3691d3e5b8c0e3b31ce1ac4bcc66a27d6a52))
+* **sim:** replace unloaded simulation buffer ([#130](https://github.com/tris203/precognition.nvim/issues/130)) ([201da44](https://github.com/tris203/precognition.nvim/commit/201da44c95c634ae9d99414ec3cf8fc582fb323b))
+
 ## [1.3.0](https://github.com/tris203/precognition.nvim/compare/v1.2.0...v1.3.0) (2026-05-12)
 
 
