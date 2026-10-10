@@ -111,6 +111,38 @@ function M.add_multibyte_padding(cur_line, extra_padding, line_len)
     end
 end
 
+---Measure the width of leading `inline` virtual text on a line.
+---
+---Some plugins (notably orgmode's `org_startup_indented` option) render
+---indentation as `inline` virtual text at column 0 instead of real leading
+---whitespace. This shifts the visible start of the line to the right without
+---changing the buffer text or `vim.fn.indent()`. Virtual lines rendered below
+---the cursor line are anchored at the buffer's text origin, so callers must
+---left-pad them by this width to stay aligned.
+---@param bufnr integer
+---@param line integer 1-indexed line number
+---@return integer width display width of the leading inline virtual text
+function M.get_inline_virtual_indent(bufnr, line)
+    local ok, extmarks = pcall(vim.api.nvim_buf_get_extmarks, bufnr, -1, { line - 1, 0 }, { line - 1, 0 }, {
+        details = true,
+        type = "virt_text",
+    })
+    if not ok then
+        return 0
+    end
+
+    local width = 0
+    for _, extmark in ipairs(extmarks) do
+        local details = extmark[4]
+        if extmark[3] == 0 and details and details.virt_text_pos == "inline" and details.virt_text then
+            for _, chunk in ipairs(details.virt_text) do
+                width = width + vim.fn.strdisplaywidth(chunk[1])
+            end
+        end
+    end
+    return width
+end
+
 ---Debounces calls to a function, and ensures it only runs once per delay
 ---even if called repeatedly.
 ---@param fn fun(...: any)

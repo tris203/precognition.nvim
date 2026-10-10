@@ -115,8 +115,9 @@ end
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
+---@param leading_pad? integer
 ---@return table
-function M.build(config, marks, line_len, extra_padding, min_width)
+function M.build(config, marks, line_len, extra_padding, min_width, leading_pad)
     local utils = require("precognition.utils")
     if not marks or line_len == 0 then
         return {}
@@ -135,6 +136,11 @@ function M.build(config, marks, line_len, extra_padding, min_width)
 
     for _, padding in ipairs(extra_padding) do
         line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
+    end
+
+    if leading_pad and leading_pad > 0 then
+        table.insert(line_table, 1, string.rep(" ", leading_pad))
+        table.insert(highlights, 1, "PrecognitionHighlight")
     end
 
     local line = table.concat(line_table)
@@ -161,8 +167,9 @@ end
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
 ---@param ranges? Precognition.RangePreview[]
+---@param leading_pad? integer
 ---@return table
-function M.build_text_object(config, anchors, line_len, extra_padding, min_width, ranges)
+function M.build_text_object(config, anchors, line_len, extra_padding, min_width, ranges, leading_pad)
     local utils = require("precognition.utils")
     if line_len == 0 then
         return {}
@@ -192,6 +199,11 @@ function M.build_text_object(config, anchors, line_len, extra_padding, min_width
 
     for _, padding in ipairs(extra_padding) do
         line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
+    end
+
+    if leading_pad and leading_pad > 0 then
+        table.insert(line_table, 1, string.rep(" ", leading_pad))
+        table.insert(highlights, 1, "PrecognitionTextObjectAvailability")
     end
 
     local line = table.concat(line_table)

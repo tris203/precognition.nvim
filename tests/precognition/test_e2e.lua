@@ -288,6 +288,37 @@ describe("e2e tests", function()
         end)
     end)
 
+    it("pads virtual lines to clear leading inline virtual text", function()
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma", "one two three" })
+            local ns = vim.api.nvim_create_namespace("org_indent")
+            vim.api.nvim_buf_set_extmark(0, ns, 0, 0, {
+                virt_text = { { "   ", "Comment" } },
+                virt_text_pos = "inline",
+            })
+            vim.api.nvim_win_set_cursor(0, { 1, 0 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local virt_line
+            for _, mark in
+                ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {
+                    details = true,
+                }))
+            do
+                if mark[4].virt_lines then
+                    virt_line = mark[4].virt_lines[1]
+                end
+            end
+            local text = ""
+            for _, chunk in ipairs(virt_line) do
+                text = text .. chunk[1]
+            end
+            eq("   ^   e w        $", text)
+        end)
+    end)
+
     it("keeps full virtual lines when wrapping is disabled", function()
         child.lua_func(function()
             require("precognition").setup({ targetedMotionHints = { enabled = false } })

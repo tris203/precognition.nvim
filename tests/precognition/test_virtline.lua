@@ -188,6 +188,26 @@ describe("Build Virtual Line", function()
         eq(10, #virtual_line[1][1])
     end)
 
+    it("left-pads a virtual line to clear inline virtual text", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = VirtLine.build(config, marks, 10, {}, nil, 3)
+        eq("      ^     $", virtual_line[1][1])
+        eq(13, #virtual_line[1][1])
+    end)
+
+    it("left-pads a virtual line within the minimum width", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = VirtLine.build(config, marks, 10, {}, 15, 3)
+        eq("      ^     $  ", virtual_line[1][1])
+        eq(15, #virtual_line[1][1])
+    end)
+
     it("can render a blank virtual line when padding to a minimum width", function()
         local virtual_line = VirtLine.build(config, {}, 5, {}, 12)
         eq("            ", virtual_line[1][1])
@@ -421,6 +441,15 @@ describe("Text object virtual line", function()
         }, 5, {}, 8, {})
 
         eq("  i     ", virtual_line[1][1])
+        eq(8, vim.fn.strdisplaywidth(virtual_line[1][1]))
+    end)
+
+    it("left-pads text-object hints to clear inline virtual text", function()
+        local virtual_line = VirtLine.build_text_object(config, {
+            { label = "i", col = 3, prio = 10 },
+        }, 5, {}, nil, {}, 3)
+
+        eq("     i  ", virtual_line[1][1])
         eq(8, vim.fn.strdisplaywidth(virtual_line[1][1]))
     end)
 end)
