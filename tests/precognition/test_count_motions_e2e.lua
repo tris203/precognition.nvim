@@ -2,27 +2,53 @@ local precognition = require("precognition")
 local eq = MiniTest.expect.equality
 local ss = MiniTest.expect.reference_screenshot
 local child = MiniTest.new_child_neovim()
-local original_get_mode = vim.api.nvim_get_mode
 local test_utils = require("tests.precognition.utils.utils")
 
-local function get_gutter_extmarks(buffer)
-    local gutter_extmarks = {}
-    for _, extmark in
-        pairs(vim.api.nvim_buf_get_extmarks(buffer, -1, 0, -1, {
-            details = true,
-        }))
-    do
-        if extmark[4] and extmark[4].sign_name and extmark[4].sign_name:match("precognition_gutter") then
-            table.insert(gutter_extmarks, extmark)
-        end
-    end
-    return gutter_extmarks
+local hello_line = "Hello World this is a test"
+
+---@param lines string[]
+---@param cursor integer[]
+---@param opts? table
+local function start_child(lines, cursor, opts)
+    child.restart({ "-u", "scripts/minimal_init.lua" })
+    child.lua_func(function(buf_lines, pos, setup_opts)
+        require("precognition").setup(
+            vim.tbl_extend("force", { targetedMotionHints = { enabled = false } }, setup_opts)
+        )
+        vim.api.nvim_buf_set_lines(0, 0, -1, false, buf_lines)
+        vim.api.nvim_win_set_cursor(0, pos)
+    end, lines, cursor, opts or {})
 end
 
-local function get_precognition_extmark_id(buffer)
-    local ns = vim.api.nvim_create_namespace("precognition")
-    local extmarks = vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})
-    return extmarks[1] and extmarks[1][1]
+---@param cursor? integer[]
+local function cursor_moved(cursor)
+    child.lua_func(function(pos)
+        if pos then
+            vim.api.nvim_win_set_cursor(0, pos)
+        end
+        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+        vim.wait(150)
+    end, cursor)
+end
+
+---@return { row: integer?, virt_line: string?, gutter: table<string, integer> }
+local function hints()
+    return child.lua_func(function()
+        local ns = vim.api.nvim_create_namespace("precognition")
+        local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+        local gutter = {}
+        for _, mark in ipairs(vim.api.nvim_buf_get_extmarks(0, -1, 0, -1, { details = true })) do
+            local details = mark[4] or {}
+            if details.sign_name and details.sign_name:match("precognition_gutter") then
+                gutter[details.sign_text] = mark[2]
+            end
+        end
+        return {
+            row = extmark and extmark[2],
+            virt_line = extmark and extmark[4].virt_lines and extmark[4].virt_lines[1][1][1],
+            gutter = gutter,
+        }
+    end)
 end
 
 local function has_autocmd(autocmds, event, buffer)
@@ -48,12 +74,10 @@ end
 
 describe("e2e tests", function()
     before_each(function()
-        rawset(vim.api, "nvim_get_mode", original_get_mode)
         precognition.setup({ targetedMotionHints = { enabled = false } })
     end)
 
     after_each(function()
-        rawset(vim.api, "nvim_get_mode", original_get_mode)
         if child.is_running() then
             child.stop()
         end
@@ -88,171 +112,49 @@ describe("e2e tests", function()
     -- :end)
     --
     it("virtual line is displayed and updated", function()
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
+        start_child({ hello_line, "line 2", "", "line 4", "", "line 6" }, { 1, 1 })
+        cursor_moved()
 
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local ok = vim.wait(500, function()
-            return (vim.api.nvim_buf_get_extmarks(buffer, ns, 0, -1, {})[1] or {})[1] ~= nil
-        end)
+        local shown = hints()
+        eq(0, shown.row)
+        eq("b   e w                  $", shown.virt_line)
+        eq({ ["G "] = 5, ["gg"] = 0, ["} "] = 2 }, shown.gutter)
 
-        eq(true, ok)
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
+        cursor_moved({ 1, 6 })
+        shown = hints()
+        eq(0, shown.row)
+        eq("b         e w            $", shown.virt_line)
 
-        local gutter_extmarks = get_gutter_extmarks(buffer)
+        test_utils.observe_keys(child, "2")
+        shown = hints()
+        eq(0, shown.row)
+        eq("^              e w       $", shown.virt_line)
 
-        for _, extmark in pairs(gutter_extmarks) do
-            if extmark[4].sign_text == "G " then
-                eq(5, extmark[2])
-            elseif extmark[4].sign_text == "gg" then
-                eq(0, extmark[2])
-            elseif extmark[4].sign_text == "{ " then
-                eq(0, extmark[2])
-            elseif extmark[4].sign_text == "} " then
-                eq(2, extmark[2])
-            else
-                error("unexpected sign text")
-            end
-        end
+        test_utils.observe_keys(child, "w")
+        cursor_moved()
+        shown = hints()
+        eq(0, shown.row)
+        eq("b         e w            $", shown.virt_line)
 
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b   e w                  $", extmarks[3].virt_lines[1][1][1])
+        cursor_moved({ 2, 1 })
+        shown = hints()
+        eq(1, shown.row)
+        eq("b  e w", shown.virt_line)
+        eq({ ["G "] = 5, ["gg"] = 0, ["} "] = 2 }, shown.gutter)
 
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_input("2")
-        vim.wait(20)
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_input("w")
-        vim.wait(20)
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_win_set_cursor(0, { 2, 1 })
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        gutter_extmarks = get_gutter_extmarks(buffer)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-
-        for _, extmark in pairs(gutter_extmarks) do
-            if extmark[4].sign_text == "G " then
-                eq(5, extmark[2])
-            elseif extmark[4].sign_text == "gg" then
-                eq(0, extmark[2])
-            elseif extmark[4].sign_text == "{ " then
-                eq(0, extmark[2])
-            elseif extmark[4].sign_text == "} " then
-                eq(2, extmark[2])
-            else
-                error("unexpected sign text")
-            end
-        end
-
-        eq(vim.api.nvim_win_get_cursor(0)[1] - 1, extmarks[1])
-        eq("b  e w", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_win_set_cursor(0, { 4, 1 })
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-        gutter_extmarks = get_gutter_extmarks(buffer)
-
-        for _, extmark in pairs(gutter_extmarks) do
-            if extmark[4].sign_text == "G " then
-                eq(5, extmark[2])
-            elseif extmark[4].sign_text == "gg" then
-                eq(0, extmark[2])
-            elseif extmark[4].sign_text == "{ " then
-                eq(2, extmark[2])
-            elseif extmark[4].sign_text == "} " then
-                eq(4, extmark[2])
-            else
-                error("unexpected sign text")
-            end
-        end
+        cursor_moved({ 4, 1 })
+        eq({ ["G "] = 5, ["gg"] = 0, ["{ "] = 2, ["} "] = 4 }, hints().gutter)
     end)
 
     it("updates counted hints from typed input", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "n" }
-        end)
+        start_child({ hello_line }, { 1, 6 })
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        test_utils.observe_keys(child, "2")
+        eq("^              e w       $", hints().virt_line)
 
-        vim.api.nvim_input("2")
-        vim.wait(20)
-
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_input("w")
-        vim.wait(20)
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
+        test_utils.observe_keys(child, "w")
+        cursor_moved()
+        eq("b         e w            $", hints().virt_line)
     end)
 
     it("screenshots counted hints from typed input", function()
@@ -291,164 +193,49 @@ describe("e2e tests", function()
     end)
 
     it("does not treat leading zero as a motion count", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "n" }
-        end)
+        start_child({ hello_line }, { 1, 6 })
+        cursor_moved()
+        eq("b         e w            $", hints().virt_line)
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
-
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
-
-        vim.api.nvim_input("0")
-        vim.wait(20)
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
-
-        extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("b         e w            $", extmarks[3].virt_lines[1][1][1])
+        test_utils.observe_keys(child, "0")
+        eq("b         e w            $", hints().virt_line)
     end)
 
     it("does not build motion counts while hidden", function()
-        precognition.hide()
-        precognition.setup({ startVisible = false, targetedMotionHints = { enabled = false } })
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "n" }
+        start_child({ "a b c d e f g h i j k l m n o p q r s t u v" }, { 1, 1 }, { startVisible = false })
+
+        test_utils.observe_keys(child, "20")
+        child.lua_func(function()
+            require("precognition").show()
         end)
 
-        vim.api.nvim_input("2")
-        vim.wait(20)
-        vim.api.nvim_input("0")
-        vim.wait(20)
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
-        precognition.show()
-
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("b w                                       $", extmarks[3].virt_lines[1][1][1])
+        eq("b w                                       $", hints().virt_line)
     end)
 
     it("builds multi-digit motion counts while visible", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "n" }
-        end)
+        start_child({ "a b c d e f g h i j k l m n o p q r s t u v" }, { 1, 1 })
 
-        vim.api.nvim_input("2")
-        vim.wait(20)
-        vim.api.nvim_input("0")
-        vim.wait(20)
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "a b c d e f g h i j k l m n o p q r s t u v" })
-        vim.api.nvim_win_set_cursor(0, { 1, 1 })
-        vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
-        vim.wait(20)
+        test_utils.observe_keys(child, "20")
 
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("^                                       w $", extmarks[3].virt_lines[1][1][1])
+        eq("^                                       w $", hints().virt_line)
     end)
 
     it("uses typed motion counts in visual mode", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "v" }
-        end)
+        start_child({ hello_line }, { 1, 6 })
+        child.type_keys("v")
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        test_utils.observe_keys(child, "2")
 
-        vim.api.nvim_input("2")
-        vim.wait(20)
-
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
+        eq("^              e w       $", hints().virt_line)
     end)
 
     it("uses typed motion counts in blockwise visual mode", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "\22" }
-        end)
+        start_child({ hello_line }, { 1, 6 })
+        child.type_keys("<C-v>")
 
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(buffer, 0, -1, false, { "Hello World this is a test" })
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
+        test_utils.observe_keys(child, "2")
 
-        vim.api.nvim_input("2")
-        vim.wait(20)
-
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("^              e w       $", extmarks[3].virt_lines[1][1][1])
-    end)
-
-    it("suppresses only counted hints for counts above 100", function()
-        rawset(vim.api, "nvim_get_mode", function()
-            return { mode = "n" }
-        end)
-
-        local buffer = vim.api.nvim_create_buf(true, false)
-        vim.api.nvim_set_current_buf(buffer)
-        vim.api.nvim_buf_set_lines(
-            buffer,
-            0,
-            -1,
-            false,
-            { "Hello World this is a test", "line 2", "", "line 4", "", "line 6" }
-        )
-        vim.api.nvim_win_set_cursor(0, { 1, 6 })
-
-        vim.api.nvim_input("1")
-        vim.wait(20)
-        vim.api.nvim_input("0")
-        vim.wait(20)
-        vim.api.nvim_input("1")
-        vim.wait(20)
-
-        local ns = vim.api.nvim_create_namespace("precognition")
-        local extmark_id = get_precognition_extmark_id(buffer)
-        assert(extmark_id, "expected precognition extmark in buffer")
-        local extmarks = vim.api.nvim_buf_get_extmark_by_id(buffer, ns, extmark_id, {
-            details = true,
-        })
-        eq("^                        $", extmarks[3].virt_lines[1][1][1])
-        eq(3, #get_gutter_extmarks(buffer))
+        eq("^              e w       $", hints().virt_line)
     end)
 
     it("clears hints for counts above 100", function()

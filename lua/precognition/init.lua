@@ -487,11 +487,6 @@ local function on_key(key)
 
     handling_key = true
     local ok, err = xpcall(function()
-        if not visible then
-            get_observed_command():reset()
-            return
-        end
-
         get_observed_command():observe_key(key, mode)
     end, debug.traceback)
 

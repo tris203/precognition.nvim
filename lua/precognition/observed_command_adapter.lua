@@ -71,8 +71,13 @@ end
 ---@param key string
 ---@param mode string
 function Adapter:observe_key(key, mode)
+    if not self._callbacks.is_visible() then
+        self:reset()
+        return
+    end
+
     local input = self._state:handle_key(key, mode)
-    if not self._callbacks.is_visible() or not input.changed then
+    if not input.changed then
         return
     end
 
