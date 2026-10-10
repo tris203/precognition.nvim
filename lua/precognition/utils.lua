@@ -145,9 +145,11 @@ function M.get_inline_virtual_indent(winid, line)
     if virtualedit == "" then
         virtualedit = vim.go.virtualedit
     end
-    if virtualedit:find("all", 1, true) then
-        -- Here the first character's own columns leave the virtual text out,
-        -- so measure up to the start of whatever follows it instead.
+    local virtual_editing = virtualedit:find("all", 1, true)
+        or (virtualedit:find("block", 1, true) and vim.api.nvim_get_mode().mode == "\22")
+    if virtual_editing then
+        -- While virtual editing is active the first character's own columns leave
+        -- the virtual text out, so measure up to the start of whatever follows it.
         local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
         if not ok or type(virtcol) ~= "table" or virtcol[1] == 0 then
             return 0
