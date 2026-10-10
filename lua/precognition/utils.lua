@@ -147,27 +147,23 @@ function M.get_inline_virtual_indent(winid, line)
         char_width = vim.fn.strdisplaywidth(first_char)
     end
 
-    local virtualedit = vim.wo[winid].virtualedit
-    if virtualedit == "" then
-        virtualedit = vim.go.virtualedit
-    end
-    local virtual_editing = virtualedit:find("all", 1, true)
-        or (virtualedit:find("block", 1, true) and vim.api.nvim_get_mode().mode == "\22")
-    if virtual_editing then
-        -- While virtual editing is active the first character's own columns leave
-        -- the virtual text out, so measure up to the start of whatever follows it.
-        local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
-        if not ok or type(virtcol) ~= "table" or virtcol[1] == 0 then
-            return 0
-        end
-        return math.max(virtcol[1] - 1 - char_width, 0)
-    end
-
     local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 }, true, winid)
     if not ok or type(virtcol) ~= "table" then
         return 0
     end
-    return math.max(virtcol[2] - char_width, 0)
+    local width = virtcol[2] - char_width
+    if width > 0 then
+        return width
+    end
+
+    -- While virtual editing is active ('virtualedit') the first character's own
+    -- columns leave the virtual text out, which looks the same as no indent, so
+    -- measure up to the start of whatever follows it instead.
+    ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
+    if not ok or type(virtcol) ~= "table" then
+        return 0
+    end
+    return math.max(virtcol[1] - 1 - char_width, 0)
 end
 
 ---Debounces calls to a function, and ensures it only runs once per delay

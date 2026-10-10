@@ -333,6 +333,10 @@ describe("e2e tests", function()
             vim.cmd("normal! \22")
             eq("\22", vim.api.nvim_get_mode().mode)
             eq(3, require("precognition.utils").get_inline_virtual_indent(0, 1))
+            vim.cmd("normal! \7")
+            eq("\19", vim.api.nvim_get_mode().mode)
+            eq(3, require("precognition.utils").get_inline_virtual_indent(0, 1))
+            vim.cmd("normal! \7")
             vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
 
             local text = ""
