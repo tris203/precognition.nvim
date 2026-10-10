@@ -254,7 +254,7 @@ local function slice_by_display_cols(line, start_col, width)
         end
 
         for _, char in ipairs(vim.fn.split(line:sub(ascii_end + 1, wide_end), "\\zs")) do
-            local next_col = col + vim.fn.strdisplaywidth(char)
+            local next_col = col + vim.fn.strdisplaywidth(char, col)
             if next_col > end_col then
                 return table.concat(sliced)
             end

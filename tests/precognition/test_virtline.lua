@@ -311,6 +311,15 @@ describe("Wrapped Virtual Line", function()
         eq("         e", second[1][1])
     end)
 
+    it("measures tabs in hint text from the column they start in", function()
+        vim.bo.tabstop = 8
+        local virtual_line = { { "a\tbcdef", "PrecognitionHighlight" } }
+
+        local wrapped = VirtLine.fit_to_wrap(virtual_line, 9, 8)
+
+        eq("bcdef", wrapped[1][1])
+    end)
+
     it("drops wide characters that overlap the wrap boundary", function()
         local virtual_line = { { "界abc", "PrecognitionHighlight" } }
 
