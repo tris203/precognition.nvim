@@ -119,29 +119,29 @@ end
 ---changing the buffer text or `vim.fn.indent()`. Virtual lines rendered below
 ---the cursor line are anchored at the buffer's text origin, so callers must
 ---left-pad them by this width to stay aligned.
----@param bufnr integer
+---
+---The width is read from where the window draws the first character, so it
+---only counts virtual text that is visible there, and none that a leading
+---tab absorbs on its way to the next tabstop.
+---@param winid integer window to measure in, 0 for the current window
 ---@param line integer 1-indexed line number
 ---@return integer width display width of the leading inline virtual text
-function M.get_inline_virtual_indent(bufnr, line)
-    local ok, extmarks = pcall(vim.api.nvim_buf_get_extmarks, bufnr, -1, { line - 1, 0 }, { line - 1, 0 }, {
-        details = true,
-        type = "virt_text",
-    })
-    if not ok then
+function M.get_inline_virtual_indent(winid, line)
+    if winid == 0 then
+        winid = vim.api.nvim_get_current_win()
+    end
+    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 }, true, winid)
+    if not ok or type(virtcol) ~= "table" or virtcol[2] == 0 then
         return 0
     end
 
-    local width = 0
-    for _, extmark in ipairs(extmarks) do
-        local details = extmark[4]
-        if extmark[3] == 0 and details and details.virt_text_pos == "inline" and details.virt_text then
-            for _, chunk in ipairs(details.virt_text) do
-                -- A tab in virtual text is drawn as a single cell, not expanded to a tabstop
-                width = width + vim.fn.strdisplaywidth((chunk[1]:gsub("\t", " ")))
-            end
-        end
-    end
-    return width
+    local bufnr = vim.api.nvim_win_get_buf(winid)
+    local first_char = vim.fn.strcharpart(vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or "", 0, 1)
+    local char_width = vim.api.nvim_win_call(winid, function()
+        return vim.fn.strdisplaywidth(first_char)
+    end)
+    -- An empty line still ends on the cell the cursor would occupy
+    return math.max(virtcol[2] - math.max(char_width, 1), 0)
 end
 
 ---Debounces calls to a function, and ensures it only runs once per delay

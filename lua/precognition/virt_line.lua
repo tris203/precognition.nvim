@@ -229,14 +229,21 @@ end
 ---@param width integer
 ---@return string
 local function slice_by_display_cols(line, start_col, width)
-    -- \%Nv anchors the match to virtual/display columns, unlike string indexes.
-    local start_pattern = ("\\%%%dv"):format(start_col + 1)
-    if vim.fn.strdisplaywidth(line) <= start_col + width then
-        return vim.fn.matchstr(line, start_pattern .. ".*")
+    -- Walk display columns by hand: \%Nv patterns also count inline virtual
+    -- text from the current window, which is not part of this string.
+    local sliced = {}
+    local col = 0
+    for _, char in ipairs(vim.fn.split(line, "\\zs")) do
+        local next_col = col + vim.fn.strdisplaywidth(char)
+        if next_col > start_col + width then
+            break
+        end
+        if col >= start_col then
+            table.insert(sliced, char)
+        end
+        col = next_col
     end
-
-    local pattern = start_pattern .. ("\\_.\\{-}\\%%%dv"):format(start_col + width + 1)
-    return vim.fn.matchstr(line, pattern)
+    return table.concat(sliced)
 end
 
 ---@param virt_line table

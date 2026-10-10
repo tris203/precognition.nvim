@@ -185,7 +185,7 @@ local function display_marks_impl()
 
     local line_len = vim.fn.strcharlen(cur_line)
 
-    local leading_pad = utils.get_inline_virtual_indent(bufnr, cursorline)
+    local leading_pad = utils.get_inline_virtual_indent(vim.api.nvim_get_current_win(), cursorline)
 
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}

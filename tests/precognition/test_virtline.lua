@@ -293,6 +293,24 @@ describe("Wrapped Virtual Line", function()
         }, wrapped)
     end)
 
+    it("clips by display columns when the window shows inline virtual text", function()
+        local bufnr = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "alpha" })
+        vim.api.nvim_win_set_buf(0, bufnr)
+        vim.api.nvim_buf_set_extmark(bufnr, vim.api.nvim_create_namespace("test_wrap_inline"), 0, 0, {
+            virt_text = { { "   ", "Comment" } },
+            virt_text_pos = "inline",
+        })
+        local virtual_line = { { "   ^     w         e         $", "PrecognitionHighlight" } }
+
+        local first = VirtLine.fit_to_wrap(virtual_line, 8, 10)
+        local second = VirtLine.fit_to_wrap(virtual_line, 12, 10)
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+
+        eq("   ^     w", first[1][1])
+        eq("         e", second[1][1])
+    end)
+
     it("drops wide characters that overlap the wrap boundary", function()
         local virtual_line = { { "界abc", "PrecognitionHighlight" } }
 
