@@ -286,7 +286,11 @@ local function display_marks_impl()
     if vim.wo.wrap then
         local win_info = vim.fn.getwininfo(vim.fn.win_getid())
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, vim.api.nvim_win_get_width(0) - textoff)
+        -- The cursor sits on the first cell of its character, or on the last
+        -- cell of a tab; screenpos() reports how far it is from the first.
+        local screenpos = vim.fn.screenpos(0, cursorline, vim.fn.col("."))
+        local display_col = vim.fn.virtcol(".", true)[1] + screenpos.curscol - screenpos.col
+        virt_line = VirtLine.fit_to_wrap(virt_line, display_col, vim.api.nvim_win_get_width(0) - textoff)
     end
 
     -- create (or overwrite) the extmark
