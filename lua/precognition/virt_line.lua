@@ -115,8 +115,9 @@ end
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
+---@param leading_pad? integer
 ---@return table
-function M.build(config, marks, line_len, extra_padding, min_width)
+function M.build(config, marks, line_len, extra_padding, min_width, leading_pad)
     local utils = require("precognition.utils")
     if not marks or line_len == 0 then
         return {}
@@ -135,6 +136,11 @@ function M.build(config, marks, line_len, extra_padding, min_width)
 
     for _, padding in ipairs(extra_padding) do
         line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
+    end
+
+    if leading_pad and leading_pad > 0 then
+        table.insert(line_table, 1, string.rep(" ", leading_pad))
+        table.insert(highlights, 1, "PrecognitionHighlight")
     end
 
     local line = table.concat(line_table)
@@ -161,8 +167,9 @@ end
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
 ---@param ranges? Precognition.RangePreview[]
+---@param leading_pad? integer
 ---@return table
-function M.build_text_object(config, anchors, line_len, extra_padding, min_width, ranges)
+function M.build_text_object(config, anchors, line_len, extra_padding, min_width, ranges, leading_pad)
     local utils = require("precognition.utils")
     if line_len == 0 then
         return {}
@@ -194,6 +201,11 @@ function M.build_text_object(config, anchors, line_len, extra_padding, min_width
         line_table[padding.start] = line_table[padding.start] .. string.rep(" ", padding.length)
     end
 
+    if leading_pad and leading_pad > 0 then
+        table.insert(line_table, 1, string.rep(" ", leading_pad))
+        table.insert(highlights, 1, "PrecognitionTextObjectAvailability")
+    end
+
     local line = table.concat(line_table)
     if min_width and vim.fn.strdisplaywidth(line) < min_width then
         for _ = 1, min_width - vim.fn.strdisplaywidth(line) do
@@ -217,14 +229,43 @@ end
 ---@param width integer
 ---@return string
 local function slice_by_display_cols(line, start_col, width)
-    -- \%Nv anchors the match to virtual/display columns, unlike string indexes.
-    local start_pattern = ("\\%%%dv"):format(start_col + 1)
-    if vim.fn.strdisplaywidth(line) <= start_col + width then
-        return vim.fn.matchstr(line, start_pattern .. ".*")
-    end
+    -- Walk display columns by hand: \%Nv patterns also count inline virtual
+    -- text from the current window, which is not part of this string.
+    local end_col = start_col + width
+    local sliced = {}
+    local col = 0
+    local pos = 1
+    while pos <= #line and col < end_col do
+        -- Printable ASCII is one cell per byte, so whole runs are sliced at once
+        local wide_start, wide_end = line:find("[^\32-\126]+", pos)
+        -- The byte before a wider run may carry its composing characters
+        local ascii_end = wide_start and math.max(wide_start - 2, pos - 1) or #line
+        local ascii_len = ascii_end - pos + 1
+        if ascii_len > 0 then
+            local from = math.max(start_col - col, 0)
+            local to = math.min(ascii_len, end_col - col)
+            if from < to then
+                table.insert(sliced, line:sub(pos + from, pos + to - 1))
+            end
+            col = col + ascii_len
+        end
+        if not wide_start or col >= end_col then
+            break
+        end
 
-    local pattern = start_pattern .. ("\\_.\\{-}\\%%%dv"):format(start_col + width + 1)
-    return vim.fn.matchstr(line, pattern)
+        for _, char in ipairs(vim.fn.split(line:sub(ascii_end + 1, wide_end), "\\zs")) do
+            local next_col = col + vim.fn.strdisplaywidth(char, col)
+            if next_col > end_col then
+                return table.concat(sliced)
+            end
+            if col >= start_col then
+                table.insert(sliced, char)
+            end
+            col = next_col
+        end
+        pos = wide_end + 1
+    end
+    return table.concat(sliced)
 end
 
 ---@param virt_line table

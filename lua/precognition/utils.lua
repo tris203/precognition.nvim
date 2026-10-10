@@ -111,6 +111,61 @@ function M.add_multibyte_padding(cur_line, extra_padding, line_len)
     end
 end
 
+---Measure the width of leading `inline` virtual text on a line.
+---
+---Some plugins (notably orgmode's `org_startup_indented` option) render
+---indentation as `inline` virtual text at column 0 instead of real leading
+---whitespace. This shifts the visible start of the line to the right without
+---changing the buffer text or `vim.fn.indent()`. Virtual lines rendered below
+---the cursor line are anchored at the buffer's text origin, so callers must
+---left-pad them by this width to stay aligned.
+---
+---The width is read from where the window draws the first character, so it
+---only counts virtual text that is visible there, and none that a leading
+---tab absorbs on its way to the next tabstop. Empty lines measure as zero.
+---@param winid integer window to measure in, 0 for the current window
+---@param line integer 1-indexed line number
+---@return integer width display width of the leading inline virtual text
+function M.get_inline_virtual_indent(winid, line)
+    if winid == 0 then
+        winid = vim.api.nvim_get_current_win()
+    end
+    local bufnr = vim.api.nvim_win_get_buf(winid)
+    local cur_line = vim.api.nvim_buf_get_lines(bufnr, line - 1, line, false)[1] or ""
+    -- skipcc keeps composing characters with the character they are drawn on
+    local first_char = vim.fn.strcharpart(cur_line, 0, 1, true)
+    if first_char == "" then
+        return 0
+    end
+    -- Only a tab's width depends on which window it is measured in
+    local char_width
+    if first_char == "\t" and winid ~= vim.api.nvim_get_current_win() then
+        char_width = vim.api.nvim_win_call(winid, function()
+            return vim.fn.strdisplaywidth(first_char)
+        end)
+    else
+        char_width = vim.fn.strdisplaywidth(first_char)
+    end
+
+    local ok, virtcol = pcall(vim.fn.virtcol, { line, 1 }, true, winid)
+    if not ok or type(virtcol) ~= "table" then
+        return 0
+    end
+    local width = virtcol[2] - char_width
+    if width > 0 then
+        return width
+    end
+
+    -- While virtual editing is active ('virtualedit') the first character's own
+    -- columns leave the virtual text out, which looks the same as no indent, so
+    -- measure up to the start of whatever follows it instead.
+    ok, virtcol = pcall(vim.fn.virtcol, { line, 1 + #first_char }, true, winid)
+    if not ok or type(virtcol) ~= "table" then
+        return 0
+    end
+    return math.max(virtcol[1] - 1 - char_width, 0)
+end
+
 ---Debounces calls to a function, and ensures it only runs once per delay
 ---even if called repeatedly.
 ---@param fn fun(...: any)

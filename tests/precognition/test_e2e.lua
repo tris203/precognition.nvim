@@ -288,6 +288,71 @@ describe("e2e tests", function()
         end)
     end)
 
+    it("pads virtual lines to clear leading inline virtual text", function()
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma", "one two three" })
+            local ns = vim.api.nvim_create_namespace("org_indent")
+            vim.api.nvim_buf_set_extmark(0, ns, 0, 0, {
+                virt_text = { { "   ", "Comment" } },
+                virt_text_pos = "inline",
+            })
+            vim.api.nvim_win_set_cursor(0, { 1, 0 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local virt_line
+            for _, mark in
+                ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {
+                    details = true,
+                }))
+            do
+                if mark[4].virt_lines then
+                    virt_line = mark[4].virt_lines[1]
+                end
+            end
+            local text = ""
+            for _, chunk in ipairs(virt_line) do
+                text = text .. chunk[1]
+            end
+            eq("   ^   e w        $", text)
+        end)
+    end)
+
+    it("keeps the leading inline virtual text padding during a virtualedit block selection", function()
+        child.lua_func(function()
+            local eq = MiniTest.expect.equality
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.wo.virtualedit = "block"
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "alpha beta gamma", "one two three" })
+            vim.api.nvim_buf_set_extmark(0, vim.api.nvim_create_namespace("org_indent"), 0, 0, {
+                virt_text = { { "   ", "Comment" } },
+                virt_text_pos = "inline",
+            })
+            vim.api.nvim_win_set_cursor(0, { 1, 0 })
+            vim.cmd("normal! \22")
+            eq("\22", vim.api.nvim_get_mode().mode)
+            eq(3, require("precognition.utils").get_inline_virtual_indent(0, 1))
+            vim.cmd("normal! \7")
+            eq("\19", vim.api.nvim_get_mode().mode)
+            eq(3, require("precognition.utils").get_inline_virtual_indent(0, 1))
+            vim.cmd("normal! \7")
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local text = ""
+            for _, mark in
+                ipairs(vim.api.nvim_buf_get_extmarks(0, vim.api.nvim_create_namespace("precognition"), 0, -1, {
+                    details = true,
+                }))
+            do
+                for _, chunk in ipairs(mark[4].virt_lines and mark[4].virt_lines[1] or {}) do
+                    text = text .. chunk[1]
+                end
+            end
+            eq("   ^   e w        $", text)
+        end)
+    end)
+
     it("keeps full virtual lines when wrapping is disabled", function()
         child.lua_func(function()
             require("precognition").setup({ targetedMotionHints = { enabled = false } })

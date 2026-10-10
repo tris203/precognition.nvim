@@ -140,9 +140,10 @@ end
 ---@param line_len integer
 ---@param extra_padding Precognition.ExtraPadding[]
 ---@param min_width? integer
+---@param leading_pad? integer
 ---@return table
-local function build_virt_line(marks, line_len, extra_padding, min_width)
-    return VirtLine.build(config, marks, line_len, extra_padding, min_width)
+local function build_virt_line(marks, line_len, extra_padding, min_width, leading_pad)
+    return VirtLine.build(config, marks, line_len, extra_padding, min_width, leading_pad)
 end
 
 ---@param gutter_hints Precognition.PlannedGutterHint[]
@@ -183,6 +184,8 @@ local function display_marks_impl()
     end
 
     local line_len = vim.fn.strcharlen(cur_line)
+
+    local leading_pad = utils.get_inline_virtual_indent(vim.api.nvim_get_current_win(), cursorline)
 
     ---@type Precognition.ExtraPadding[]
     local extra_padding = {}
@@ -248,7 +251,8 @@ local function display_marks_impl()
             line_len,
             extra_padding,
             min_width,
-            plan.text_object_ranges
+            plan.text_object_ranges,
+            leading_pad
         )
 
         if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
@@ -275,14 +279,14 @@ local function display_marks_impl()
     end
     ---@type Precognition.InlineHintCandidate[]
     local inline_hints = assert(plan.inline_hints)
-    local virt_line = build_virt_line(inline_hints, line_len, extra_padding, min_width)
+    local virt_line = build_virt_line(inline_hints, line_len, extra_padding, min_width, leading_pad)
 
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     if vim.wo.wrap then
         local win_info = vim.fn.getwininfo(vim.fn.win_getid())
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol, vim.api.nvim_win_get_width(0) - textoff)
+        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, vim.api.nvim_win_get_width(0) - textoff)
     end
 
     -- create (or overwrite) the extmark

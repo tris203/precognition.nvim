@@ -188,6 +188,26 @@ describe("Build Virtual Line", function()
         eq(10, #virtual_line[1][1])
     end)
 
+    it("left-pads a virtual line to clear inline virtual text", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = VirtLine.build(config, marks, 10, {}, nil, 3)
+        eq("      ^     $", virtual_line[1][1])
+        eq(13, #virtual_line[1][1])
+    end)
+
+    it("left-pads a virtual line within the minimum width", function()
+        local marks = {
+            Caret = 4,
+            Dollar = 10,
+        }
+        local virtual_line = VirtLine.build(config, marks, 10, {}, 15, 3)
+        eq("      ^     $  ", virtual_line[1][1])
+        eq(15, #virtual_line[1][1])
+    end)
+
     it("can render a blank virtual line when padding to a minimum width", function()
         local virtual_line = VirtLine.build(config, {}, 5, {}, 12)
         eq("            ", virtual_line[1][1])
@@ -271,6 +291,33 @@ describe("Wrapped Virtual Line", function()
             { "    ", "PrecognitionTextObjectAvailability" },
             { "e ", "PrecognitionTextObjectRange1" },
         }, wrapped)
+    end)
+
+    it("clips by display columns when the window shows inline virtual text", function()
+        local bufnr = vim.api.nvim_create_buf(false, true)
+        vim.api.nvim_buf_set_lines(bufnr, 0, -1, false, { "alpha" })
+        vim.api.nvim_win_set_buf(0, bufnr)
+        vim.api.nvim_buf_set_extmark(bufnr, vim.api.nvim_create_namespace("test_wrap_inline"), 0, 0, {
+            virt_text = { { "   ", "Comment" } },
+            virt_text_pos = "inline",
+        })
+        local virtual_line = { { "   ^     w         e         $", "PrecognitionHighlight" } }
+
+        local first = VirtLine.fit_to_wrap(virtual_line, 8, 10)
+        local second = VirtLine.fit_to_wrap(virtual_line, 12, 10)
+        vim.api.nvim_buf_delete(bufnr, { force = true })
+
+        eq("   ^     w", first[1][1])
+        eq("         e", second[1][1])
+    end)
+
+    it("measures tabs in hint text from the column they start in", function()
+        vim.bo.tabstop = 8
+        local virtual_line = { { "a\tbcdef", "PrecognitionHighlight" } }
+
+        local wrapped = VirtLine.fit_to_wrap(virtual_line, 9, 8)
+
+        eq("bcdef", wrapped[1][1])
     end)
 
     it("drops wide characters that overlap the wrap boundary", function()
@@ -421,6 +468,15 @@ describe("Text object virtual line", function()
         }, 5, {}, 8, {})
 
         eq("  i     ", virtual_line[1][1])
+        eq(8, vim.fn.strdisplaywidth(virtual_line[1][1]))
+    end)
+
+    it("left-pads text-object hints to clear inline virtual text", function()
+        local virtual_line = VirtLine.build_text_object(config, {
+            { label = "i", col = 3, prio = 10 },
+        }, 5, {}, nil, {}, 3)
+
+        eq("     i  ", virtual_line[1][1])
         eq(8, vim.fn.strdisplaywidth(virtual_line[1][1]))
     end)
 end)
