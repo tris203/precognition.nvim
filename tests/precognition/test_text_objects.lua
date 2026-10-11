@@ -145,6 +145,30 @@ describe("text object hints", function()
         eq(min_width, vim.fn.strdisplaywidth(hints().text))
     end)
 
+    it("pads to the text area when the hints open or close the sign column", function()
+        start_child({ highlightFullVirtLine = true })
+        local function widths()
+            local text_area = child.lua_func(function()
+                vim.cmd("redraw")
+                return vim.api.nvim_win_get_width(0) - vim.fn.getwininfo(vim.fn.win_getid())[1].textoff
+            end)
+            return { hint = vim.fn.strdisplaywidth(hints().text), text_area = text_area }
+        end
+        eq("auto", child.wo.signcolumn)
+
+        -- Gutter signs open the sign column.
+        cursor_moved()
+        eq({ hint = 78, text_area = 78 }, widths())
+
+        -- Text object hints clear the gutter signs, which closes it.
+        test_utils.observe_keys(child, "di")
+        eq({ hint = 80, text_area = 80 }, widths())
+
+        child.type_keys("<Esc>")
+        cursor_moved()
+        eq({ hint = 78, text_area = 78 }, widths())
+    end)
+
     it("uses operator-pending mode to complete a text object prefix", function()
         start_child()
         child.type_keys("d")

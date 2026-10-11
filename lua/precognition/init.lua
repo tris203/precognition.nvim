@@ -150,14 +150,21 @@ end
 ---@param bufnr? integer -- buffer number
 ---@return nil
 local function apply_gutter_hints(gutter_hints, bufnr)
-    bufnr = bufnr or vim.api.nvim_get_current_buf()
-    for hint, _ in pairs(config.gutterHints) do
-        renderer:clear_gutter_hint(hint)
-    end
+    renderer:replace_gutter_hints(config.gutterHints, gutter_hints, bufnr or vim.api.nvim_get_current_buf())
+end
 
-    for _, gutter_hint in ipairs(gutter_hints) do
-        renderer:render_gutter_hint(gutter_hint.hint, gutter_hint.loc, bufnr, gutter_hint.text)
+--- Width of the current window's text area. Call after applying the gutter hints.
+---@return integer
+local function text_area_width()
+    local signcolumn = vim.wo.signcolumn
+    if renderer:take_gutter_change() and signcolumn ~= "no" and not vim.startswith(signcolumn, "yes") then
+        -- textoff only changes on a redraw, so it would still describe the sign column
+        -- as it was before the gutter hints changed.
+        vim.api.nvim__redraw({ win = 0, valid = true, flush = true })
     end
+    local win_info = vim.fn.getwininfo(vim.fn.win_getid())
+    local textoff = win_info and win_info[1] and win_info[1].textoff or 0
+    return vim.api.nvim_win_get_width(0) - textoff
 end
 
 ---@param cur_line string
@@ -240,9 +247,7 @@ local function display_marks_impl()
 
         local min_width
         if config.highlightFullVirtLine then
-            local win_info = vim.fn.getwininfo(vim.fn.win_getid())
-            local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-            min_width = vim.api.nvim_win_get_width(0) - textoff
+            min_width = text_area_width()
         end
 
         local virt_line = VirtLine.build_text_object(
@@ -271,11 +276,11 @@ local function display_marks_impl()
 
     utils.add_multibyte_padding(cur_line, extra_padding, line_len)
 
+    apply_gutter_hints(plan.planned_gutter_hints or {})
+
     local min_width
     if config.highlightFullVirtLine then
-        local win_info = vim.fn.getwininfo(vim.fn.win_getid())
-        local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-        min_width = vim.api.nvim_win_get_width(0) - textoff
+        min_width = text_area_width()
     end
     ---@type Precognition.InlineHintCandidate[]
     local inline_hints = assert(plan.inline_hints)
@@ -284,16 +289,13 @@ local function display_marks_impl()
     -- TODO: can we add indent lines to the virt line to match indent-blankline or similar (if installed)?
 
     if vim.wo.wrap then
-        local win_info = vim.fn.getwininfo(vim.fn.win_getid())
-        local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, vim.api.nvim_win_get_width(0) - textoff)
+        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, text_area_width())
     end
 
     -- create (or overwrite) the extmark
     if config.showBlankVirtLine or (virt_line and #virt_line > 0) then
         renderer:render_inline_hint_virt_line(bufnr, cursorline, virt_line)
     end
-    apply_gutter_hints(plan.planned_gutter_hints or {})
 
     dirty = false
 end
