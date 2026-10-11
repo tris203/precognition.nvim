@@ -271,8 +271,11 @@ end
 ---@param virt_line table
 ---@param cursorcol integer
 ---@param width integer
+---@param start_col? integer Explicit display column to slice from. Used when the
+--- actual wrapped row does not start at a multiple of `width` (e.g. with
+--- 'linebreak' or 'breakindent', which break rows at word boundaries).
 ---@return table
-function M.fit_to_wrap(virt_line, cursorcol, width)
+function M.fit_to_wrap(virt_line, cursorcol, width, start_col)
     if width <= 0 or #virt_line == 0 then
         return virt_line
     end
@@ -281,11 +284,11 @@ function M.fit_to_wrap(virt_line, cursorcol, width)
     for _, chunk in ipairs(virt_line) do
         line = line .. chunk[1]
     end
-    if vim.fn.strdisplaywidth(line) <= width then
+    if start_col == nil and vim.fn.strdisplaywidth(line) <= width then
         return virt_line
     end
 
-    local start_col = math.floor((math.max(cursorcol, 1) - 1) / width) * width
+    start_col = start_col or math.floor((math.max(cursorcol, 1) - 1) / width) * width
     local clipped = slice_by_display_cols(line, start_col, width)
     local clipped_width = vim.fn.strdisplaywidth(clipped)
     local clipped_virt_line = {}

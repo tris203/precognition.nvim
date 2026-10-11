@@ -170,6 +170,71 @@ local function calculate_visual_cursorcol(cur_line, charcol, offset)
     return VirtLine.calculate_visual_cursorcol(cur_line, charcol, offset)
 end
 
+--- Find the display-column slice of the virtual line that lines up with the
+--- cursor's wrapped screen row.
+---
+--- With 'linebreak'/'breakindent' (or any wrapping that doesn't break at exact
+--- multiples of the window width) a wrapped row does not start at a multiple of
+--- the width, so the slice can't be derived from `cursorcol` alone. Instead ask
+--- Neovim which screen row each buffer column lands on and take the contiguous
+--- run sharing the cursor's row.
+---@param lnum integer
+---@param leading_pad integer width of the inline indent preceding the line
+---@return integer|nil start_col 0-based display column to slice from
+---@return integer|nil width number of display columns in the row
+local function wrapped_row_slice(lnum, leading_pad)
+    local winid = vim.api.nvim_get_current_win()
+    local cursor_bytecol = vim.fn.col(".")
+    local sp = vim.fn.screenpos(winid, lnum, cursor_bytecol)
+    if not sp or sp.row == 0 then
+        return nil, nil
+    end
+    local target_row = sp.row
+    local line = vim.api.nvim_get_current_line()
+
+    local function row_of(col)
+        local p = vim.fn.screenpos(winid, lnum, col)
+        return p and p.row or 0
+    end
+
+    -- first buffer column on the row
+    local lo, hi = 1, cursor_bytecol
+    while lo < hi do
+        local mid = math.floor((lo + hi) / 2)
+        if row_of(mid) == target_row then
+            hi = mid
+        else
+            lo = mid + 1
+        end
+    end
+    local first = lo
+
+    -- last buffer column on the row
+    lo, hi = cursor_bytecol, #line
+    while lo < hi do
+        local mid = math.floor((lo + hi + 1) / 2)
+        if row_of(mid) == target_row then
+            lo = mid
+        else
+            hi = mid - 1
+        end
+    end
+    local last = lo
+
+    -- A single-row line (including one that doesn't wrap at all) is left to the
+    -- width-multiple path so that any full-width padding is preserved.
+    if first == 1 and last == #line then
+        return nil, nil
+    end
+
+    local start_col = leading_pad + vim.fn.strwidth(line:sub(1, first - 1))
+    local end_col = leading_pad + vim.fn.strwidth(line:sub(1, last))
+    if first == 1 then
+        start_col = 0
+    end
+    return start_col, end_col - start_col
+end
+
 local function display_marks_impl()
     local utils = require("precognition.utils")
     local bufnr = vim.api.nvim_get_current_buf()
@@ -286,7 +351,13 @@ local function display_marks_impl()
     if vim.wo.wrap then
         local win_info = vim.fn.getwininfo(vim.fn.win_getid())
         local textoff = win_info and win_info[1] and win_info[1].textoff or 0
-        virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, vim.api.nvim_win_get_width(0) - textoff)
+        local win_width = vim.api.nvim_win_get_width(0) - textoff
+        local start_col, row_width = wrapped_row_slice(cursorline, leading_pad)
+        if start_col then
+            virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, row_width, start_col)
+        else
+            virt_line = VirtLine.fit_to_wrap(virt_line, cursorcol + leading_pad, win_width)
+        end
     end
 
     -- create (or overwrite) the extmark
