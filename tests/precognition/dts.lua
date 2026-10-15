@@ -33,13 +33,13 @@ local function add_failure(failures, failure)
 end
 
 local function check_cursor_candidate(failures, seed, line, cursorcol, candidate)
+    local expected = candidate.expected
     vim.fn.setcursorcharpos(2, cursorcol)
-    local before = cursor_position()
+    local before = expected.no_destination and cursor_position()
 
     feed_motion(candidate.input)
 
     local actual = cursor_position()
-    local expected = candidate.expected
     if expected.no_destination then
         if not same_position(before, actual) then
             add_failure(failures, {
@@ -167,7 +167,7 @@ local function check_repeat_candidates(
     failures,
     seed,
     line,
-    _cursorcol,
+    line_len,
     targeted_candidate,
     repeated_from,
     remaining_checks
@@ -176,13 +176,16 @@ local function check_repeat_candidates(
         return 0
     end
 
-    local repeat_hints = motions.repeat_targeted_motion_hints(
-        line,
-        repeated_from.col,
-        vim.fn.strcharlen(line),
-        nil,
-        vim.fn.getcharsearch()
-    )
+    -- The cursor just landed via this char search, so `;` or `,` can only move
+    -- it to another occurrence of the label. Skip the sim when there is none.
+    local label = targeted_candidate.label
+    local first = line:find(label, 1, true)
+    if not (first and line:find(label, first + #label, 1, true)) then
+        return 0
+    end
+
+    local repeat_hints =
+        motions.repeat_targeted_motion_hints(line, repeated_from.col, line_len, nil, vim.fn.getcharsearch())
     local checks = 0
     for _, hint in ipairs(repeat_hints) do
         if checks >= remaining_checks then
@@ -230,7 +233,7 @@ function M.test(seed, failures)
                     failures,
                     seed,
                     cur_line,
-                    cursorcol,
+                    line_len,
                     candidate,
                     actual,
                     MAX_REPEAT_CHECKS_PER_SEED - repeat_checks
