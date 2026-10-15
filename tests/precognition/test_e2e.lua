@@ -377,6 +377,113 @@ describe("e2e tests", function()
         ss(child.get_screenshot())
     end)
 
+    it("clips wrapped virtual lines to the cursor's visual row after wide characters", function()
+        local virt_line = child.lua_func(function()
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.o.columns = 40
+            vim.wo.wrap = true
+            vim.wo.signcolumn = "no"
+            vim.api.nvim_buf_set_lines(
+                0,
+                0,
+                -1,
+                false,
+                { string.rep("界", 15) .. "alpha beta gamma delta epsilon", "NEXT" }
+            )
+            vim.api.nvim_win_set_cursor(0, { 1, 15 * 3 + 13 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            return extmark[4].virt_lines[1][1][1]
+        end)
+
+        eq(" b   e w           $", virt_line)
+    end)
+
+    it("clips wrapped virtual lines to the cursor's visual row after a wide character wraps early", function()
+        local virt_line = child.lua_func(function()
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.o.columns = 40
+            vim.wo.wrap = true
+            vim.wo.signcolumn = "no"
+            vim.api.nvim_buf_set_lines(
+                0,
+                0,
+                -1,
+                false,
+                { string.rep("a", 39) .. "界" .. string.rep("b", 37) .. " gamma delta epsilon", "NEXT" }
+            )
+            vim.api.nvim_win_set_cursor(0, { 1, 39 + 3 + 37 + 1 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            return extmark[4].virt_lines[1][1][1]
+        end)
+
+        -- The hint line does not model the filler cell left by the early wrap,
+        -- so only the choice of segment is asserted here.
+        eq(true, vim.endswith(virt_line, "$"))
+    end)
+
+    it("clips wrapped virtual lines to the first row of a character that straddles the wrap", function()
+        local virt_line = child.lua_func(function()
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.o.columns = 40
+            vim.wo.wrap = true
+            vim.wo.signcolumn = "no"
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { string.rep("a", 39) .. "\1 beta gamma", "NEXT" })
+            vim.api.nvim_win_set_cursor(0, { 1, 39 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            return extmark[4].virt_lines[1][1][1]
+        end)
+
+        eq("b", vim.trim(virt_line))
+    end)
+
+    it("clips wrapped virtual lines to the last row of a tab that straddles the wrap", function()
+        local virt_line = child.lua_func(function()
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.o.columns = 42
+            vim.wo.wrap = true
+            vim.wo.signcolumn = "no"
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { string.rep("a", 41) .. "\tbeta gamma", "NEXT" })
+            vim.api.nvim_win_set_cursor(0, { 1, 41 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            return extmark[4].virt_lines[1][1][1]
+        end)
+
+        eq(true, vim.endswith(virt_line, "$"))
+    end)
+
+    it("clips wrapped virtual lines to the first row of a listed tab wider than the window", function()
+        local virt_line = child.lua_func(function()
+            require("precognition").setup({ targetedMotionHints = { enabled = false } })
+            vim.o.columns = 12
+            vim.wo.wrap = true
+            vim.wo.signcolumn = "no"
+            vim.wo.list = true
+            vim.wo.listchars = "tab:> "
+            vim.bo.tabstop = 16
+            vim.api.nvim_buf_set_lines(0, 0, -1, false, { "aaa\talpha beta gamma", "NEXT" })
+            vim.api.nvim_win_set_cursor(0, { 1, 3 })
+            vim.api.nvim_exec_autocmds("CursorMoved", { group = "precognition" })
+
+            local ns = vim.api.nvim_create_namespace("precognition")
+            local extmark = vim.api.nvim_buf_get_extmarks(0, ns, 0, -1, { details = true })[1]
+            return extmark[4].virt_lines[1][1][1]
+        end)
+
+        eq("b", vim.trim(virt_line))
+    end)
+
     it("screenshots clipped wrapped virtual lines with preserved chunk highlights", function()
         child.lua_func(function()
             require("precognition").setup()
