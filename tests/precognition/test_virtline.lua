@@ -262,6 +262,16 @@ describe("Wrapped Virtual Line", function()
         eq("         $", wrapped[1][1])
     end)
 
+    it("slices from an explicit start column when rows are not width-aligned", function()
+        local virtual_line = { { "abcdefghijklmnopqrstuvwxyz", "PrecognitionHighlight" } }
+
+        -- With 'linebreak' a row can start at any column, so the caller passes
+        -- the row's actual start instead of relying on a multiple of `width`.
+        local wrapped = VirtLine.fit_to_wrap(virtual_line, 1, 10, 12)
+
+        eq("mnopqrstuv", wrapped[1][1])
+    end)
+
     it("does not change short virtual lines", function()
         local virtual_line = { { "^   e w $", "PrecognitionHighlight" } }
 
