@@ -21,6 +21,8 @@ local last_text_object_anchors
 local last_text_object_ranges
 ---@type string?
 local last_labels_str
+---@type string?
+local last_labels_ambiwidth
 ---@type string[]?
 local last_labels
 
@@ -50,7 +52,9 @@ end
 ---@param str string
 ---@return string[]
 local function addressable_labels(str)
-    if last_labels_str == str and last_labels then
+    -- Label widths depend on 'ambiwidth', so it is part of the cache key.
+    local ambiwidth = vim.o.ambiwidth
+    if last_labels_str == str and last_labels_ambiwidth == ambiwidth and last_labels then
         return last_labels
     end
 
@@ -65,6 +69,7 @@ local function addressable_labels(str)
     end
 
     last_labels_str = str
+    last_labels_ambiwidth = ambiwidth
     last_labels = labels
     return labels
 end
