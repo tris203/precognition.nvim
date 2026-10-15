@@ -41,10 +41,11 @@ local function check_pos(string, col, default_config)
 
     vim.api.nvim_buf_call(buf, function()
         vim.api.nvim_buf_set_lines(buf, 0, -1, false, { "", string, "" })
+        vim.fn.setcursorcharpos(2, col)
+        local start_col = vim.fn.getcursorcharpos(0)[3]
         for _, motion_name in ipairs(locations) do
             local motion_key = default_config[motion_name].text
             vim.fn.setcursorcharpos(2, col)
-            local start_col = vim.fn.getcursorcharpos(0)[3]
             vim.cmd({ cmd = "normal", bang = true, args = { motion_key } })
             local cur_pos = vim.fn.getcursorcharpos(0)
             if cur_pos[2] == 2 then
