@@ -6,6 +6,7 @@
 ---@field private _gutter_group string
 ---@field private _gutter_name_prefix string
 ---@field private _gutter_signs_cache table<string, { line: integer, id: integer }>
+---@field private _gutter_changed boolean
 local Renderer = {}
 Renderer.__index = Renderer
 
@@ -22,6 +23,7 @@ function M.new()
         _gutter_group = "precognition_gutter",
         _gutter_name_prefix = "precognition_gutter_",
         _gutter_signs_cache = {},
+        _gutter_changed = false,
     }, Renderer)
     ---@cast renderer Precognition.Renderer
     return renderer
@@ -35,6 +37,7 @@ function Renderer:reset()
         end
     end
     vim.fn.sign_unplace(self._gutter_group)
+    self._gutter_changed = true
     self._ns = vim.api.nvim_create_namespace("precognition")
     self._range_ns = vim.api.nvim_create_namespace("precognition_text_object_ranges")
     self._extmark = nil
@@ -56,6 +59,9 @@ function Renderer:clear(bufnr)
     vim.api.nvim_buf_clear_namespace(bufnr, self._ns, 0, -1)
     vim.api.nvim_buf_clear_namespace(bufnr, self._range_ns, 0, -1)
     vim.fn.sign_unplace(self._gutter_group)
+    if next(self._gutter_signs_cache) then
+        self._gutter_changed = true
+    end
     self._gutter_signs_cache = {}
 end
 
@@ -129,6 +135,41 @@ function Renderer:clear_gutter_hint(hint)
     end
     vim.fn.sign_unplace(self._gutter_group, { id = self._gutter_signs_cache[hint].id })
     self._gutter_signs_cache[hint] = nil
+end
+
+---@return table<string, integer>
+function Renderer:gutter_hint_lines()
+    local lines = {}
+    for hint, sign in pairs(self._gutter_signs_cache) do
+        lines[hint] = sign.line
+    end
+    return lines
+end
+
+---@param hints table<string, any> -- hints to clear before placing
+---@param gutter_hints Precognition.PlannedGutterHint[]
+---@param bufnr integer
+function Renderer:replace_gutter_hints(hints, gutter_hints, bufnr)
+    local previous = self:gutter_hint_lines()
+    for hint, _ in pairs(hints) do
+        self:clear_gutter_hint(hint)
+    end
+
+    for _, gutter_hint in ipairs(gutter_hints) do
+        self:render_gutter_hint(gutter_hint.hint, gutter_hint.loc, bufnr, gutter_hint.text)
+    end
+
+    if not vim.deep_equal(previous, self:gutter_hint_lines()) then
+        self._gutter_changed = true
+    end
+end
+
+--- Whether the gutter signs changed since the last call.
+---@return boolean
+function Renderer:take_gutter_change()
+    local changed = self._gutter_changed
+    self._gutter_changed = false
+    return changed
 end
 
 ---@param bufnr integer
