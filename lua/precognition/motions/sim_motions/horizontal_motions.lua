@@ -19,6 +19,12 @@ local last_text_object_prefix
 local last_text_object_anchors
 ---@type Precognition.RangePreview[]?
 local last_text_object_ranges
+---@type string?
+local last_labels_str
+---@type string?
+local last_labels_ambiwidth
+---@type string[]?
+local last_labels
 
 local text_objects = {
     { key = '"', start_label = '"', end_label = '"', prio = 60 },
@@ -46,6 +52,12 @@ end
 ---@param str string
 ---@return string[]
 local function addressable_labels(str)
+    -- Label widths depend on 'ambiwidth', so it is part of the cache key.
+    local ambiwidth = vim.o.ambiwidth
+    if last_labels_str == str and last_labels_ambiwidth == ambiwidth and last_labels then
+        return last_labels
+    end
+
     local labels = {}
     local seen = {}
     for col = 1, vim.fn.strcharlen(str) do
@@ -55,6 +67,10 @@ local function addressable_labels(str)
             seen[char] = true
         end
     end
+
+    last_labels_str = str
+    last_labels_ambiwidth = ambiwidth
+    last_labels = labels
     return labels
 end
 
